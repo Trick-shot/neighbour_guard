@@ -4,7 +4,7 @@ import {Text, StyleSheet} from "react-native";
 const Login = () => {
     return(
       <AppScreen screenStyle={style.screenStyle}>
-          <Text>Welcome,</Text>
+          <Text >Welcome,</Text>
       </AppScreen>
     )
 }
