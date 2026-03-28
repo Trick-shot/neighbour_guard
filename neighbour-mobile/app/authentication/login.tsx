@@ -1,0 +1,126 @@
+import AppButton from "@/components/AppButton";
+import AppScreen from "@/components/AppScreen";
+import AppText from "@/components/AppText";
+import {useRouter} from "expo-router";
+import {useState} from "react";
+import {View, StyleSheet, TextInput, TouchableOpacity} from "react-native";
+import {Checkbox} from 'expo-checkbox';
+import GoogleIcon from '../../assets/icons/google.svg';
+import AppleIcon from '../../assets/icons/apple.svg';
+import colors from '../../Utilis/config'
+
+
+const Login = () => {
+    const [isChecked, setChecked] = useState(false)
+    const router = useRouter()
+
+    return (
+        <AppScreen screenStyle={style.screenStyle}>
+            <AppText styles={{
+                width: "100%",
+                textAlign: "center",
+                fontSize: 24
+            }}>Welcome Text</AppText>
+            <View style={{
+                gap: 21,
+                marginTop: 50
+            }}>
+                <TextInput
+                    style={style.formInput}
+                    placeholder="Email"
+                    placeholderTextColor={colors.black}
+                />
+                <TextInput
+                    style={style.formInput}
+                    placeholder="Password"
+                    placeholderTextColor={colors.black}
+
+                />
+            </View>
+            <View style={{marginTop: 95, flexDirection: "row", justifyContent: "space-between"}}>
+                <View style={{
+                    flexDirection: "row",
+                    gap: 8
+                }}>
+                    <AppText styles={{
+                        fontSize: 14
+                    }}>Remember Me</AppText>
+                    <Checkbox color={isChecked ? colors.primary : undefined} value={isChecked}
+                              onValueChange={setChecked}
+                              style={{
+                                  width: 20,
+                                  height: 17,
+                                  borderWidth: 0.1,
+                                  backgroundColor: "#D9D9D9",
+                                  borderRadius: 5,
+
+                              }}/>
+                </View>
+                <TouchableOpacity>
+                    <AppText styles={{
+                        fontSize: 14,
+                        color: colors.primary
+                    }}>Forgot Password ?</AppText>
+                </TouchableOpacity>
+            </View>
+            <AppButton buttonStyles={{
+                backgroundColor: colors.primary,
+                marginTop: 59,
+            }}>Login</AppButton>
+            <AppText styles={{
+                fontSize: 14,
+                width: "100%",
+                textAlign: "center",
+                marginTop: 93
+            }}>Or continue with</AppText>
+            <View style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+                marginTop: 41,
+                gap: 50
+            }}>
+                <TouchableOpacity>
+                    <GoogleIcon width={42} height={42}/>
+                </TouchableOpacity>
+                <TouchableOpacity>
+                    <AppleIcon width={55} height={55}/>
+                </TouchableOpacity>
+            </View>
+            <View style={{
+                justifyContent: "center",
+                flexDirection: "row",
+                gap: 5,
+                marginTop: 49
+            }}>
+                <AppText styles={{
+                    fontSize: 14
+                }}>Don&#39;t have an account?</AppText>
+                <TouchableOpacity onPress={() => router.navigate('/authentication/register')}>
+                    <AppText styles={{
+                        fontSize: 14,
+                        color: colors.primary
+                    }}>Register</AppText>
+                </TouchableOpacity>
+            </View>
+        </AppScreen>
+    )
+}
+
+const style = StyleSheet.create({
+    screenStyle: {
+        flex: 1,
+        backgroundColor: "#fff"
+    },
+    formInput: {
+        width: "100%",
+        height: 63,
+        borderColor: "#D9D9D9",
+        borderStyle: "solid",
+        borderWidth: 1,
+        paddingLeft: 18,
+        borderRadius: 15
+    }
+})
+
+export default Login;
