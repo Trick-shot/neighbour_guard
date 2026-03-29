@@ -13,8 +13,7 @@
       "icon": {
         "dark": "./assets/icons/ios-dark.png",
         "light": "./assets/icons/ios-light.png",
-        "tinted": "./assets/icons/ios-tinted.png",
-        "backgroundColor": "#0088FF"
+        "tinted": "./assets/icons/ios-tinted.png"
       },
       "bundleIdentifier": "com.trickshot.neighbourmobile",
       "infoPlist": {
@@ -54,7 +53,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     },
     "extra": {
       "router": {},

@@ -148,7 +148,7 @@ const Onboarding = () => {
                             color: "#fff"
                         }}>{carouselImages[currentPage].carouselBody}
                         </AppText>
-                        <AppButton>Get Started</AppButton>
+                        <AppButton onPress={() => router.navigate('/authentication/register')}>Get Started</AppButton>
                         <TouchableOpacity onPress={() => router.navigate("/authentication/login")} style={{
                             marginTop: 5,
                             flexDirection: "row",

@@ -6,7 +6,7 @@ import AppText from "@/components/AppText";
 import colors from "@/Utilis/config";
 import {useRouter} from "expo-router";
 import {StyleSheet, TextInput, TouchableOpacity, View} from "react-native";
-import ChevironRight from "../../assets/icons/chevron-right.svg"
+import ChevironRight from "@/assets/icons/chevron-right.svg"
 
 const register = () => {
     const router = useRouter();
@@ -23,13 +23,14 @@ const register = () => {
             }}>
                 <TextInput
                     style={style.formInput}
+                    placeholder="Full Name"
+                    placeholderTextColor={colors.black}
+
+                />
+                <TextInput
+                    style={style.formInput}
                     placeholder="Email"
                     placeholderTextColor={colors.black}
-                />
-                <TextInput
-                    style={style.formInput}
-                    placeholder="Password"
-                    placeholderTextColor={colors.black}
 
                 />
                 <TextInput
@@ -40,12 +41,12 @@ const register = () => {
                 />
                 <TextInput
                     style={style.formInput}
-                    placeholder="Password"
+                    placeholder="Confirmation Password"
                     placeholderTextColor={colors.black}
 
                 />
             </View>
-            <AppButton buttonStyles={{
+            <AppButton onPress={() => router.push("/authentication/verifyEmail")} buttonStyles={{
                 backgroundColor: colors.primary,
                 marginTop: 59,
                 width: 51,
@@ -82,7 +83,7 @@ const register = () => {
                 <AppText styles={{
                     fontSize: 14
                 }}>Already have an account?</AppText>
-                <TouchableOpacity onPress={() => router.navigate('/authentication/login')}>
+                <TouchableOpacity onPress={() => router.push('/authentication/login')}>
                     <AppText styles={{
                         fontSize: 14,
                         color: colors.primary
