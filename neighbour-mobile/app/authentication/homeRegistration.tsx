@@ -1,5 +1,6 @@
 import AppButton from "@/components/AppButton";
 import AppText from "@/components/AppText";
+import {useRouter} from "expo-router";
 import {TextInput, View, KeyboardAvoidingView, Platform} from "react-native";
 
 import LocationIcon from "@/assets/icons/location.svg"
@@ -8,6 +9,7 @@ import {KeyboardAwareScrollView, KeyboardToolbar} from "react-native-keyboard-co
 
 
 const homeRegistration = () => {
+    const router = useRouter()
     return (
         <View style={{
             flex: 1,
@@ -124,7 +126,7 @@ const homeRegistration = () => {
                 </KeyboardAwareScrollView>
                 <KeyboardToolbar/>
             </KeyboardAvoidingView>
-            <AppButton buttonStyles={{
+            <AppButton onPress={() => router.push('/authentication/allowLocation')} buttonStyles={{
                 backgroundColor: colors.primary
             }}>Register Your Residence</AppButton>
         </View>
