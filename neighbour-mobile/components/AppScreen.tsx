@@ -1,5 +1,5 @@
 import {ReactNode} from "react";
-import {StyleProp, ViewStyle, StyleSheet} from "react-native";
+import {StyleProp, ViewStyle, StyleSheet, TouchableOpacity} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 
 const AppScreen = ({children, screenStyle}: { children?: ReactNode; screenStyle?: StyleProp<ViewStyle> }) => {
