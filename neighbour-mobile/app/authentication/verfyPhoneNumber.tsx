@@ -47,12 +47,12 @@ const verifyPhoneNumber = () => {
             <AppText styles={{
                 fontSize: 24,
                 marginTop: 24
-            }}>Verify your email</AppText>
+            }}>OTP Verification</AppText>
             <AppText styles={{
                 fontSize: 14,
                 marginTop: 16,
                 color: "#A5A5A5"
-            }}>Please enter the 6-digit code sent to erickluoga@1722.com</AppText>
+            }}>Enter the OTP sent +255754375852</AppText>
             <View style={{
                 marginTop: 16,
 
@@ -89,7 +89,7 @@ const verifyPhoneNumber = () => {
                     Send Again
                 </AppText>
             </TouchableOpacity>
-            <AppButton onPress={() => router.push("/authentication/login")} buttonStyles={{
+            <AppButton onPress={() => router.push("/authentication/homeRegistration")} buttonStyles={{
                 backgroundColor: colors.primary,
                 marginTop: 59,
                 width: 51,

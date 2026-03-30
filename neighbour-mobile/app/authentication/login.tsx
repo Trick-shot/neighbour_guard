@@ -27,8 +27,9 @@ const Login = () => {
             }}>
                 <TextInput
                     style={style.formInput}
-                    placeholder="Email"
+                    placeholder="Password"
                     placeholderTextColor={colors.black}
+
                 />
                 <TextInput
                     style={style.formInput}

@@ -2,8 +2,8 @@ import {ReactNode} from "react";
 import {StyleProp, ViewStyle, StyleSheet} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 
-const AppScreen = ({children, screenStyle}: {children? : ReactNode; screenStyle? : StyleProp<ViewStyle>}) => {
-    return(
+const AppScreen = ({children, screenStyle}: { children?: ReactNode; screenStyle?: StyleProp<ViewStyle> }) => {
+    return (
         <SafeAreaView style={[style.containerStyle, screenStyle]}>
             {children}
         </SafeAreaView>
@@ -13,7 +13,7 @@ const AppScreen = ({children, screenStyle}: {children? : ReactNode; screenStyle?
 const style = StyleSheet.create({
     containerStyle: {
         paddingHorizontal: 16,
-        paddingTop:11
+        paddingTop: 24
     }
 })
 export default AppScreen;
