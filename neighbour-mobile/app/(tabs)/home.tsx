@@ -8,7 +8,7 @@ import {useEffect, useState} from "react";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function Index() {
+const home = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [hasUser, setHasUser] = useState(false);
 
@@ -26,7 +26,7 @@ export default function Index() {
         } catch (error) {
             console.error("Failed to load user:", error);
         } finally {
-            setIsLoading(false);
+            // setIsLoading(false);
             await SplashScreen.hideAsync();
         }
     };
@@ -36,7 +36,9 @@ export default function Index() {
         );
     }
 
-    if (hasUser) return null; // already redirected
+    if (hasUser) return null;
 
     return <Onboarding/>;
 }
+
+export default home;

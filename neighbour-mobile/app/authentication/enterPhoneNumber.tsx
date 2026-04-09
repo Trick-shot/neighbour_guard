@@ -49,15 +49,15 @@ const enterPhoneNumber = () => {
                 }}
                 placeholder="Phone Number"
                 placeholderTextColor={colors.black}
-
-            /> <AppButton onPress={() => router.push("/authentication/verfyPhoneNumber")} buttonStyles={{
-            backgroundColor: colors.primary,
-            marginTop: 59,
-            width: 51,
-            height: 51,
-            borderRadius: 25,
-            alignSelf: "flex-end"
-        }}><ChevironRight width={24} height={24}/></AppButton>
+            />
+            <AppButton onPress={() => router.push("/authentication/verfyPhoneNumber")} buttonStyles={{
+                backgroundColor: colors.primary,
+                marginTop: 59,
+                width: 51,
+                height: 51,
+                borderRadius: 25,
+                alignSelf: "flex-end"
+            }}><ChevironRight width={24} height={24}/></AppButton>
         </AppScreen>
     )
 }

@@ -11,4 +11,7 @@ config.resolver.assetExts = config.resolver.assetExts.filter(
 );
 config.resolver.sourceExts.push("svg");
 
+// Lottie support
+config.resolver.assetExts.push("lottie");
+
 module.exports = config;

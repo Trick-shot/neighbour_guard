@@ -3,6 +3,7 @@ import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import colors from "@/Utilis/config";
+import {navigate} from "expo-router/build/global-state/routing";
 import {useState} from "react";
 import {View} from "react-native";
 import * as Location from 'expo-location';
@@ -55,7 +56,7 @@ const allowLocation = () => {
                     }}>Allow access to your location to find your residence.</AppText>
                 </View>
             </View>
-            <AppButton onPress={() => getlocation()} buttonStyles={{
+            <AppButton onPress={() => navigate("authentication/addPhoto")} buttonStyles={{
                 backgroundColor: colors.primary
             }}>All location</AppButton>
         </AppScreen>
