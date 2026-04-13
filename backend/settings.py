@@ -36,18 +36,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework_simplejwt',
     'debug_toolbar',
     'rest_framework',
     'core',
     'main'
-
 ]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -96,6 +97,23 @@ EMAIL_HOST_USER = "erickluoga1722@yahoo.com"
 EMAIL_HOST_PASSWORD = "vpkpbtflxmprtndj"
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:8080",
+# ]
+DOMAIN = "http://localhost:8000"
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+LANGUAGE_CODE = 'en-us'
+
+TIME_ZONE = 'UTC'
+
+USE_I18N = True
+
+USE_TZ = True
+
+DATE_INPUT_FORMATS = ['%d-%m-%Y']
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databasess
