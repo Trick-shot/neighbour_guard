@@ -1,12 +1,13 @@
+import {navigate} from "expo-router/build/global-state/routing";
+import {useState} from "react";
+import {View} from "react-native";
+import * as Location from 'expo-location';
+
 import LocationIcon from "@/assets/icons/location.svg";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import colors from "@/Utilis/config";
-import {navigate} from "expo-router/build/global-state/routing";
-import {useState} from "react";
-import {View} from "react-native";
-import * as Location from 'expo-location';
 
 
 const allowLocation = () => {

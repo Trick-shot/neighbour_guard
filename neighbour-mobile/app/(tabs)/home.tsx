@@ -1,13 +1,14 @@
-import LoadingScreen from "@/components/LoadingScreen";
-import * as SplashScreen from "expo-splash-screen";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import {router} from "expo-router";
-import {StatusBar} from "expo-status-bar";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
+import {StatusBar} from "expo-status-bar";
 import {View, Text, StyleSheet} from "react-native";
 import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';
+import * as SplashScreen from "expo-splash-screen";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {router} from "expo-router";
+
+import LoadingScreen from "@/components/LoadingScreen";
 
 
 SplashScreen.preventAutoHideAsync();
@@ -33,7 +34,7 @@ const home = () => {
             const user = await AsyncStorage.getItem("user");
             if (user) {
                 setHasUser(true);
-                router.replace("/(tabs)/home"); // adjust to your issues route
+                router.replace("/(tabs)/home");
             }
         } catch (error) {
             console.error("Failed to load user:", error);

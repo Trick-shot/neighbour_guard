@@ -1,10 +1,11 @@
+import {useRouter} from "expo-router";
+import {TextInput, View} from "react-native";
+
 import ChevironRight from "@/assets/icons/chevron-right.svg";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import colors from "@/Utilis/config";
-import {useRouter} from "expo-router";
-import {TextInput, View} from "react-native";
 
 const enterPhoneNumber = () => {
     const router = useRouter();
