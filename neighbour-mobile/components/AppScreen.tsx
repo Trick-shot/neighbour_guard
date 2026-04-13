@@ -12,6 +12,8 @@ const AppScreen = ({children, screenStyle}: { children?: ReactNode; screenStyle?
 
 const style = StyleSheet.create({
     containerStyle: {
+        flex: 1,
+        backgroundColor: "#fff",
         paddingHorizontal: 16,
         paddingTop: 24
     }

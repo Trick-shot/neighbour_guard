@@ -1,12 +1,12 @@
-import AppScreen from "@/components/AppScreen";
 import LottieView from "lottie-react-native";
 import React, {useRef} from 'react';
+import {View, StyleSheet} from "react-native";
 
 const LoadingScreen = () => {
     const ref = useRef<LottieView>(null);
 
     return (
-        <AppScreen screenStyle={{flex: 1, justifyContent: "center", alignItems: "center"}}>
+        <View style={styles.overlay}>
             <LottieView
                 ref={ref}
                 source={require('../assets/animation/dotLoader.json')}
@@ -14,8 +14,20 @@ const LoadingScreen = () => {
                 loop={true}
                 autoPlay={true}
             />
-        </AppScreen>
+        </View>
     );
 };
+
+const styles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: "#fff",
+        zIndex: 999,
+    }
+})
 
 export default LoadingScreen;

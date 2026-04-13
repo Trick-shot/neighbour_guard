@@ -8,7 +8,7 @@ import colors from "@/Utilis/config"
 import {KeyboardAwareScrollView, KeyboardToolbar} from "react-native-keyboard-controller";
 
 
-const homeRegistration = () => {
+const HomeRegistration = () => {
     const router = useRouter()
     return (
         <View style={{
@@ -133,4 +133,4 @@ const homeRegistration = () => {
 
     )
 }
-export default homeRegistration;
+export default HomeRegistration;

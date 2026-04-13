@@ -3,93 +3,184 @@ import GoogleIcon from "@/assets/icons/google.svg";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
+import LoadingScreen from "@/components/LoadingScreen";
 import colors from "@/Utilis/config";
 import {useRouter} from "expo-router";
+import {Formik} from "formik";
+import {useState} from "react";
 import {StyleSheet, TextInput, TouchableOpacity, View} from "react-native";
 import ChevironRight from "@/assets/icons/chevron-right.svg"
+import * as Yup from "yup";
+import authApi from '../../api/auth'
 
-const register = () => {
+const validationSchema = Yup.object().shape({
+    fullName: Yup.string().required().label('full name').max(30).min(3),
+    email: Yup.string().email().required(),
+    password: Yup.string().required().min(4),
+    confirmPassword: Yup.string().required().label('confirm password'),
+});
+
+
+const Register = () => {
     const router = useRouter();
+    const [isLoading, setIsLoading] = useState(false)
+    const [registerFailed, setRegisterFailed] = useState(false)
+    const [errorMessage, setErrorMessage] = useState("")
+
+
+    const onSubmit = async ({fullName, email, password, confirmPassword}) => {
+        setIsLoading(true);
+        setErrorMessage("");
+
+        const results = await authApi.register(fullName, email, password, confirmPassword);
+
+        setIsLoading(false);
+
+        if (!results.ok) {
+            setRegisterFailed(true);
+            if (results.data?.email) {
+                setErrorMessage(results.data.email);
+            } else if (results.data?.non_field_errors) {
+                setErrorMessage(results.data.non_field_errors);
+            } else {
+                setErrorMessage("An error occurred, please try again");
+            }
+            return; // values stay in form automatically since Formik manages them
+        }
+
+        router.navigate({
+            pathname: "./verifyEmail",
+            params: {email}
+        });
+    }
+
     return (
         <AppScreen>
-            <AppText styles={{
-                width: "100%",
-                textAlign: "center",
-                fontSize: 24
-            }}>Get started</AppText>
-            <View style={{
-                gap: 21,
-                marginTop: 50
-            }}>
-                <TextInput
-                    style={style.formInput}
-                    placeholder="Full Name"
-                    placeholderTextColor={colors.black}
+            {isLoading && <LoadingScreen/>}
+            <Formik initialValues={{
+                fullName: "",
+                email: "",
+                password: "",
+                confirmPassword: ""
+            }} onSubmit={onSubmit}
+                    validationSchema={validationSchema}>
+                {({handleSubmit, handleChange, errors, values}) => (
+                    <>
+                        <AppText styles={{
+                            width: "100%",
+                            textAlign: "center",
+                            fontSize: 24
+                        }}>Get started</AppText>
 
-                />
-                <TextInput
-                    style={style.formInput}
-                    placeholder="Email"
-                    placeholderTextColor={colors.black}
+                        <View style={{
+                            marginTop: 8,
+                            justifyContent: "space-evenly",
+                            height: 430
+                        }}>
+                            <TextInput
+                                style={style.formInput}
+                                placeholder="Full Name"
+                                placeholderTextColor={colors.black}
+                                onChangeText={handleChange('fullName')}
+                                value={values.fullName}
 
-                />
-                <TextInput
-                    style={style.formInput}
-                    placeholder="Password"
-                    placeholderTextColor={colors.black}
+                            />
+                            {
+                                errors.fullName && <AppText styles={style.errorMessage}>{errors.fullName}</AppText>
+                            }
+                            <TextInput
+                                style={style.formInput}
+                                placeholder="Email"
+                                placeholderTextColor={colors.black}
+                                onChangeText={handleChange('email')}
+                                value={values.email}
 
-                />
-                <TextInput
-                    style={style.formInput}
-                    placeholder="Confirmation Password"
-                    placeholderTextColor={colors.black}
+                            />
+                            {
+                                errors.email && <AppText styles={style.errorMessage}>{errors.email}</AppText>
+                            }
+                            <TextInput
+                                style={style.formInput}
+                                placeholder="Password"
+                                placeholderTextColor={colors.black}
+                                onChangeText={handleChange('password')}
+                                value={values.password}
 
-                />
-            </View>
-            <AppButton onPress={() => router.push("/authentication/verifyEmail")} buttonStyles={{
-                backgroundColor: colors.primary,
-                marginTop: 59,
-                width: 51,
-                height: 51,
-                borderRadius: 25,
-                alignSelf: "flex-end"
-            }}><ChevironRight width={24} height={24}/></AppButton>
-            <AppText styles={{
-                fontSize: 14,
-                width: "100%",
-                textAlign: "center",
-                marginTop: 45
-            }}>Or continue with</AppText>
-            <View style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                alignItems: "center",
-                marginTop: 41,
-                gap: 50
-            }}>
-                <TouchableOpacity>
-                    <GoogleIcon width={42} height={42}/>
-                </TouchableOpacity>
-                <TouchableOpacity>
-                    <AppleIcon width={55} height={55}/>
-                </TouchableOpacity>
-            </View>
-            <View style={{
-                justifyContent: "center",
-                flexDirection: "row",
-                gap: 5,
-                marginTop: 49
-            }}>
-                <AppText styles={{
-                    fontSize: 14
-                }}>Already have an account?</AppText>
-                <TouchableOpacity onPress={() => router.push('/authentication/login')}>
-                    <AppText styles={{
-                        fontSize: 14,
-                        color: colors.primary
-                    }}>sign in</AppText>
-                </TouchableOpacity>
-            </View>
+                            />
+                            {
+                                errors.password && <AppText styles={style.errorMessage}>{errors.password}</AppText>
+                            }
+                            <TextInput
+                                style={style.formInput}
+                                placeholder="Confirmation Password"
+                                placeholderTextColor={colors.black}
+                                onChangeText={handleChange('confirmPassword')}
+
+                            />
+                            {
+                                errors.confirmPassword &&
+                                <AppText styles={style.errorMessage}>{errors.confirmPassword}</AppText>
+                            }
+
+                            <AppText styles={{
+                                width: "100%",
+                                textAlign: "center",
+                                marginTop: 20,
+                                fontSize: 12
+                            }}>{errorMessage}</AppText>
+                        </View>
+                        <View style={{
+                            position: "absolute",
+                            alignSelf: 'center',
+                            top: 500,
+                            width: "100%"
+                        }}>
+                            <AppButton onPress={handleSubmit} buttonStyles={{
+                                backgroundColor: colors.primary,
+                                marginTop: 59,
+                                width: "100%"
+                            }}>register</AppButton>
+                            <AppText styles={{
+                                fontSize: 14,
+                                width: "100%",
+                                textAlign: "center",
+                                marginTop: 45
+                            }}>Or continue with</AppText>
+                            <View style={{
+                                flexDirection: "row",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                marginTop: 30,
+                                gap: 50
+                            }}>
+                                <TouchableOpacity>
+                                    <GoogleIcon width={42} height={42}/>
+                                </TouchableOpacity>
+                                <TouchableOpacity>
+                                    <AppleIcon width={55} height={55}/>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={{
+                                justifyContent: "center",
+                                flexDirection: "row",
+                                gap: 5,
+                                marginTop: 30
+                            }}>
+                                <AppText styles={{
+                                    fontSize: 14
+                                }}>Already have an account?</AppText>
+                                <TouchableOpacity onPress={() => router.push('/authentication/login')}>
+                                    <AppText styles={{
+                                        fontSize: 14,
+                                        color: colors.primary
+                                    }}>sign in</AppText>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </>
+                )}
+
+            </Formik>
         </AppScreen>
     )
 }
@@ -100,13 +191,18 @@ const style = StyleSheet.create({
     },
     formInput: {
         width: "100%",
-        height: 63,
+        height: 56,
         borderColor: "#D9D9D9",
         borderStyle: "solid",
         borderWidth: 1,
         paddingLeft: 18,
         borderRadius: 15
+    },
+    errorMessage: {
+        fontSize: 9,
+        color: "red"
+
     }
 })
 
-export default register;
+export default Register;
