@@ -1,32 +1,41 @@
-import ChevironRight from "@/assets/icons/chevron-right.svg";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
 import colors from "@/Utilis/config";
 import {useRouter, useLocalSearchParams} from "expo-router";
-import {useState} from "react";
-import {StyleSheet, View, Text, Platform, TouchableOpacity} from "react-native";
-import type {TextInputProps} from 'react-native';
-import {CodeField, Cursor, useBlurOnFulfill, useClearByFocusCell} from 'react-native-confirmation-code-field';
+import {useState, useEffect} from "react";
+import {StyleSheet, View} from "react-native";
 import VerifyIllustration from '@/assets/illustrations/verifyEmail.svg'
+import authApi from '../../api/auth'
 
-const CELL_COUNT = 4;
-const autoComplete = Platform.select<TextInputProps['autoComplete']>({
-    android: 'sms-otp',
-    default: 'one-time-code',
-});
 
 const VerifyEmail = () => {
-    const [value, setValue] = useState('');
-    const ref = useBlurOnFulfill({value, cellCount: CELL_COUNT});
-    const [props, getCellOnLayoutHandler] = useClearByFocusCell({
-        value,
-        setValue,
-    });
     const router = useRouter();
-    const {email} = useLocalSearchParams();
+    const {email, password} = useLocalSearchParams();
     const [isLoading, setIsLoading] = useState(false)
+
+    useEffect(() => {
+        const checkVerified = async () => {
+            const results = await authApi.login(email as string, password as string);
+            if (results.ok) {
+                setIsLoading(true)
+                clearInterval(interval);
+                setIsLoading(false)
+                router.navigate('./enterPhoneNumber')
+            }
+        }
+
+        const interval = setInterval(checkVerified, 5000)
+
+        return () => clearInterval(interval)
+    }, [])
+
+    const handleResend = async () => {
+        setIsLoading(true);
+        await authApi.resendActivation(email as string);
+        setIsLoading(false);
+    }
 
 
     return (
@@ -70,7 +79,7 @@ const VerifyEmail = () => {
             }}>
                 <VerifyIllustration width={233} height={233}/>
             </View>
-            <AppButton buttonStyles={{
+            <AppButton onPress={handleResend} buttonStyles={{
                 marginTop: "70%",
                 backgroundColor: colors.primary
             }}>Resend Link</AppButton>
@@ -97,7 +106,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#D9D9D9',
         textAlign: 'center',
-        color: '#000', // text color
+        color: '#000',
     },
     focusCell: {
         borderColor: '#000',

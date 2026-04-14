@@ -10,6 +10,8 @@ const register = (fullName: string, email: string, password: string, re_password
     "password": password,
     "re_password": re_password
 });
-const resendEmailConfirmation = (email: string) => apiClient.post("/auth/users/resend_activation/", {"email": email});
 
-export default {login, register, resendEmailConfirmation}
+const resendActivation = (email: string) =>
+    apiClient.post('/auth/users/resend_activation/', {email});
+
+export default {login, register, resendActivation}

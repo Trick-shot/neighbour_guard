@@ -50,7 +50,7 @@ const Register = () => {
 
         router.navigate({
             pathname: "./verifyEmail",
-            params: {email}
+            params: {email, password}
         });
     }
 
