@@ -17,7 +17,10 @@ const validationSchema = Yup.object().shape({
     fullName: Yup.string().required().label('full name').max(30).min(3),
     email: Yup.string().email().required(),
     password: Yup.string().required().min(4),
-    confirmPassword: Yup.string().required().label('confirm password'),
+    confirmPassword: Yup.string()
+        .required('Confirm your password')
+        .oneOf([Yup.ref('password')], 'Passwords must match')
+        .label('confirm password'),
 });
 
 
@@ -64,7 +67,7 @@ const Register = () => {
                 confirmPassword: ""
             }} onSubmit={onSubmit}
                     validationSchema={validationSchema}>
-                {({handleSubmit, handleChange, errors, values}) => (
+                {({handleSubmit, handleChange, errors, values, handleBlur, touched}) => (
                     <>
                         <AppText styles={{
                             width: "100%",
@@ -83,10 +86,11 @@ const Register = () => {
                                 placeholderTextColor={colors.black}
                                 onChangeText={handleChange('fullName')}
                                 value={values.fullName}
-
+                                onBlur={handleBlur('fullName')}
                             />
                             {
-                                errors.fullName && <AppText styles={style.errorMessage}>{errors.fullName}</AppText>
+                                errors.fullName && touched.fullName &&
+                                <AppText styles={style.errorMessage}>{errors.fullName}</AppText>
                             }
                             <TextInput
                                 style={style.formInput}
@@ -94,10 +98,11 @@ const Register = () => {
                                 placeholderTextColor={colors.black}
                                 onChangeText={handleChange('email')}
                                 value={values.email}
-
+                                onBlur={handleBlur('email')}
                             />
                             {
-                                errors.email && <AppText styles={style.errorMessage}>{errors.email}</AppText>
+                                errors.email && touched.email &&
+                                <AppText styles={style.errorMessage}>{errors.email}</AppText>
                             }
                             <TextInput
                                 style={style.formInput}
@@ -105,20 +110,21 @@ const Register = () => {
                                 placeholderTextColor={colors.black}
                                 onChangeText={handleChange('password')}
                                 value={values.password}
-
+                                onBlur={handleBlur('password')}
                             />
                             {
-                                errors.password && <AppText styles={style.errorMessage}>{errors.password}</AppText>
+                                errors.password && touched.password &&
+                                <AppText styles={style.errorMessage}>{errors.password}</AppText>
                             }
                             <TextInput
                                 style={style.formInput}
                                 placeholder="Confirmation Password"
                                 placeholderTextColor={colors.black}
                                 onChangeText={handleChange('confirmPassword')}
-
+                                onBlur={handleBlur('confirmPassword')}
                             />
                             {
-                                errors.confirmPassword &&
+                                errors.confirmPassword && touched.confirmPassword &&
                                 <AppText styles={style.errorMessage}>{errors.confirmPassword}</AppText>
                             }
 
@@ -135,7 +141,7 @@ const Register = () => {
                             top: 500,
                             width: "100%"
                         }}>
-                            <AppButton onPress={handleSubmit} buttonStyles={{
+                            <AppButton onPress={() => router.push('/authentication/verfyPhoneNumber')} buttonStyles={{
                                 backgroundColor: colors.primary,
                                 marginTop: 59,
                                 width: "100%"

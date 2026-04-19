@@ -1,4 +1,3 @@
-import ChevironRight from "@/assets/icons/chevron-right.svg";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
@@ -15,7 +14,7 @@ const autoComplete = Platform.select<TextInputProps['autoComplete']>({
     default: 'one-time-code',
 });
 
-const verifyPhoneNumber = () => {
+const VerifyPhoneNumber = () => {
     const [value, setValue] = useState('');
     const ref = useBlurOnFulfill({value, cellCount: CELL_COUNT});
     const [props, getCellOnLayoutHandler] = useClearByFocusCell({
@@ -27,82 +26,82 @@ const verifyPhoneNumber = () => {
 
     return (
         <AppScreen screenStyle={styles.screen}>
-            <View style={{
-                borderWidth: 1,
-                width: 57,
-                height: 31,
-                borderRadius: 20,
-                justifyContent: "center",
-                alignItems: "center",
-                alignSelf: "flex-end",
-                borderColor: "#A5A5A5"
-            }}>
+            <View>
+                <View style={{
+                    borderWidth: 1,
+                    width: 57,
+                    height: 31,
+                    borderRadius: 20,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    alignSelf: "flex-end",
+                    borderColor: "#A5A5A5"
+                }}>
+                    <AppText styles={{
+                        fontSize: 14,
+                        color: '#A5A5A5'
+                    }}>
+                        3/3
+                    </AppText>
+                </View>
+                <AppText styles={{
+                    fontSize: 24,
+                    marginTop: 24
+                }}>OTP Verification</AppText>
                 <AppText styles={{
                     fontSize: 14,
-                    color: '#A5A5A5'
-                }}>
-                    1/3
-                </AppText>
-            </View>
-            <AppText styles={{
-                fontSize: 24,
-                marginTop: 24
-            }}>OTP Verification</AppText>
-            <AppText styles={{
-                fontSize: 14,
-                marginTop: 16,
-                color: "#A5A5A5"
-            }}>Enter the OTP sent +255754375852</AppText>
-            <View style={{
-                marginTop: 16,
-
-            }}>
-                <CodeField
-                    ref={ref}
-                    value={value}
-                    onChangeText={setValue}
-                    cellCount={CELL_COUNT}
-                    rootStyle={styles.codeFieldRoot}
-                    keyboardType="number-pad"
-                    textContentType="oneTimeCode"
-                    autoFocus={true}
-                    autoComplete={autoComplete}
-                    testID="my-code-input"
-                    renderCell={({index, symbol, isFocused}) => (
-                        <Text
-                            key={index}
-                            style={[styles.cell, isFocused && styles.focusCell]}
-                            onLayout={getCellOnLayoutHandler(index)}>
-                            {symbol || (isFocused && <Cursor/>)}
-                        </Text>
-                    )}
-                />
-            </View>
-            <TouchableOpacity>
-                <AppText styles={{
-                    textAlign: "center",
-                    fontSize: 14,
-                    marginTop: 24,
-                    textDecorationLine: "underline"
+                    marginTop: 16,
+                    color: "#A5A5A5"
+                }}>Enter the OTP sent +255754375852</AppText>
+                <View style={{
+                    marginTop: 16,
 
                 }}>
-                    Send Again
-                </AppText>
-            </TouchableOpacity>
-            <AppButton onPress={() => router.push("/authentication/homeRegistration")} buttonStyles={{
+                    <CodeField
+                        ref={ref}
+                        value={value}
+                        onChangeText={setValue}
+                        cellCount={CELL_COUNT}
+                        rootStyle={styles.codeFieldRoot}
+                        keyboardType="number-pad"
+                        textContentType="oneTimeCode"
+                        autoFocus={true}
+                        autoComplete={autoComplete}
+                        testID="my-code-input"
+                        renderCell={({index, symbol, isFocused}) => (
+                            <Text
+                                key={index}
+                                style={[styles.cell, isFocused && styles.focusCell]}
+                                onLayout={getCellOnLayoutHandler(index)}>
+                                {symbol || (isFocused && <Cursor/>)}
+                            </Text>
+                        )}
+                    />
+                </View>
+                <TouchableOpacity>
+                    <AppText styles={{
+                        textAlign: "center",
+                        fontSize: 14,
+                        marginTop: 24,
+                        textDecorationLine: "underline"
+
+                    }}>
+                        Send Again
+                    </AppText>
+                </TouchableOpacity>
+            </View>
+            <AppButton onPress={() => router.push('/authentication/homeRegistration')} buttonStyles={{
                 backgroundColor: colors.primary,
-                marginTop: 59,
-                width: 51,
-                height: 51,
-                borderRadius: 25,
-                alignSelf: "flex-end"
-            }}><ChevironRight width={24} height={24}/></AppButton>
+                width: "100%"
+            }}>register</AppButton>
         </AppScreen>
     )
 }
 
 const styles = StyleSheet.create({
-    screen: {},
+    screen: {
+        justifyContent: "space-between"
+    },
     root: {
         flex: 1,
         padding: 20
@@ -127,4 +126,4 @@ const styles = StyleSheet.create({
 
 })
 
-export default verifyPhoneNumber;
+export default VerifyPhoneNumber;

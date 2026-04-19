@@ -12,9 +12,9 @@ const apiClient = create({baseURL});
 
 apiClient.addAsyncRequestTransform(async (request) => {
     const authToken = await authStorage.getToken();
-    if (!authToken) {
-        return;
-    }
+    if (!authToken) return;
+
+    request.headers = request.headers || {};
     request.headers['Authorization'] = `JWT ${authToken}`;
 })
 

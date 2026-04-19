@@ -15,7 +15,8 @@ const style = StyleSheet.create({
         flex: 1,
         backgroundColor: "#fff",
         paddingHorizontal: 16,
-        paddingTop: 24
+        paddingTop: 24,
+        paddingBottom: 34
     }
 })
 export default AppScreen;

@@ -1,5 +1,6 @@
+import {useRouter} from "expo-router";
 import {navigate} from "expo-router/build/global-state/routing";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {View} from "react-native";
 import * as Location from 'expo-location';
 
@@ -10,9 +11,12 @@ import AppText from "@/components/AppText";
 import colors from "@/Utilis/config";
 
 
-const allowLocation = () => {
+const AllowLocation = () => {
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+    const router = useRouter()
+
 
     const getlocation = async () => {
         let {status} = await Location.requestForegroundPermissionsAsync()
@@ -21,7 +25,15 @@ const allowLocation = () => {
             return;
         }
         let location = await Location.getCurrentPositionAsync();
+        router.navigate({
+            pathname: '/authentication/setHomeLocation',
+            params: {
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+            }
+        })
         setLocation(location);
+        console.log(location)
     }
 
     return (
@@ -57,11 +69,11 @@ const allowLocation = () => {
                     }}>Allow access to your location to find your residence.</AppText>
                 </View>
             </View>
-            <AppButton onPress={() => navigate("authentication/addPhoto")} buttonStyles={{
+            <AppButton onPress={() => getlocation()} buttonStyles={{
                 backgroundColor: colors.primary
             }}>All location</AppButton>
         </AppScreen>
     )
 }
 
-export default allowLocation;
+export default AllowLocation;

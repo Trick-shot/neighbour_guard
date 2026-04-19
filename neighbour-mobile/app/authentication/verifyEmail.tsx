@@ -56,7 +56,7 @@ const VerifyEmail = () => {
                     fontSize: 14,
                     color: '#A5A5A5'
                 }}>
-                    1/3
+                    1 / 3
                 </AppText>
             </View>
             <AppText styles={{
