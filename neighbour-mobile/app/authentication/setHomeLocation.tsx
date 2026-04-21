@@ -1,14 +1,46 @@
 import AppButton from "@/components/AppButton";
 import AppText from "@/components/AppText";
-import {useLocalSearchParams} from "expo-router";
+import LoadingScreen from "@/components/LoadingScreen";
+import {LocationType} from "@/types/AuthTypes";
+import {useLocalSearchParams, useRouter} from "expo-router";
 import {useCallback, useEffect, useRef, useState} from "react";
-import {View, StyleSheet, Text} from "react-native";
+import {StyleSheet} from "react-native";
 import MapView, {PROVIDER_GOOGLE, Marker} from "react-native-maps";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
+import authApi from '../../api/auth'
+
 
 const SetHomeLocation = () => {
     const [ready, setReady] = useState(false);
+    const [location, setLocation] = useState<LocationType>({
+        latitude: 0,
+        longitude: 0,
+        latitudeDelta: 0,
+        longitudeDelta: 0
+    });
+
+    const [isLoading, setIsLoading] = useState(false)
+    const router = useRouter()
+    const [errorMessage, setErrorMessage] = useState("")
+
+
+    const setOnLocation = async () => {
+        try {
+            console.log(location)
+            setIsLoading(true)
+            const results = authApi.setLocation(location.latitude, location.longitude, location.longitudeDelta, location.latitudeDelta);
+            if (!results.ok) {
+                setIsLoading(false)
+            }
+            router.push("../(tabs)/home.tsx");
+        } catch (error) {
+            console.log("ERROR:", error);
+        } finally {
+            setIsLoading(false)
+        }
+
+    }
 
     // ref
     const bottomSheetRef = useRef<BottomSheet>(null);
@@ -37,12 +69,19 @@ const SetHomeLocation = () => {
                 longitudeDelta: 0.0006,
             }, 1000);
         }
+        setLocation({
+            latitude: lat,
+            longitude: lng,
+            latitudeDelta: 0.0006,
+            longitudeDelta: 0.0006,
+        })
     }, [ready]);
 
     if (!lat || !lng) return null;
 
     return (
         <GestureHandlerRootView style={styles.container}>
+            {isLoading && <LoadingScreen/>}
             <MapView
                 onMapReady={() => setReady(true)}
                 ref={mapRef}
@@ -83,10 +122,7 @@ const SetHomeLocation = () => {
                     snapPoints={['30%']}
                 >
                     <BottomSheetView style={styles.contentContainer}>
-                        <AppText styles={{
-                            fontSize: 14
-                        }}>Set Home Residence By Draging the icon</AppText>
-                        <AppButton>Set location</AppButton>
+                        <AppButton onPress={() => setOnLocation()}>Set Location</AppButton>
                     </BottomSheetView>
                 </BottomSheet>
             </MapView>
@@ -104,10 +140,10 @@ const styles = StyleSheet.create({
     contentContainer: {
         flex: 1,
         height: "100%",
-        padding: 8,
+        padding: 26,
         alignItems: 'center',
-        justifyContent: "space-between",
-        paddingBottom: 68
+        justifyContent: "space-evenly",
+        paddingBottom: 52
     },
 });
 

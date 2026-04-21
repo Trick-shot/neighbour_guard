@@ -1,13 +1,20 @@
 import AppButton from "@/components/AppButton";
 import AppText from "@/components/AppText";
+import LoadingScreen from "@/components/LoadingScreen";
+import {HomeTypes} from "@/types/AuthTypes";
+import {awaitExpression} from "@babel/types";
 import {useRouter} from "expo-router";
 import {Formik} from "formik";
+import {useState} from "react";
 import {TextInput, View, KeyboardAvoidingView, Platform, StyleSheet} from "react-native";
 
 import HomeIcon from "@/assets/icons/homeIcon.svg"
 import colors from "@/Utilis/config"
 import {KeyboardAwareScrollView} from "react-native-keyboard-controller";
 import * as Yup from "yup";
+
+import authApi from '../../api/auth'
+
 
 const validationSchema = Yup.object().shape({
     houseNumber: Yup.string().required().label('House number').required(),
@@ -18,24 +25,39 @@ const validationSchema = Yup.object().shape({
 
 const HomeRegistration = () => {
     const router = useRouter()
+    const [isLoading, setIsLoading] = useState(false)
+    const [registerFailed, setRegisterFailed] = useState(false)
 
-    const handleSubmit = () => {
-        console.log("submit")
+
+    const onSubmit = async (values: HomeTypes) => {
+        setIsLoading(true)
+        try {
+            const results = await authApi.registerHome(values);
+            console.log("RESULT:", results);
+
+            router.push("/authentication/allowLocation");
+        } catch (error) {
+            console.log("ERROR:", error);
+            setRegisterFailed(true);
+        } finally {
+            setIsLoading(false);
+        }
+
     }
     return (
-
         <View style={{
             flex: 1,
             paddingBottom: 100,
             paddingHorizontal: 16,
             paddingTop: 64
         }}>
+            {isLoading && <LoadingScreen/>}
             <Formik initialValues={{
                 houseNumber: "",
                 streetName: "",
                 district: "",
                 residenceName: "",
-            }} onSubmit={handleSubmit} validationSchema={validationSchema}>
+            }} onSubmit={onSubmit} validationSchema={validationSchema}>
                 {({handleSubmit, handleChange, errors, values, handleBlur, touched}) => (
                     <>
                         <KeyboardAvoidingView
@@ -131,7 +153,7 @@ const HomeRegistration = () => {
                                 </View>
                             </KeyboardAwareScrollView>
                         </KeyboardAvoidingView>
-                        <AppButton onPress={() => router.navigate("../authentication/allowLocation")} buttonStyles={{
+                        <AppButton onPress={handleSubmit} buttonStyles={{
                             backgroundColor: colors.primary,
                         }}>Register Your Residence</AppButton>
                     </>)}
