@@ -1,4 +1,4 @@
-interface HomeTypes {
+export interface HomeTypes {
     residenceName: string,
     houseNumber: string,
     location: null,
@@ -6,12 +6,10 @@ interface HomeTypes {
     district: string
 }
 
-type LocationType = {
+export interface LocationType {
     id?: number;
     latitude: number | null;
     longitude: number | null;
     latitudeDelta: number | null;
     longitudeDelta: number | null;
-};
-
-export {HomeTypes, LocationType}
+}

@@ -15,12 +15,14 @@ const LoadingScreen = () => {
             <LottieView
                 ref={ref}
                 source={require('../assets/animation/dotLoader.json')}
-                style={{width: 108, height: 108, marginBottom: 200}}
+                style={{width: 110, height: 110, marginBottom: 200}}
                 autoPlay={true}
+                loop
             />
         </View>
     );
 };
+
 
 const styles = StyleSheet.create({
     overlay: {
@@ -31,7 +33,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: "#fff",
         zIndex: 999,
+        elevation: 10,
     }
-})
+});
+
 
 export default LoadingScreen;

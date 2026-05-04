@@ -5,6 +5,7 @@ import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
 import colors from "@/Utilis/config";
+import {ApiResponse} from "apisauce";
 import {useRouter} from "expo-router";
 import {Formik} from "formik";
 import {useState} from "react";
@@ -31,14 +32,18 @@ const Register = () => {
     const [errorMessage, setErrorMessage] = useState("")
 
 
-    const onSubmit = async ({fullName, email, password, confirmPassword}) => {
+    const onSubmit = async ({fullName, email, password, confirmPassword}: {
+        fullName: string,
+        email: string,
+        password: string,
+        confirmPassword: string
+    }) => {
         setIsLoading(true);
         setErrorMessage("");
 
-        const results = await authApi.register(fullName, email, password, confirmPassword);
-
+        const results: ApiResponse<any> = await authApi.register(fullName, email, password, confirmPassword);
+        console.log(results)
         setIsLoading(false);
-
         if (!results.ok) {
             setRegisterFailed(true);
             if (results.data?.email) {
@@ -48,7 +53,7 @@ const Register = () => {
             } else {
                 setErrorMessage("An error occurred, please try again");
             }
-            return; // values stay in form automatically since Formik manages them
+            return;
         }
 
         router.navigate({
@@ -78,56 +83,80 @@ const Register = () => {
                         <View style={{
                             marginTop: 8,
                             justifyContent: "space-evenly",
-                            height: 430
+                            height: 430,
+                            position: "relative"
                         }}>
-                            <TextInput
-                                style={style.formInput}
-                                placeholder="Full Name"
-                                placeholderTextColor={colors.black}
-                                onChangeText={handleChange('fullName')}
-                                value={values.fullName}
-                                onBlur={handleBlur('fullName')}
-                            />
-                            {
-                                errors.fullName && touched.fullName &&
-                                <AppText styles={style.errorMessage}>{errors.fullName}</AppText>
-                            }
-                            <TextInput
-                                style={style.formInput}
-                                placeholder="Email"
-                                placeholderTextColor={colors.black}
-                                onChangeText={handleChange('email')}
-                                value={values.email}
-                                onBlur={handleBlur('email')}
-                            />
-                            {
-                                errors.email && touched.email &&
-                                <AppText styles={style.errorMessage}>{errors.email}</AppText>
-                            }
-                            <TextInput
-                                style={style.formInput}
-                                placeholder="Password"
-                                placeholderTextColor={colors.black}
-                                onChangeText={handleChange('password')}
-                                value={values.password}
-                                onBlur={handleBlur('password')}
-                            />
-                            {
-                                errors.password && touched.password &&
-                                <AppText styles={style.errorMessage}>{errors.password}</AppText>
-                            }
-                            <TextInput
-                                style={style.formInput}
-                                placeholder="Confirmation Password"
-                                placeholderTextColor={colors.black}
-                                onChangeText={handleChange('confirmPassword')}
-                                onBlur={handleBlur('confirmPassword')}
-                            />
-                            {
-                                errors.confirmPassword && touched.confirmPassword &&
-                                <AppText styles={style.errorMessage}>{errors.confirmPassword}</AppText>
-                            }
-
+                            <View>
+                                <TextInput
+                                    style={style.formInput}
+                                    placeholder="Full Name"
+                                    placeholderTextColor={colors.black}
+                                    onChangeText={handleChange('fullName')}
+                                    value={values.fullName}
+                                    onBlur={handleBlur('fullName')}
+                                />
+                                <View style={{
+                                    top: 8
+                                }}>
+                                    {
+                                        errors.fullName && touched.fullName &&
+                                        <AppText styles={style.errorMessage}>{errors.fullName}</AppText>
+                                    }
+                                </View>
+                            </View>
+                            <View>
+                                <TextInput
+                                    style={style.formInput}
+                                    placeholder="Email"
+                                    placeholderTextColor={colors.black}
+                                    onChangeText={handleChange('email')}
+                                    value={values.email}
+                                    onBlur={handleBlur('email')}
+                                />
+                                <View style={{
+                                    top: 8
+                                }}>
+                                    {
+                                        errors.email && touched.email &&
+                                        <AppText styles={style.errorMessage}>{errors.email}</AppText>
+                                    }
+                                </View>
+                            </View>
+                            <View>
+                                <TextInput
+                                    style={style.formInput}
+                                    placeholder="Password"
+                                    placeholderTextColor={colors.black}
+                                    onChangeText={handleChange('password')}
+                                    value={values.password}
+                                    onBlur={handleBlur('password')}
+                                />
+                                <View style={{
+                                    top: 8
+                                }}>
+                                    {
+                                        errors.password && touched.password &&
+                                        <AppText styles={style.errorMessage}>{errors.password}</AppText>
+                                    }
+                                </View>
+                            </View>
+                            <View>
+                                <TextInput
+                                    style={style.formInput}
+                                    placeholder="Confirmation Password"
+                                    placeholderTextColor={colors.black}
+                                    onChangeText={handleChange('confirmPassword')}
+                                    onBlur={handleBlur('confirmPassword')}
+                                />
+                                <View style={{
+                                    top: 8
+                                }}>
+                                    {
+                                        errors.confirmPassword && touched.confirmPassword &&
+                                        <AppText styles={style.errorMessage}>{errors.confirmPassword}</AppText>
+                                    }
+                                </View>
+                            </View>
                             <AppText styles={{
                                 width: "100%",
                                 textAlign: "center",
@@ -141,7 +170,7 @@ const Register = () => {
                             top: 500,
                             width: "100%"
                         }}>
-                            <AppButton onPress={() => router.push('/authentication/verfyPhoneNumber')} buttonStyles={{
+                            <AppButton onPress={handleSubmit} buttonStyles={{
                                 backgroundColor: colors.primary,
                                 marginTop: 59,
                                 width: "100%"
@@ -175,7 +204,8 @@ const Register = () => {
                                 <AppText styles={{
                                     fontSize: 14
                                 }}>Already have an account?</AppText>
-                                <TouchableOpacity onPress={() => router.push('/authentication/login')}>
+                                <TouchableOpacity disabled={isLoading}
+                                                  onPress={() => router.push('/authentication/login')}>
                                     <AppText styles={{
                                         fontSize: 14,
                                         color: colors.primary
@@ -206,8 +236,8 @@ const style = StyleSheet.create({
     },
     errorMessage: {
         fontSize: 9,
-        color: "red"
-
+        color: "red",
+        position: "absolute"
     }
 })
 
