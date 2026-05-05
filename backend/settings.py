@@ -26,7 +26,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['167.86.72.150', 'www.trickshot.tech', 'trickshot.tech', '127.0.0.1', 'test.trickshot.tech']
 
 # Application definition
 

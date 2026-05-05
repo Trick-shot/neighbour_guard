@@ -215,7 +215,6 @@ const Register = () => {
                         </View>
                     </>
                 )}
-
             </Formik>
         </AppScreen>
     )
