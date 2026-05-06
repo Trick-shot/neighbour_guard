@@ -35,4 +35,9 @@ const setLocation = (id: number, latitude: number | null, longitude: number | nu
 const resendActivation = (email: string) =>
     apiClient.post('/auth/users/resend_activation/', {email});
 
-export default {login, register, resendActivation, registerHome, setLocation}
+const requestOtpCodes = (otp: string, phoneNumber: string) => apiClient.post("/auth/send-otp/", {
+    "phone_number": phoneNumber,
+    "otp": otp
+})
+
+export default {login, register, resendActivation, registerHome, setLocation, requestOtpCodes}

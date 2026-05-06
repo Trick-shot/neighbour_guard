@@ -2,7 +2,6 @@ import AppButton from "@/components/AppButton";
 import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
 import {HomeTypes} from "@/types/AuthTypes";
-import {awaitExpression} from "@babel/types";
 import {useRouter} from "expo-router";
 import {Formik} from "formik";
 import {useState} from "react";
@@ -35,7 +34,10 @@ const HomeRegistration = () => {
             const results = await authApi.registerHome(values);
             console.log("RESULT:", results);
 
-            router.push("/authentication/allowLocation");
+            router.push({
+                path:"/authentication/allowLocation"
+                params: {values.email}
+            });
         } catch (error) {
             console.log("ERROR:", error);
             setRegisterFailed(true);

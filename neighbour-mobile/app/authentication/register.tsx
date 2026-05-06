@@ -161,7 +161,8 @@ const Register = () => {
                                 width: "100%",
                                 textAlign: "center",
                                 marginTop: 20,
-                                fontSize: 12
+                                fontSize: 12,
+                                color: "red",
                             }}>{errorMessage}</AppText>
                         </View>
                         <View style={{
@@ -241,3 +242,4 @@ const style = StyleSheet.create({
 })
 
 export default Register;
+

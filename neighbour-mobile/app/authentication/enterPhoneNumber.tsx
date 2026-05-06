@@ -1,4 +1,4 @@
-import {useRouter} from "expo-router";
+import {useLocalSearchParams, useRouter} from "expo-router";
 import {TextInput, View} from "react-native";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
@@ -6,20 +6,30 @@ import AppText from "@/components/AppText";
 import colors from "@/Utilis/config";
 import {Formik} from "formik";
 import * as Yup from "yup";
+import authApi from "../../api/auth";
 
 const validationSchema = Yup.object().shape({
-    phone: Yup.string().required().label('phone number').max(15).min(10),
+    phoneNumber: Yup.string()
+        .required()
+        .label('Phone number')
+        .max(15)
+        .min(10),
 });
-
 
 const EnterPhoneNumber = () => {
     const router = useRouter();
+    const {email} = useLocalSearchParams<{ email: string }>();
 
-    const onSubmit = async (phone: string) => {
-        router.push({
-            pathname: "/authentication/verfyPhoneNumber",
-            params: {phone}
-        });
+    const onSubmit = async (values: { phoneNumber: string }) => {
+        try {
+            await authApi.requestOtpCodes(email, values.phoneNumber);
+            router.push({
+                pathname: "/authentication/verfyPhoneNumber",
+                params: {phoneNumber: values.phoneNumber}
+            });
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     return (
@@ -27,55 +37,70 @@ const EnterPhoneNumber = () => {
             justifyContent: "space-between",
             paddingBottom: 20
         }}>
-            <Formik initialValues={{
-                phone: ""
-            }} onSubmit={onSubmit} validationSchema={validationSchema}>
-                {() => (
-                    <>      <View>
-                        <View style={{
-                            borderWidth: 1,
-                            width: 57,
-                            height: 31,
-                            borderRadius: 20,
-                            justifyContent: "center",
-                            alignItems: "center",
-                            alignSelf: "flex-end",
-                            borderColor: "#A5A5A5"
-                        }}>
-                            <AppText styles={{
-                                fontSize: 14,
-                                color: '#A5A5A5'
-                            }}>2 / 3
-                            </AppText>
-                        </View>
-                        <AppText styles={{
-                            fontSize: 24,
-                            marginTop: 24
-                        }}>Enter your phone number</AppText>
-                        <AppText styles={{
-                            fontSize: 14,
-                            marginTop: 16,
-                            color: "#A5A5A5"
-                        }}>We will send you the 4 digit verification code</AppText>
-                        <TextInput
-                            style={{
-                                width: "100%",
-                                height: 63,
-                                borderColor: "#D9D9D9",
-                                borderStyle: "solid",
+            <Formik
+                initialValues={{phoneNumber: ""}}
+                onSubmit={onSubmit}
+                validationSchema={validationSchema}
+            >
+                {({handleSubmit, handleChange, values, errors, touched}) => (
+                    <>
+                        <View>
+                            <View style={{
                                 borderWidth: 1,
-                                paddingLeft: 18,
-                                borderRadius: 15,
-                                marginTop: 32
-                            }}
-                            placeholder="Phone Number"
-                            placeholderTextColor={colors.black}
-                        />
-                    </View>
-                        <AppButton onPress={() => router.navigate('./verfyPhoneNumber')} buttonStyles={{
-                            marginTop: "70%",
-                            backgroundColor: colors.primary
-                        }}>Continue</AppButton></>
+                                width: 57,
+                                height: 31,
+                                borderRadius: 20,
+                                justifyContent: "center",
+                                alignItems: "center",
+                                alignSelf: "flex-end",
+                                borderColor: "#A5A5A5"
+                            }}>
+                                <AppText styles={{fontSize: 14, color: '#A5A5A5'}}>
+                                    2 / 3
+                                </AppText>
+                            </View>
+
+                            <AppText styles={{fontSize: 24, marginTop: 24}}>
+                                Enter your phone number
+                            </AppText>
+
+                            <AppText styles={{fontSize: 14, marginTop: 16, color: "#A5A5A5"}}>
+                                We will send you a 6 digit verification code
+                            </AppText>
+
+                            <TextInput
+                                style={{
+                                    width: "100%",
+                                    height: 63,
+                                    borderColor: touched.phoneNumber && errors.phoneNumber
+                                        ? "red"
+                                        : "#D9D9D9",
+                                    borderWidth: 1,
+                                    paddingLeft: 18,
+                                    borderRadius: 15,
+                                    marginTop: 32
+                                }}
+                                placeholder="e.g. +255712345678"
+                                placeholderTextColor={colors.black}
+                                keyboardType="phone-pad"
+                                value={values.phoneNumber}
+                                onChangeText={handleChange('phoneNumber')}
+                            />
+
+                            {touched.phoneNumber && errors.phoneNumber && (
+                                <AppText styles={{color: 'red', marginTop: 8, fontSize: 12}}>
+                                    {errors.phoneNumber}
+                                </AppText>
+                            )}
+                        </View>
+
+                        <AppButton
+                            onPress={() => handleSubmit()}
+                            buttonStyles={{backgroundColor: colors.primary}}
+                        >
+                            Continue
+                        </AppButton>
+                    </>
                 )}
             </Formik>
         </AppScreen>
