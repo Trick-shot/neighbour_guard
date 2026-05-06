@@ -14,6 +14,7 @@ const Login = () => {
     const [isChecked, setChecked] = useState(false)
     const router = useRouter()
 
+
     return (
         <AppScreen screenStyle={style.screenStyle}>
             <AppText styles={{
@@ -68,31 +69,12 @@ const Login = () => {
                 backgroundColor: colors.primary,
                 marginTop: 59,
             }}>Login</AppButton>
-            <AppText styles={{
-                fontSize: 14,
-                width: "100%",
-                textAlign: "center",
-                marginTop: 93
-            }}>Or continue with</AppText>
-            <View style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                alignItems: "center",
-                marginTop: 41,
-                gap: 50
-            }}>
-                <TouchableOpacity>
-                    <GoogleIcon width={42} height={42}/>
-                </TouchableOpacity>
-                <TouchableOpacity>
-                    <AppleIcon width={55} height={55}/>
-                </TouchableOpacity>
-            </View>
+
             <View style={{
                 justifyContent: "center",
                 flexDirection: "row",
                 gap: 5,
-                marginTop: 49
+                marginTop: "60%"
             }}>
                 <AppText styles={{
                     fontSize: 14

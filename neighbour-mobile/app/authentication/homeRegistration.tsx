@@ -34,9 +34,10 @@ const HomeRegistration = () => {
             const results = await authApi.registerHome(values);
             console.log("RESULT:", results);
 
-            router.push({
-                path:"/authentication/allowLocation"
-                params: {values.email}
+
+            router.navigate({
+                path: "/authentication/allowLocation",
+                params: {email: values.email}
             });
         } catch (error) {
             console.log("ERROR:", error);

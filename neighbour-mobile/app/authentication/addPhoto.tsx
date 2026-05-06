@@ -19,12 +19,14 @@ const addPhoto = () => {
             }}>
                 <AppText styles={{
                     width: "100%",
-                    textAlign: "left"
+                    backgroundColor: "green",
+                    fontSize: 16
                 }}>
                     Add Photo
                 </AppText>
                 <AppText styles={{
-                    marginTop: 24
+                    marginTop: 24,
+                    fontSize: 16
                 }}>
                     Personalize your account with a photo. you can always change later
                 </AppText>
@@ -41,7 +43,7 @@ const addPhoto = () => {
             }}>
                 <AppButton buttonStyles={{
                     backgroundColor: colors.primary,
-                    height: 63
+                    height: 50,
                 }}>Set Up Profile Pic</AppButton>
                 <TouchableOpacity onPress={() => navigate("/(tabs)/home")}>
                     <AppText styles={{

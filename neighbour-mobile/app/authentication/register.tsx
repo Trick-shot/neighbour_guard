@@ -176,31 +176,11 @@ const Register = () => {
                                 marginTop: 59,
                                 width: "100%"
                             }}>register</AppButton>
-                            <AppText styles={{
-                                fontSize: 14,
-                                width: "100%",
-                                textAlign: "center",
-                                marginTop: 45
-                            }}>Or continue with</AppText>
-                            <View style={{
-                                flexDirection: "row",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                marginTop: 30,
-                                gap: 50
-                            }}>
-                                <TouchableOpacity>
-                                    <GoogleIcon width={42} height={42}/>
-                                </TouchableOpacity>
-                                <TouchableOpacity>
-                                    <AppleIcon width={55} height={55}/>
-                                </TouchableOpacity>
-                            </View>
                             <View style={{
                                 justifyContent: "center",
                                 flexDirection: "row",
                                 gap: 5,
-                                marginTop: 30
+                                marginTop: "40%"
                             }}>
                                 <AppText styles={{
                                     fontSize: 14

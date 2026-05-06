@@ -1,10 +1,36 @@
 import AppScreen from "@/components/AppScreen";
+import AppText from "@/components/AppText";
+import {useState} from "react";
+import {StyleSheet} from "react-native";
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
 
-const index = () => {
+
+const Index = () => {
+    const [selectedIndex, setSelectedIndex] = useState(0)
     return (
-        <AppScreen>
-
+        <AppScreen screenStyle={styles.screen}>
+            <AppText styles={{
+                textAlign: "center",
+                fontWeight: "500",
+                fontSize: 17
+            }}>
+                Issues
+            </AppText>
+            <SegmentedControl
+                style={{
+                    marginTop: 20
+                }}
+                values={['Community', 'Neighbours']}
+                selectedIndex={selectedIndex}
+                onChange={(event) => {
+                    setSelectedIndex(event.nativeEvent.selectedSegmentIndex);
+                }}
+            />
         </AppScreen>
     )
 }
-export default index;
+
+const styles = StyleSheet.create({
+    screen: {}
+})
+export default Index;

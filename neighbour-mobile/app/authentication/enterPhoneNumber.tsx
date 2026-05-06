@@ -1,5 +1,5 @@
 import {useLocalSearchParams, useRouter} from "expo-router";
-import {TextInput, View} from "react-native";
+import {TextInput, View, Alert} from "react-native";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
@@ -12,8 +12,10 @@ const validationSchema = Yup.object().shape({
     phoneNumber: Yup.string()
         .required()
         .label('Phone number')
-        .max(15)
-        .min(10),
+        .matches(
+            /^(\+255|255|0)[0-9]{9}$/,
+            'Enter a valid Tanzanian phone number e.g. 0712345678'
+        ),
 });
 
 const EnterPhoneNumber = () => {
@@ -22,13 +24,18 @@ const EnterPhoneNumber = () => {
 
     const onSubmit = async (values: { phoneNumber: string }) => {
         try {
-            await authApi.requestOtpCodes(email, values.phoneNumber);
+            const phoneNumber = values.phoneNumber.trim()
+            await authApi.requestOtpCodes(email, phoneNumber)
             router.push({
                 pathname: "/authentication/verfyPhoneNumber",
-                params: {phoneNumber: values.phoneNumber}
+                params: {phoneNumber}
             });
-        } catch (e) {
-            console.log(e);
+        } catch (e: any) {
+            console.log(e?.response?.data)
+            Alert.alert(
+                'Error',
+                e?.response?.data?.error || 'Failed to send OTP. Try again.'
+            )
         }
     }
 
@@ -42,7 +49,7 @@ const EnterPhoneNumber = () => {
                 onSubmit={onSubmit}
                 validationSchema={validationSchema}
             >
-                {({handleSubmit, handleChange, values, errors, touched}) => (
+                {({handleSubmit, handleChange, values, errors, touched, handleBlur}) => (
                     <>
                         <View>
                             <View style={{
@@ -80,11 +87,13 @@ const EnterPhoneNumber = () => {
                                     borderRadius: 15,
                                     marginTop: 32
                                 }}
-                                placeholder="e.g. +255712345678"
-                                placeholderTextColor={colors.black}
+                                placeholder="e.g. 0712345678"
+                                placeholderTextColor={colors.TGrey50}
                                 keyboardType="phone-pad"
+                                maxLength={10}
                                 value={values.phoneNumber}
                                 onChangeText={handleChange('phoneNumber')}
+                                onBlur={handleBlur('phoneNumber')}
                             />
 
                             {touched.phoneNumber && errors.phoneNumber && (

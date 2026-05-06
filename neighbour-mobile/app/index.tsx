@@ -1,4 +1,5 @@
 import Onboarding from "@/app/authentication/onboarding";
+import AddPhoto from "@/app/authentication/addPhoto";
 import LoadingScreen from "@/components/LoadingScreen";
 import * as SplashScreen from "expo-splash-screen";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -21,7 +22,7 @@ export default function Index() {
             const user = await AsyncStorage.getItem("user");
             if (user) {
                 setHasUser(true);
-                router.replace("/(tabs)/home"); // adjust to your issues route
+                router.replace("/(tabs)/home");
             }
         } catch (error) {
             console.error("Failed to load user:", error);
@@ -38,5 +39,5 @@ export default function Index() {
 
     if (hasUser) return null; // already redirected
 
-    return <Onboarding/>;
+    return <AddPhoto/>;
 }
