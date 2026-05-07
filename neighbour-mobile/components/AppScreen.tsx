@@ -3,6 +3,7 @@ import {StyleProp, ViewStyle, StyleSheet} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 
 const AppScreen = ({children, screenStyle}: { children?: ReactNode; screenStyle?: StyleProp<ViewStyle> }) => {
+
     return (
         <SafeAreaView style={[style.containerStyle, screenStyle]}>
             {children}

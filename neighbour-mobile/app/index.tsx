@@ -22,7 +22,7 @@ export default function Index() {
             const user = await AsyncStorage.getItem("user");
             if (user) {
                 setHasUser(true);
-                router.replace("/(tabs)/home");
+                router.replace("/(tabs)");
             }
         } catch (error) {
             console.error("Failed to load user:", error);

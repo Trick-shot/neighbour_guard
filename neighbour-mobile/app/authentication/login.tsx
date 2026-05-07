@@ -13,8 +13,7 @@ import colors from '../../Utilis/config'
 const Login = () => {
     const [isChecked, setChecked] = useState(false)
     const router = useRouter()
-
-
+    
     return (
         <AppScreen screenStyle={style.screenStyle}>
             <AppText styles={{

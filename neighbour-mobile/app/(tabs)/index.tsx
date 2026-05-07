@@ -13,7 +13,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 
 SplashScreen.preventAutoHideAsync();
 
-const Home = () => {
+const Index = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [hasUser, setHasUser] = useState(false);
 
@@ -89,4 +89,4 @@ const Home = () => {
     );
 }
 
-export default Home;
+export default Index;

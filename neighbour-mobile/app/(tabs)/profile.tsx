@@ -14,10 +14,9 @@ import UserProfile from "@/assets/icons/UserProfile.svg"
 import Logout from "@/assets/icons/Logout.svg"
 
 
-const Index = () => {
+const Profile = () => {
     const menuRef = useRef<MenuComponentRef>(null);
     const router = useRouter()
-
 
     return (
         <AppScreen screenStyle={styles.screen}>
@@ -63,7 +62,7 @@ const Index = () => {
                     <TouchableOpacity onPress={() => router.push("/personalInformation")}
                                       style={{
                                           padding: 20,
-                                          backgroundColor: colors.UIGrey20,
+                                          backgroundColor: "rgba(233,233,233,0.2)",
                                           borderRadius: 20,
                                           flexDirection: "row",
                                           alignItems: "center",
@@ -99,7 +98,7 @@ const Index = () => {
                     }}>General</AppText>
                     <TouchableOpacity style={{
                         padding: 20,
-                        backgroundColor: colors.UIGrey20,
+                        backgroundColor: "rgba(233,233,233,0.2)",
                         borderRadius: 20,
                         flexDirection: "row",
                         alignItems: "center",
@@ -126,7 +125,7 @@ const Index = () => {
                     </TouchableOpacity>
                     <TouchableOpacity style={{
                         padding: 20,
-                        backgroundColor: colors.UIGrey20,
+                        backgroundColor: "rgba(233,233,233,0.2)",
                         borderRadius: 20,
                         flexDirection: "row",
                         alignItems: "center",
@@ -173,4 +172,4 @@ const styles = StyleSheet.create({
         borderRadius: 15
     }
 });
-export default Index;
+export default Profile;

@@ -45,7 +45,7 @@ const addPhoto = () => {
                     backgroundColor: colors.primary,
                     height: 50,
                 }}>Set Up Profile Pic</AppButton>
-                <TouchableOpacity onPress={() => navigate("/(tabs)/home")}>
+                <TouchableOpacity onPress={() => navigate("/(tabs)")}>
                     <AppText styles={{
                         fontSize: 16
                     }}>

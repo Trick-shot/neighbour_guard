@@ -1,10 +1,10 @@
 import AppScreen from "@/components/AppScreen";
 
-const index = () => {
+const message = () => {
     return (
         <AppScreen>
 
         </AppScreen>
     )
 }
-export default index;
+export default message;
