@@ -1,13 +1,16 @@
+import UserComponent from "@/components/home/UserComponent";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
 import {StatusBar} from "expo-status-bar";
-import {View, Text, StyleSheet} from "react-native";
+import {View, Text, StyleSheet, TouchableOpacity, Pressable} from "react-native";
 import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';
 import * as SplashScreen from "expo-splash-screen";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {router} from "expo-router";
-
+import AlertIcon from "@/assets/icons/alertIcon.svg";
+import BellIcon from "@/assets/icons/bellFill.svg";
+import MapLocation from "@/assets/icons/mapLocation.svg";
 import LoadingScreen from "@/components/LoadingScreen";
 
 
@@ -34,7 +37,7 @@ const Index = () => {
             const user = await AsyncStorage.getItem("user");
             if (user) {
                 setHasUser(true);
-                router.replace("/(tabs)/home");
+                router.replace("/(tabs)");
             }
         } catch (error) {
             console.error("Failed to load user:", error);
@@ -63,8 +66,44 @@ const Index = () => {
                 longitudeDelta: 0.05,
             }} style={{
                 width: "100%",
-                height: "100%"
-            }}/>
+                height: "100%",
+            }}>
+                <View style={{
+                    flex: 1,
+                    paddingTop: 48,
+                    paddingHorizontal: 16
+                }}>
+                    <View style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        width: "100%"
+                    }}>
+                        <Pressable>
+                            <AlertIcon/>
+                        </Pressable>
+                        <View style={{
+                            alignItems: "center",
+                            gap: 40
+                        }}>
+                            <Pressable style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: 10,
+                                justifyContent: "center",
+                                alignItems: "center",
+                                backgroundColor: "rgba(120,120,128,1.6)"
+                            }}>
+                                <BellIcon/>
+                            </Pressable>
+                            <Pressable>
+                                <MapLocation/>
+                            </Pressable>
+                        </View>
+                    </View>
+
+                </View>
+            </MapView>
             <GestureHandlerRootView style={{
                 flex: 1,
                 ...StyleSheet.absoluteFillObject
@@ -72,15 +111,17 @@ const Index = () => {
                 <BottomSheet
                     ref={bottomSheetRef}
                     onChange={handleSheetChanges}
-                    snapPoints={['100%']}
-                    index={0}
+                    snapPoints={['22%']}
+                    index={1}
                 >
                     <BottomSheetView style={{
                         height: "20%",
                         padding: 36,
-                        alignItems: 'center',
+                        paddingTop: 14,
+                        paddingHorizontal: 24,
+                        alignItems: 'flex-start',
                     }}>
-                        <Text>Awesome 🎉</Text>
+                        <UserComponent/>
                     </BottomSheetView>
                 </BottomSheet>
             </GestureHandlerRootView>

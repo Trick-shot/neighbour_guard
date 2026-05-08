@@ -28,7 +28,6 @@ const Profile = () => {
                         width: 100,
                         height: 100,
                         borderRadius: 50,
-                        backgroundColor: "green"
                     }}
                     source="https://picsum.photos/seed/696/3000/2000"
                     contentFit="cover"
@@ -59,7 +58,7 @@ const Profile = () => {
                         fontSize: 16,
                         fontWeight: "bold",
                     }}>Residence Information</AppText>
-                    <TouchableOpacity onPress={() => router.push("/personalInformation")}
+                    <TouchableOpacity onPress={() => router.push("/profile/personalInformation")}
                                       style={{
                                           padding: 20,
                                           backgroundColor: "rgba(233,233,233,0.2)",

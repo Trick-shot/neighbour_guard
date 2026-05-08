@@ -88,7 +88,7 @@ const EnterPhoneNumber = () => {
                                     marginTop: 32
                                 }}
                                 placeholder="e.g. 0712345678"
-                                placeholderTextColor={colors.TGrey50}
+                                placeholderTextColor={colors.TGrey60}
                                 keyboardType="phone-pad"
                                 maxLength={10}
                                 value={values.phoneNumber}

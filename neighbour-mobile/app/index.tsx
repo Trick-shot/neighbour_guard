@@ -37,7 +37,6 @@ export default function Index() {
         );
     }
 
-    if (hasUser) return null; // already redirected
-
-    return <AddPhoto/>;
+    if (hasUser) return null;
+    return <Onboarding/>;
 }

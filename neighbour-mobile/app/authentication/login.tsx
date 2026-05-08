@@ -5,29 +5,27 @@ import {useRouter} from "expo-router";
 import {useState} from "react";
 import {View, StyleSheet, TextInput, TouchableOpacity} from "react-native";
 import {Checkbox} from 'expo-checkbox';
-import GoogleIcon from '../../assets/icons/google.svg';
-import AppleIcon from '../../assets/icons/apple.svg';
 import colors from '../../Utilis/config'
 
 
 const Login = () => {
     const [isChecked, setChecked] = useState(false)
     const router = useRouter()
-    
+
     return (
         <AppScreen screenStyle={style.screenStyle}>
             <AppText styles={{
                 width: "100%",
                 textAlign: "center",
                 fontSize: 24
-            }}>Welcome Text</AppText>
+            }}>Welcome Back</AppText>
             <View style={{
-                gap: 21,
+                gap: 31,
                 marginTop: 50
             }}>
                 <TextInput
                     style={style.formInput}
-                    placeholder="Password"
+                    placeholder="email"
                     placeholderTextColor={colors.black}
 
                 />
@@ -64,7 +62,7 @@ const Login = () => {
                     }}>Forgot Password ?</AppText>
                 </TouchableOpacity>
             </View>
-            <AppButton buttonStyles={{
+            <AppButton onPress={() => router.navigate("/(tabs)")} buttonStyles={{
                 backgroundColor: colors.primary,
                 marginTop: 59,
             }}>Login</AppButton>
