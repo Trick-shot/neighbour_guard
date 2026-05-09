@@ -1,3 +1,4 @@
+from django.db.models import Model
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Profile, Residence, Location
@@ -12,9 +13,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(write_only=True)
+
     class Meta:
         model = Profile
-        fields = ['user', 'profile_pic', 'phone_number']
+        fields = ['email', 'user', 'profile_pic', 'phone_number']
 
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -24,40 +27,29 @@ class LocationSerializer(serializers.ModelSerializer):
 
 
 class ResidenceSerializer(serializers.ModelSerializer):
-    residence_members = UserSerializer()
+    residence_members = UserSerializer(many=True, read_only=True)
+    email = serializers.EmailField(write_only=True)
     location = LocationSerializer(required=False, allow_null=True)
 
     class Meta:
         model = Residence
-        fields = ['id', 'residence_members', 'residence_name', 'house_number', 'location', 'street_name', 'district']
-
-    def create(self, validated_data):
-        email = validated_data.get('email')
+        fields = ['id', 'email', 'residence_members', 'residence_name', 'house_number', 'location', 'street_name',
+                  'district']
 
     def update(self, instance, validated_data):
-        location_data = validated_data.pop('location', None)
+        location_data = validated_data.pop("location", None)
 
-        # update residence fields
-        instance.residence_name = validated_data.get('residence_name', instance.residence_name)
-        instance.house_number = validated_data.get('house_number', instance.house_number)
-        instance.street_name = validated_data.get('street_name', instance.street_name)
-        instance.district = validated_data.get('district', instance.district)
-        instance.save()
-
-        # handle location
         if location_data:
             if instance.location:
-                # ✅ update existing location
-                location = instance.location
-                location.latitude = location_data.get('latitude', location.latitude)
-                location.longitude = location_data.get('longitude', location.longitude)
-                location.latitude_delta = location_data.get('latitude_delta', location.latitude_delta)
-                location.longitude_delta = location_data.get('longitude_delta', location.longitude_delta)
-                location.save()
-            else:
-                # ✅ create new location
-                location = Location.objects.create(**location_data)
-                instance.location = location
-                instance.save()
+                for attr, value in location_data.items():
+                    setattr(instance.location, attr, value)
+                instance.location.save()
 
+            else:
+                instance.location = Location.objects.create(**location_data)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
         return instance

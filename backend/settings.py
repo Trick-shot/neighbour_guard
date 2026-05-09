@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 from decouple import config
 import africastalking
@@ -22,6 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY')
+# SITE_URL = config('SITE_URL')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
@@ -38,19 +39,19 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'core.apps.CoreConfig',  # ← keep this
     'rest_framework_simplejwt',
     'debug_toolbar',
     'rest_framework',
-    'core',
+    'djoser',
+    # 'core',  ← remove this
     'main'
 ]
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -67,7 +68,10 @@ AUTH_USER_MODEL = 'core.User'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"],
+        'DIRS': [
+            BASE_DIR / "templates",  # for email/activation.html
+            BASE_DIR / "staticfiles",  # for React index.html ← add this
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -78,7 +82,6 @@ TEMPLATES = [
         },
     },
 ]
-
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Email backends
@@ -94,7 +97,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Initialize SDK
 username = config('AFRICASTALKING_USERNAME')
 api_key = config('AFRICASTALKING_API_KEY')
-otp_client = africastalking.initialize(username, api_key)
+africastalking.initialize(username, api_key)
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.mail.yahoo.com"
@@ -107,7 +110,6 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 # CORS_ALLOWED_ORIGINS = [
 #     "http://localhost:8080",
 # ]
-DOMAIN = "http://localhost:8000"
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -167,7 +169,17 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "web" / "dist",
+]
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 INTERNAL_IPS = [
     # ...
@@ -179,6 +191,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.AllowAny',
+    ),
 }
 
 SIMPLE_JWT = {
@@ -188,8 +203,19 @@ SIMPLE_JWT = {
 DJOSER = {
     "SEND_ACTIVATION_EMAIL": True,
     "ACTIVATION_URL": "activate/{uid}/{token}",
+    # 'DOMAIN': 'test.trickshot.tech',
+    'DOMAIN': 'localhost:5173',  # ← change from 8000 to 5173
+    'SITE_NAME': 'NeighbourGuard',
+    'PROTOCOL': 'http',
     'SERIALIZERS': {
         'user_create': 'core.serializers.UserCreateSerializer',
         'current_user': 'core.serializers.UserSerializer',
     }
+}
+
+STORAGES = {
+    # ...
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
 }

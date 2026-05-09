@@ -1,9 +1,10 @@
 from django.urls import include, path
 from rest_framework_nested import routers
-from .views import ResidenceViewSet
+from .views import ResidenceViewSet, ProfileViewSet
 
 routers = routers.SimpleRouter()
-routers.register("Residences", ResidenceViewSet)
+routers.register("Residences", ResidenceViewSet, basename="residence")
+routers.register('profiles', ProfileViewSet, basename="profile")
 
 urlpatterns = [
     path(r'', include(routers.urls)),
