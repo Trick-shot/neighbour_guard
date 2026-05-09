@@ -1,7 +1,8 @@
 export interface HomeTypes {
+    id: string,
     residenceName: string,
     houseNumber: string,
-    location: null,
+    location?: null,
     streetName: string,
     district: string
 }

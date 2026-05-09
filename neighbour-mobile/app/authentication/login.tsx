@@ -62,7 +62,7 @@ const Login = () => {
                     }}>Forgot Password ?</AppText>
                 </TouchableOpacity>
             </View>
-            <AppButton onPress={() => router.navigate("/(tabs)")} buttonStyles={{
+            <AppButton onPress={() => router.navigate("/authentication/addPhoto")} buttonStyles={{
                 backgroundColor: colors.primary,
                 marginTop: 59,
             }}>Login</AppButton>
@@ -76,7 +76,7 @@ const Login = () => {
                 <AppText styles={{
                     fontSize: 14
                 }}>Don&#39;t have an account?</AppText>
-                <TouchableOpacity onPress={() => router.navigate('/authentication/register')}>
+                <TouchableOpacity onPress={() => router.navigate('/authentication/homeRegistration')}>
                     <AppText styles={{
                         fontSize: 14,
                         color: colors.primary

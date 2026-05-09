@@ -1,4 +1,4 @@
-import {useRouter} from "expo-router";
+import {useLocalSearchParams, useRouter} from "expo-router";
 import {navigate} from "expo-router/build/global-state/routing";
 import {useEffect, useState} from "react";
 import {View} from "react-native";
@@ -16,6 +16,8 @@ const AllowLocation = () => {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const router = useRouter()
+    const {houseId} = useLocalSearchParams<{ houseId: string }>();
+    const numericHouseId = Number(houseId);
 
 
     const getlocation = async () => {
@@ -28,6 +30,7 @@ const AllowLocation = () => {
         router.navigate({
             pathname: '/authentication/setHomeLocation',
             params: {
+                houseId: numericHouseId,
                 latitude: location.coords.latitude,
                 longitude: location.coords.longitude,
             }

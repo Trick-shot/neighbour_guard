@@ -1,4 +1,7 @@
+import LoadingScreen from "@/components/LoadingScreen";
+import {ApiResponse} from "apisauce";
 import {useLocalSearchParams, useRouter} from "expo-router";
+import {useState} from "react";
 import {TextInput, View, Alert} from "react-native";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
@@ -21,15 +24,19 @@ const validationSchema = Yup.object().shape({
 const EnterPhoneNumber = () => {
     const router = useRouter();
     const {email} = useLocalSearchParams<{ email: string }>();
+    const [isLoading, setIsLoading] = useState(false)
 
     const onSubmit = async (values: { phoneNumber: string }) => {
         try {
             const phoneNumber = values.phoneNumber.trim()
-            await authApi.requestOtpCodes(email, phoneNumber)
-            router.push({
-                pathname: "/authentication/verfyPhoneNumber",
-                params: {phoneNumber}
-            });
+            const res: ApiResponse<any> = await authApi.requestOtpCodes(email, phoneNumber)
+
+            if (res.ok)
+                router.push({
+                    pathname: "/authentication/verfyPhoneNumber",
+                    params: {email, phoneNumber}
+                });
+            return
         } catch (e: any) {
             console.log(e?.response?.data)
             Alert.alert(
@@ -44,6 +51,7 @@ const EnterPhoneNumber = () => {
             justifyContent: "space-between",
             paddingBottom: 20
         }}>
+            {isLoading && <LoadingScreen/>}
             <Formik
                 initialValues={{phoneNumber: ""}}
                 onSubmit={onSubmit}

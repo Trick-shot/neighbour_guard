@@ -19,8 +19,6 @@ const VerifyEmail = () => {
         const checkVerified = async () => {
             try {
                 const result = await authApi.login(email, password)
-
-                // if login succeeds user is activated
                 if (result.status === 200) {
                     if (intervalRef.current) clearInterval(intervalRef.current)
                     router.navigate({
@@ -29,8 +27,6 @@ const VerifyEmail = () => {
                     })
                 }
             } catch (e: any) {
-                // 401 means not activated yet — keep polling
-                // any other error stop polling
                 if (e?.response?.status !== 401) {
                     if (intervalRef.current) clearInterval(intervalRef.current)
                 }
@@ -59,7 +55,6 @@ const VerifyEmail = () => {
     return (
         <AppScreen screenStyle={styles.screen}>
             {isLoading && <LoadingScreen/>}
-
             <View style={{
                 borderWidth: 1,
                 width: 57,

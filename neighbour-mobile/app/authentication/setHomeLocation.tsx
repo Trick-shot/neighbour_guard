@@ -2,6 +2,7 @@ import AppButton from "@/components/AppButton";
 import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
 import {LocationType} from "@/types/AuthTypes";
+import {ApiResponse} from "apisauce";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {StyleSheet} from "react-native";
@@ -23,13 +24,14 @@ const SetHomeLocation = () => {
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
     const [errorMessage, setErrorMessage] = useState("")
+    const {houseId} = useLocalSearchParams<{ houseId: string }>();
+    const numericHouseId = Number(houseId);
 
 
     const setOnLocation = async () => {
         try {
-            console.log(location)
             setIsLoading(true)
-            const results = authApi.setLocation(location.latitude, location.longitude, location.longitudeDelta, location.latitudeDelta);
+            const results: ApiResponse<any> = await authApi.setLocation(numericHouseId, location);
             if (!results.ok) {
                 setIsLoading(false)
             }

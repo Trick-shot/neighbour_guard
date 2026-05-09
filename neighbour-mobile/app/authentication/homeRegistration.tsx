@@ -2,10 +2,11 @@ import AppButton from "@/components/AppButton";
 import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
 import {HomeTypes} from "@/types/AuthTypes";
-import {useRouter} from "expo-router";
+import {ApiResponse} from "apisauce";
 import {Formik} from "formik";
 import {useState} from "react";
 import {TextInput, View, KeyboardAvoidingView, Platform, StyleSheet} from "react-native";
+import {useLocalSearchParams, useRouter} from "expo-router";
 
 import HomeIcon from "@/assets/icons/homeIcon.svg"
 import colors from "@/Utilis/config"
@@ -31,14 +32,18 @@ const HomeRegistration = () => {
     const onSubmit = async (values: HomeTypes) => {
         setIsLoading(true)
         try {
-            const results = await authApi.registerHome(values);
-            console.log("RESULT:", results);
+            const results: ApiResponse<HomeTypes | any> = await authApi.registerHome(email, values);
+            const houseId = results.data?.id
 
+            if (results.status === 201) {
+                router.navigate({
+                    pathname: "/authentication/allowLocation",
+                    params: {houseId: houseId}
+                });
+            } else {
+                setRegisterFailed(true)
+            }
 
-            router.navigate({
-                path: "/authentication/allowLocation",
-                params: {email: values.email}
-            });
         } catch (error) {
             console.log("ERROR:", error);
             setRegisterFailed(true);
@@ -162,7 +167,6 @@ const HomeRegistration = () => {
                     </>)}
             </Formik>
         </View>
-
     )
 }
 

@@ -30,8 +30,9 @@ const verifyOtp = (phoneNumber: string, otp: string) =>
         otp
     });
 
-const registerHome = (values: HomeTypes) =>
+const registerHome = (email: string, values: HomeTypes) =>
     apiClient.post('/api/main/Residences/', {
+        email,
         residence_name: values.residenceName,
         house_number: values.houseNumber,
         location: null,

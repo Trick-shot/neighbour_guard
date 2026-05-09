@@ -125,7 +125,6 @@ const Index = () => {
                     </BottomSheetView>
                 </BottomSheet>
             </GestureHandlerRootView>
-
         </View>
     );
 }

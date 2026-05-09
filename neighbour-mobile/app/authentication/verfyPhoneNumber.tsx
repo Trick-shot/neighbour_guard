@@ -1,7 +1,9 @@
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
+import LoadingScreen from "@/components/LoadingScreen";
 import colors from "@/Utilis/config";
+import {ApiResponse} from "apisauce";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import {useState, useEffect, useRef} from "react";
 import {StyleSheet, View, Text, Platform, TouchableOpacity} from "react-native";
@@ -70,8 +72,14 @@ const VerifyPhoneNumber = () => {
         setLoading(true);
         setError('');
         try {
-            await authApi.verifyOtp(phoneNumber, value);
-            router.push('/authentication/homeRegistration');
+            const res: ApiResponse<any> = await authApi.verifyOtp(phoneNumber, value);
+
+            if (res.ok)
+                router.navigate({
+                    pathname: '/authentication/homeRegistration',
+                    params: {email}
+                });
+            return
         } catch (e: any) {
             setError(e?.response?.data?.error || 'Invalid OTP. Try again.');
             setValue('');
@@ -82,6 +90,7 @@ const VerifyPhoneNumber = () => {
 
     return (
         <AppScreen screenStyle={styles.screen}>
+            {loading && <LoadingScreen/>}
             <View>
                 <View style={{
                     borderWidth: 1,
