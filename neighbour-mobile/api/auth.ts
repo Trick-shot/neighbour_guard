@@ -57,7 +57,11 @@ const profileUpdate = (data: FormData) =>
             'Content-Type': 'multipart/form-data',
         }
     })
+const verifyToken = (token: string) =>
+    apiClient.post('/api/auth/jwt/verify/', {token})
 
+const refreshToken = (refresh: string) =>
+    apiClient.post('/api/auth/jwt/refresh/', {refresh})
 
 export default {
     login,
@@ -67,5 +71,7 @@ export default {
     verifyOtp,
     registerHome,
     setLocation,
-    profileUpdate
+    profileUpdate,
+    verifyToken,
+    refreshToken
 }

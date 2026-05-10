@@ -31,9 +31,15 @@ export const AuthProvider = ({children}: { children: React.ReactNode }) => {
     }
 
     const logout = async () => {
-        await SecureStore.deleteItemAsync('access');
-        await SecureStore.deleteItemAsync('refresh');
-        setIsAuthenticated(false);
+        try {
+            await SecureStore.setItemAsync('access', '')
+            await SecureStore.setItemAsync('refresh', '')
+            setIsAuthenticated(false)
+            setEmail('')
+            console.log('Logged out successfully')
+        } catch (e) {
+            console.error('Logout error:', e)
+        }
     }
 
     return (

@@ -5,16 +5,20 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from .models import Residence
 from .serializers import ResidenceSerializer, ProfileSerializer
-from rest_framework.mixins import RetrieveModelMixin, UpdateModelMixin, CreateModelMixin, DestroyModelMixin
+from rest_framework.mixins import RetrieveModelMixin, UpdateModelMixin, CreateModelMixin, DestroyModelMixin, \
+    ListModelMixin
 from django.contrib.auth import get_user_model
 from .models import Profile
+from rest_framework.permissions import IsAuthenticated
 
 User = get_user_model()
 
 
-class ResidenceViewSet(RetrieveModelMixin, UpdateModelMixin, CreateModelMixin, DestroyModelMixin, GenericViewSet):
+class ResidenceViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, CreateModelMixin, DestroyModelMixin,
+                       GenericViewSet):
     queryset = Residence.objects.all()
     serializer_class = ResidenceSerializer
+    permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -35,11 +39,37 @@ class ResidenceViewSet(RetrieveModelMixin, UpdateModelMixin, CreateModelMixin, D
         residence.residence_members.add(user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, methods=['get'], url_path='my-residence')
+    def my_residence(self, request, *args, **kwargs):
+        user = request.user
 
-class ProfileViewSet(RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
+        residence = Residence.objects.filter(residence_members=user).first()
+
+        if not residence:
+            return Response({"errors": "Residence not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(residence)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
+
+    @action(detail=False, methods=['get'], url_path='my-profile')
+    def my_profile(self, request):
+        profile = Profile.objects.filter(user=request.user).first()
+
+        if not profile:
+            return Response(
+                {"errors": "Profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = self.get_serializer(profile)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["patch"], url_path="update-profile")
     def update_proifle(self, request, *args, **kwargs):

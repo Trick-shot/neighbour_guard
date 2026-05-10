@@ -1,22 +1,36 @@
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
-import colors from "@/Utilis/config";
-import SettingIcon from "@/assets/icons/settingIcon.svg"
-import BackIcon from "@/assets/icons/backIcon.svg"
 import {useRouter} from "expo-router";
 import {useRef} from "react";
-import {StyleSheet, TextInput, TouchableOpacity, View, Platform} from "react-native";
+import {StyleSheet, TouchableOpacity, View} from "react-native";
 import {Image} from 'expo-image';
 import {MenuView, type MenuComponentRef} from '@react-native-menu/menu';
 import LogoIcon from "@/assets/icons/logo.svg"
 import Right from "@/assets/icons/right.svg"
 import UserProfile from "@/assets/icons/UserProfile.svg"
 import Logout from "@/assets/icons/Logout.svg"
+import {useAuth} from "@/context/AuthContext";
+import * as SecureStore from 'expo-secure-store';
 
 
 const Profile = () => {
     const menuRef = useRef<MenuComponentRef>(null);
     const router = useRouter()
+    const {logout} = useAuth()
+
+    const handleLogout = async () => {
+        try {
+            await SecureStore.deleteItemAsync('access')
+            await SecureStore.deleteItemAsync('refresh')
+
+            const check = await SecureStore.getItemAsync('access')
+            console.log('Token check:', check) // should be null
+
+            router.replace('/authentication/login')
+        } catch (e) {
+            console.error('Error:', e)
+        }
+    }
 
     return (
         <AppScreen screenStyle={styles.screen}>
@@ -122,7 +136,7 @@ const Profile = () => {
                         </View>
                         <Right/>
                     </TouchableOpacity>
-                    <TouchableOpacity style={{
+                    <TouchableOpacity onPress={handleLogout} style={{
                         padding: 20,
                         backgroundColor: "rgba(233,233,233,0.2)",
                         borderRadius: 20,

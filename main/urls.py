@@ -3,7 +3,7 @@ from rest_framework_nested import routers
 from .views import ResidenceViewSet, ProfileViewSet
 
 routers = routers.SimpleRouter()
-routers.register("Residences", ResidenceViewSet, basename="residence")
+routers.register("residences", ResidenceViewSet, basename="residence")
 routers.register('profiles', ProfileViewSet, basename="profile")
 
 urlpatterns = [

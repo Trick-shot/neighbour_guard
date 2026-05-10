@@ -27,7 +27,8 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['167.86.72.150', 'www.trickshot.tech', 'trickshot.tech', '127.0.0.1', 'test.trickshot.tech']
+# ALLOWED_HOSTS = ['167.86.72.150', 'www.trickshot.tech', 'trickshot.tech', '127.0.0.1', 'test.trickshot.tech']
+ALLOWED_HOSTS = ['*']  # for development only
 
 # Application definition
 
@@ -41,7 +42,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'core.apps.CoreConfig',  # ← keep this
     'rest_framework_simplejwt',
-    'debug_toolbar',
     'rest_framework',
     'djoser',
     # 'core',  ← remove this
@@ -58,7 +58,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware'
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -192,7 +191,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ),
 }
 
