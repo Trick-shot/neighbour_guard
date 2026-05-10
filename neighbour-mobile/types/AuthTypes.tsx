@@ -14,3 +14,8 @@ export interface LocationType {
     latitudeDelta: number | null;
     longitudeDelta: number | null;
 }
+
+export interface TokenType {
+    refresh: string,
+    access: string
+}
