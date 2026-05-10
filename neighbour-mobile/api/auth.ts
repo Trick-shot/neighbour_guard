@@ -51,6 +51,14 @@ const setLocation = (
         longitude_delta: values.longitudeDelta
     });
 
+const profileUpdate = (data: FormData) =>
+    apiClient.patch('/api/main/profiles/update-profile/', data, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        }
+    })
+
+
 export default {
     login,
     register,
@@ -58,5 +66,6 @@ export default {
     requestOtpCodes,
     verifyOtp,
     registerHome,
-    setLocation
+    setLocation,
+    profileUpdate
 }

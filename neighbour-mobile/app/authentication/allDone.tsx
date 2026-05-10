@@ -1,11 +1,15 @@
+import animationData from "@/assets/animation/done.json";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
+import {useRouter} from "expo-router";
+import LottieView from "lottie-react-native";
 import {View} from "react-native";
 
 const allDone = () => {
+    const router = useRouter()
     return (
         <AppScreen screenStyle={{
-            justifyContent: "center",
+            justifyContent: "flex-start",
             alignItems: 'center',
         }}>
             <View style={{
@@ -22,20 +26,33 @@ const allDone = () => {
                     fontSize: 14,
                     color: '#A5A5A5'
                 }}>
-                    1 / 3
+                    3 / 3
                 </AppText>
             </View>
             <View style={{
-                justifyContent: "center",
+                justifyContent: "flex-start",
                 alignItems: 'center',
-                top: 200,
             }}>
-                <AppText>
-                    All Done
-                </AppText>
-                <AppText styles={{textAlign: "center", fontSize: 14, marginTop: 16}}>
-                    You have successfully created an account
-                </AppText>
+                <LottieView
+                    source={animationData}
+                    loop={false}
+                    style={{width: 100, height: 100}}
+                    onAnimationFinish={() => setTimeout(() => {
+                        router.navigate("/authentication/homeRegistration")
+                    }, 2000)}
+                />
+                <View style={{
+                    alignItems: "center", marginTop: 48
+                }}>
+                    <AppText styles={{
+                        fontWeight: "bold"
+                    }}>
+                        All Done
+                    </AppText>
+                    <AppText styles={{textAlign: "center", fontSize: 14, marginTop: 16, color: "#A5A5A5"}}>
+                        You have successfully created an account
+                    </AppText>
+                </View>
             </View>
         </AppScreen>
     )

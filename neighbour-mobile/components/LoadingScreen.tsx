@@ -1,23 +1,16 @@
 import LottieView from "lottie-react-native";
-import React, {useRef, useEffect} from 'react';
 import {View, StyleSheet} from "react-native";
+import animationData from '../assets/animation/loading2.json'
 
 const LoadingScreen = () => {
-    const ref = useRef<LottieView>(null);
-
-    useEffect(() => {
-        ref.current?.play();
-    }, []);
-
 
     return (
         <View style={styles.overlay}>
             <LottieView
-                ref={ref}
-                source={require('../assets/animation/dotLoader.json')}
-                style={{width: 110, height: 110, marginBottom: 200}}
+                source={animationData}
+                loop={true}
                 autoPlay={true}
-                loop
+                style={{width: 100, height: 100}}
             />
         </View>
     );

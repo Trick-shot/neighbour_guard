@@ -1,6 +1,7 @@
 import AppButton from "@/components/AppButton";
 import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
+import {useAuth} from "@/context/AuthContext";
 import {HomeTypes} from "@/types/AuthTypes";
 import {ApiResponse} from "apisauce";
 import {Formik} from "formik";
@@ -27,6 +28,7 @@ const HomeRegistration = () => {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [registerFailed, setRegisterFailed] = useState(false)
+    const {email} = useAuth();
 
 
     const onSubmit = async (values: HomeTypes) => {
@@ -119,30 +121,30 @@ const HomeRegistration = () => {
                                     }}>
                                         <TextInput
                                             style={[style.formInput, {
-                                                borderColor: errors.houseNumber ? "red" : colors.TGrey60
+                                                borderColor: errors.houseNumber ? "red" : colors.TGrey80
                                             }]}
                                             placeholder="House Number"
-                                            placeholderTextColor={errors.houseNumber ? "red" : colors.UIGrey40}
+                                            placeholderTextColor={errors.houseNumber ? "red" : colors.UIGrey80}
                                             onChangeText={handleChange('houseNumber')}
                                             value={values.houseNumber}
                                             onBlur={handleBlur('houseNumber')}
                                         />
                                         <TextInput
                                             style={[style.formInput, {
-                                                borderColor: errors.streetName ? "red" : colors.TGrey60
+                                                borderColor: errors.streetName ? "red" : colors.TGrey80
                                             }]}
                                             placeholder="Street Name"
-                                            placeholderTextColor={errors.streetName ? "red" : colors.UIGrey40}
+                                            placeholderTextColor={errors.streetName ? "red" : colors.UIGrey80}
                                             onChangeText={handleChange('streetName')}
                                             value={values.streetName}
                                             onBlur={handleBlur('streetName')}
                                         />
                                         <TextInput
                                             style={[style.formInput, {
-                                                borderColor: errors.district ? "red" : colors.TGrey60
+                                                borderColor: errors.district ? "red" : colors.TGrey80
                                             }]}
                                             placeholder="District"
-                                            placeholderTextColor={errors.district ? "red" : colors.UIGrey40}
+                                            placeholderTextColor={errors.district ? "red" : colors.UIGrey80}
                                             onChangeText={handleChange('district')}
                                             value={values.district}
                                             onBlur={handleBlur('district')}
@@ -150,9 +152,9 @@ const HomeRegistration = () => {
 
                                         <TextInput
                                             style={[style.formInput, {
-                                                borderColor: errors.district ? "red" : colors.TGrey60
+                                                borderColor: errors.district ? "red" : colors.TGrey80
                                             }]} placeholder="Residence Name"
-                                            placeholderTextColor={errors.district ? "red" : colors.UIGrey40}
+                                            placeholderTextColor={errors.district ? "red" : colors.UIGrey80}
                                             onChangeText={handleChange('residenceName')}
                                             value={values.residenceName}
                                             onBlur={handleBlur('residenceName')}

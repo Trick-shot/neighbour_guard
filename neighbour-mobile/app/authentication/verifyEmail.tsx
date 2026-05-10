@@ -2,6 +2,7 @@ import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
+import {useAuth} from "@/context/AuthContext";
 import colors from "@/Utilis/config";
 import {useRouter, useLocalSearchParams} from "expo-router";
 import {useState, useEffect, useRef} from "react";
@@ -11,9 +12,12 @@ import authApi from '../../api/auth'
 
 const VerifyEmail = () => {
     const router = useRouter();
-    const {email, password} = useLocalSearchParams<{ email: string, password: string }>();
+    const {password} = useLocalSearchParams<{ email: string, password: string }>();
     const [isLoading, setIsLoading] = useState(false)
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+    const {email} = useAuth();
+
 
     useEffect(() => {
         const checkVerified = async () => {
@@ -23,7 +27,6 @@ const VerifyEmail = () => {
                     if (intervalRef.current) clearInterval(intervalRef.current)
                     router.navigate({
                         pathname: '/authentication/enterPhoneNumber',
-                        params: {email}
                     })
                 }
             } catch (e: any) {
@@ -86,7 +89,7 @@ const VerifyEmail = () => {
                 textAlign: "center",
                 lineHeight: 20
             }}>
-                We've sent an email to {email}. Click the link to verify your email.
+                We&#39;ve sent an email to {email}. Click the link to verify your email.
             </AppText>
 
             <View style={{

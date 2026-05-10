@@ -1,13 +1,14 @@
 import {ReactNode} from "react";
 import {Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle} from "react-native";
 
-const AppButton = ({onPress, buttonStyles, children}: {
+const AppButton = ({onPress, buttonStyles, disabled, children}: {
     buttonStyles?: StyleProp<ViewStyle>,
     onPress?: () => void,
-    children: ReactNode
+    children: ReactNode,
+    disabled?: boolean
 }) => {
     return (
-        <TouchableOpacity style={[styles.button, buttonStyles]} onPress={onPress}>
+        <TouchableOpacity style={[styles.button, buttonStyles]} onPress={onPress} disabled={disabled}>
             <Text style={styles.buttonText}>{children}</Text>
         </TouchableOpacity>
     )

@@ -2,6 +2,7 @@ import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
+import {useAuth} from "@/context/AuthContext";
 import colors from "@/Utilis/config";
 import {ApiResponse} from "apisauce";
 import {useLocalSearchParams, useRouter} from "expo-router";
@@ -30,9 +31,10 @@ const VerifyPhoneNumber = () => {
     const ref = useBlurOnFulfill({value, cellCount: CELL_COUNT});
     const [props, getCellOnLayoutHandler] = useClearByFocusCell({value, setValue});
     const router = useRouter();
-    const {phoneNumber, email} = useLocalSearchParams<{ phoneNumber: string, email: string }>();
+    const {phoneNumber} = useLocalSearchParams<{ phoneNumber: string, email: string }>();
+    const {email} = useAuth();
 
-    // start timer on mount
+
     useEffect(() => {
         startTimer();
         return () => {

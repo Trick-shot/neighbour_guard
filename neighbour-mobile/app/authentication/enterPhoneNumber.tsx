@@ -9,6 +9,7 @@ import AppText from "@/components/AppText";
 import colors from "@/Utilis/config";
 import {Formik} from "formik";
 import * as Yup from "yup";
+import {useAuth} from "@/context/AuthContext";
 import authApi from "../../api/auth";
 
 const validationSchema = Yup.object().shape({
@@ -23,14 +24,14 @@ const validationSchema = Yup.object().shape({
 
 const EnterPhoneNumber = () => {
     const router = useRouter();
-    const {email} = useLocalSearchParams<{ email: string }>();
+    const {email} = useAuth();
     const [isLoading, setIsLoading] = useState(false)
 
     const onSubmit = async (values: { phoneNumber: string }) => {
         try {
+            setIsLoading(true)
             const phoneNumber = values.phoneNumber.trim()
             const res: ApiResponse<any> = await authApi.requestOtpCodes(email, phoneNumber)
-
             if (res.ok)
                 router.push({
                     pathname: "/authentication/verfyPhoneNumber",
@@ -110,7 +111,6 @@ const EnterPhoneNumber = () => {
                                 </AppText>
                             )}
                         </View>
-
                         <AppButton
                             onPress={() => handleSubmit()}
                             buttonStyles={{backgroundColor: colors.primary}}

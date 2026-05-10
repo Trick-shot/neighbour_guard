@@ -1,16 +1,14 @@
-import AppleIcon from "@/assets/icons/apple.svg";
-import GoogleIcon from "@/assets/icons/google.svg";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
+import {useAuth} from "@/context/AuthContext";
 import colors from "@/Utilis/config";
 import {ApiResponse} from "apisauce";
 import {useRouter} from "expo-router";
 import {Formik} from "formik";
 import {useState} from "react";
 import {StyleSheet, TextInput, TouchableOpacity, View} from "react-native";
-import ChevironRight from "@/assets/icons/chevron-right.svg"
 import * as Yup from "yup";
 import authApi from '../../api/auth'
 
@@ -28,8 +26,9 @@ const validationSchema = Yup.object().shape({
 const Register = () => {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false)
-    const [registerFailed, setRegisterFailed] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
+
+    const {setEmail} = useAuth();
 
 
     const onSubmit = async ({fullName, email, password, confirmPassword}: {
@@ -42,10 +41,8 @@ const Register = () => {
         setErrorMessage("");
 
         const results: ApiResponse<any> = await authApi.register(fullName, email, password, confirmPassword);
-        console.log(results)
         setIsLoading(false);
         if (!results.ok) {
-            setRegisterFailed(true);
             if (results.data?.email) {
                 setErrorMessage(results.data.email);
             } else if (results.data?.non_field_errors) {
@@ -55,10 +52,10 @@ const Register = () => {
             }
             return;
         }
-
+        setEmail(email);
         router.navigate({
             pathname: "./verifyEmail",
-            params: {email, password}
+            params: {password}
         });
     }
 

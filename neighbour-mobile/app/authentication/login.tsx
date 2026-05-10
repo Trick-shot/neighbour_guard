@@ -62,10 +62,11 @@ const Login = () => {
                     }}>Forgot Password ?</AppText>
                 </TouchableOpacity>
             </View>
-            <AppButton onPress={() => router.navigate("/authentication/addPhoto")} buttonStyles={{
-                backgroundColor: colors.primary,
-                marginTop: 59,
-            }}>Login</AppButton>
+            <AppButton onPress={() => router.navigate("/authentication/allDone")}
+                       buttonStyles={{
+                           backgroundColor: colors.primary,
+                           marginTop: 59,
+                       }}>Login</AppButton>
 
             <View style={{
                 justifyContent: "center",

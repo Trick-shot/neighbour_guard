@@ -12,7 +12,6 @@ import colors from "@/Utilis/config";
 
 
 const AllowLocation = () => {
-    const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const router = useRouter()
@@ -35,8 +34,6 @@ const AllowLocation = () => {
                 longitude: location.coords.longitude,
             }
         })
-        setLocation(location);
-        console.log(location)
     }
 
     return (

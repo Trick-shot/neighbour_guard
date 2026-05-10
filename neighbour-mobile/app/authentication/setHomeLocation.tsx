@@ -5,11 +5,13 @@ import {LocationType} from "@/types/AuthTypes";
 import {ApiResponse} from "apisauce";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import {useCallback, useEffect, useRef, useState} from "react";
-import {StyleSheet} from "react-native";
+import {StyleSheet, View} from "react-native";
 import MapView, {PROVIDER_GOOGLE, Marker} from "react-native-maps";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
 import authApi from '../../api/auth'
+import LottieView from 'lottie-react-native';
+import animationData from '@/assets/animation/location.json';
 
 
 const SetHomeLocation = () => {
@@ -35,7 +37,7 @@ const SetHomeLocation = () => {
             if (!results.ok) {
                 setIsLoading(false)
             }
-            router.push("../(tabs)/home.tsx");
+            router.push("../authentication/addPhoto");
         } catch (error) {
             console.log("ERROR:", error);
         } finally {
@@ -121,9 +123,25 @@ const SetHomeLocation = () => {
                     enablePanDownToClose={false}
                     enableDynamicSizing={false}
                     handleComponent={null}
-                    snapPoints={['30%']}
+                    snapPoints={['35%']}
                 >
                     <BottomSheetView style={styles.contentContainer}>
+                        <View style={{
+                            width: "100%",
+                            flexDirection: "row",
+                            justifyContent: "center"
+                        }}>
+                            <LottieView
+                                source={animationData}
+                                autoPlay
+                                loop
+                                style={{width: 116, height: 100}}
+                            />
+                        </View>
+                        <AppText styles={{
+                            fontSize: 14,
+                            textAlign: "center",
+                        }}>Set Home residence by Draging the icon</AppText>
                         <AppButton onPress={() => setOnLocation()}>Set Location</AppButton>
                     </BottomSheetView>
                 </BottomSheet>
@@ -143,9 +161,9 @@ const styles = StyleSheet.create({
         flex: 1,
         height: "100%",
         padding: 26,
-        alignItems: 'center',
+        paddingTop: 10,
         justifyContent: "space-evenly",
-        paddingBottom: 52
+        paddingBottom: 20, gap: 20
     },
 });
 
