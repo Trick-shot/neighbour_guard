@@ -2,7 +2,22 @@ import AppText from "@/components/AppText";
 import {Image} from "expo-image";
 import {View, StyleSheet} from "react-native"
 
-const UserComponent = () => {
+
+interface UserComponentInterface {
+    residenceName: string,
+    userProfile: string | null,
+    userFullName: string,
+    residenceStreet: string,
+    residenceHouseNumber: string,
+}
+
+const UserComponent = ({
+                           residenceName,
+                           residenceHouseNumber,
+                           userProfile,
+                           userFullName,
+                           residenceStreet
+                       }: UserComponentInterface) => {
     return (
         <View style={{
             flexDirection: "row",
@@ -16,7 +31,7 @@ const UserComponent = () => {
                     borderRadius: 50,
                     backgroundColor: "green"
                 }}
-                source="https://picsum.photos/seed/696/3000/2000"
+                source={userProfile}
                 contentFit="cover"
                 transition={1000}
             />
@@ -29,16 +44,16 @@ const UserComponent = () => {
                 <AppText styles={{
                     fontSize: 14,
                     fontWeight: "bold"
-                }}>#Luoga Family</AppText>
+                }}># {residenceName}</AppText>
                 <AppText styles={{
                     fontSize: 14,
-                }}>Full name : Erick Luoga</AppText>
+                }}>Full name : {userFullName}</AppText>
                 <AppText styles={{
                     fontSize: 14,
-                }}>Street: masaki st</AppText>
+                }}>Street: {residenceStreet}</AppText>
                 <AppText styles={{
                     fontSize: 14,
-                }}>House no: 109</AppText>
+                }}>House no: {residenceHouseNumber}</AppText>
             </View>
         </View>
     )

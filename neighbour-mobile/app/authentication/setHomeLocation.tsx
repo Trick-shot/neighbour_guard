@@ -1,18 +1,20 @@
-import AppButton from "@/components/AppButton";
-import AppText from "@/components/AppText";
-import LoadingScreen from "@/components/LoadingScreen";
-import {LocationType} from "@/types/AuthTypes";
+import {StyleSheet, View} from "react-native";
 import {ApiResponse} from "apisauce";
 import {useLocalSearchParams, useRouter} from "expo-router";
+import LottieView from 'lottie-react-native';
 import {useCallback, useEffect, useRef, useState} from "react";
-import {StyleSheet, View} from "react-native";
 import MapView, {PROVIDER_GOOGLE, Marker} from "react-native-maps";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
+
 import authApi from '../../api/auth'
-import LottieView from 'lottie-react-native';
 import animationData from '@/assets/animation/location.json';
 
+import {LocationType} from "@/types/ResidenceTypes";
+
+import LoadingScreen from "@/components/LoadingScreen";
+import AppButton from "@/components/AppButton";
+import AppText from "@/components/AppText";
 
 const SetHomeLocation = () => {
     const [ready, setReady] = useState(false);

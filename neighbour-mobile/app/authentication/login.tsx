@@ -1,19 +1,20 @@
-import AppButton from "@/components/AppButton";
-import AppScreen from "@/components/AppScreen";
-import AppText from "@/components/AppText";
-import LoadingScreen from "@/components/LoadingScreen";
-import {TokenType} from "@/types/AuthTypes";
 import {ApiResponse} from "apisauce";
-import {useRouter} from "expo-router";
 import {Formik} from "formik";
+import {useRouter} from "expo-router";
 import {useState, useEffect} from "react";
 import {View, StyleSheet, TextInput, TouchableOpacity, Alert} from "react-native";
 import {Checkbox} from 'expo-checkbox';
 import * as Yup from "yup";
+
+import {TokenType} from "@/types/AuthTypes";
 import colors from '../../Utilis/config';
 import authApi from "@/api/auth"
 import {useAuth} from "@/context/AuthContext";
 
+import AppButton from "@/components/AppButton";
+import AppScreen from "@/components/AppScreen";
+import AppText from "@/components/AppText";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const validationSchema = Yup.object().shape({
     email: Yup.string().email().required(),

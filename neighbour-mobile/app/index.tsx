@@ -1,12 +1,14 @@
-import Onboarding from "@/app/authentication/onboarding";
-import LoadingScreen from "@/components/LoadingScreen";
 import {ApiResponse} from "apisauce";
 import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from 'expo-secure-store';
 import {router} from "expo-router";
 import {useEffect, useState} from "react";
+
 import {useAuth} from "@/context/AuthContext";
 import authApi from "@/api/auth";
+
+import Onboarding from "@/app/authentication/onboarding";
+import LoadingScreen from "@/components/LoadingScreen";
 
 SplashScreen.preventAutoHideAsync();
 
