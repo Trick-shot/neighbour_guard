@@ -5,7 +5,7 @@ import {useRouter} from "expo-router";
 import LottieView from "lottie-react-native";
 import {View} from "react-native";
 
-const allDone = () => {
+const AllDone = () => {
     const router = useRouter()
     return (
         <AppScreen screenStyle={{
@@ -58,4 +58,4 @@ const allDone = () => {
     )
 }
 
-export default allDone;
+export default AllDone;

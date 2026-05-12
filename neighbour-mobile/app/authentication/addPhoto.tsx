@@ -38,7 +38,7 @@ const AddPhoto = () => {
             } as any);
 
             await authApi.profileUpdate(formData);
-            router.replace('/(tabs)');
+            router.replace('/authentication/login');
 
         } catch (e: any) {
             console.log(e?.response?.data)

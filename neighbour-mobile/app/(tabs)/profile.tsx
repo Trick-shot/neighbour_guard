@@ -72,7 +72,7 @@ const Profile = () => {
                         fontSize: 16,
                         fontWeight: "bold",
                     }}>Residence Information</AppText>
-                    <TouchableOpacity onPress={() => router.push("/profile/personalInformation")}
+                    <TouchableOpacity onPress={() => router.push("/profile/residenceInformation")}
                                       style={{
                                           padding: 20,
                                           backgroundColor: "rgba(233,233,233,0.2)",
@@ -109,7 +109,7 @@ const Profile = () => {
                         fontSize: 16,
                         fontWeight: "bold",
                     }}>General</AppText>
-                    <TouchableOpacity style={{
+                    <TouchableOpacity onPress={() => router.push("/profile/personalInformation")} style={{
                         padding: 20,
                         backgroundColor: "rgba(233,233,233,0.2)",
                         borderRadius: 20,

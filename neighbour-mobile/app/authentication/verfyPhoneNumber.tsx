@@ -78,7 +78,7 @@ const VerifyPhoneNumber = () => {
 
             if (res.ok)
                 router.navigate({
-                    pathname: '/authentication/homeRegistration',
+                    pathname: '/authentication/allDone',
                     params: {email}
                 });
             return

@@ -1,13 +1,14 @@
 import AppButton from "@/components/AppButton";
+import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
 import {useAuth} from "@/context/AuthContext";
-import {HomeTypes} from "@/types/AuthTypes";
+import {ResidenceTypes} from "@/types/ResidenceTypes";
 import {ApiResponse} from "apisauce";
 import {Formik} from "formik";
 import {useState} from "react";
 import {TextInput, View, KeyboardAvoidingView, Platform, StyleSheet} from "react-native";
-import {useLocalSearchParams, useRouter} from "expo-router";
+import {useRouter} from "expo-router";
 
 import HomeIcon from "@/assets/icons/homeIcon.svg"
 import colors from "@/Utilis/config"
@@ -30,11 +31,13 @@ const HomeRegistration = () => {
     const [registerFailed, setRegisterFailed] = useState(false)
     const {email} = useAuth();
 
+    console.log(email)
 
-    const onSubmit = async (values: HomeTypes) => {
+    const onSubmit = async (values: ResidenceTypes) => {
         setIsLoading(true)
+        console.log(values)
         try {
-            const results: ApiResponse<HomeTypes | any> = await authApi.registerHome(email, values);
+            const results: ApiResponse<ResidenceTypes | any> = await authApi.registerHome(email, values);
             const houseId = results.data?.id
 
             if (results.status === 201) {
@@ -55,7 +58,7 @@ const HomeRegistration = () => {
 
     }
     return (
-        <View style={{
+        <AppScreen style={{
             flex: 1,
             paddingBottom: 100,
             paddingHorizontal: 16,
@@ -121,22 +124,22 @@ const HomeRegistration = () => {
                                     }}>
                                         <TextInput
                                             style={[style.formInput, {
-                                                borderColor: errors.houseNumber ? "red" : colors.TGrey80
+                                                borderColor: errors.house_number ? "red" : colors.TGrey80
                                             }]}
                                             placeholder="House Number"
-                                            placeholderTextColor={errors.houseNumber ? "red" : colors.UIGrey80}
+                                            placeholderTextColor={errors.house_number ? "red" : colors.UIGrey80}
                                             onChangeText={handleChange('houseNumber')}
-                                            value={values.houseNumber}
+                                            value={values.house_number}
                                             onBlur={handleBlur('houseNumber')}
                                         />
                                         <TextInput
                                             style={[style.formInput, {
-                                                borderColor: errors.streetName ? "red" : colors.TGrey80
+                                                borderColor: errors.street_name ? "red" : colors.TGrey80
                                             }]}
                                             placeholder="Street Name"
-                                            placeholderTextColor={errors.streetName ? "red" : colors.UIGrey80}
+                                            placeholderTextColor={errors.street_name ? "red" : colors.UIGrey80}
                                             onChangeText={handleChange('streetName')}
-                                            value={values.streetName}
+                                            value={values.street_name}
                                             onBlur={handleBlur('streetName')}
                                         />
                                         <TextInput
@@ -156,7 +159,7 @@ const HomeRegistration = () => {
                                             }]} placeholder="Residence Name"
                                             placeholderTextColor={errors.district ? "red" : colors.UIGrey80}
                                             onChangeText={handleChange('residenceName')}
-                                            value={values.residenceName}
+                                            value={values.residence_name}
                                             onBlur={handleBlur('residenceName')}
                                         />
                                     </View>
@@ -168,7 +171,7 @@ const HomeRegistration = () => {
                         }}>Register Your Residence</AppButton>
                     </>)}
             </Formik>
-        </View>
+        </AppScreen>
     )
 }
 

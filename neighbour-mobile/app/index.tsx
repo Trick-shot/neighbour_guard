@@ -3,29 +3,33 @@ import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from 'expo-secure-store';
 import {router} from "expo-router";
 import {useEffect, useState} from "react";
-
 import {useAuth} from "@/context/AuthContext";
 import authApi from "@/api/auth";
-
-import Onboarding from "@/app/authentication/onboarding";
 import LoadingScreen from "@/components/LoadingScreen";
 
-SplashScreen.preventAutoHideAsync();
-
 export default function Index() {
-    const [isLoading, setIsLoading] = useState(true);
-    const {login, isAuthenticated} = useAuth()
+    const [loading, setLoading] = useState(false)
+    const {
+        login,
+        isAuthenticated,
+        isReady,
+    } = useAuth();
+    console.log(isAuthenticated)
 
     useEffect(() => {
         checkUser()
     }, [])
 
-    // react to auth state changes
     useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
-            router.replace('/authentication/login')
+        if (!isReady) return;
+        if (isAuthenticated) {
+            router.replace("/(tabs)");
+        } else {
+            router.replace(
+                "/authentication/onboarding"
+            );
         }
-    }, [isAuthenticated, isLoading])
+    }, [isAuthenticated, isReady]);
 
     const checkUser = async () => {
         try {
@@ -51,11 +55,14 @@ export default function Index() {
         } catch (error) {
             console.error("Failed to load user:", error);
         } finally {
-            setIsLoading(false);
+            setLoading(false);
             await SplashScreen.hideAsync();
         }
     };
 
-    if (isLoading) return <LoadingScreen/>;
-    return <Onboarding/>;
+    if (loading) {
+        return <LoadingScreen/>;
+    }
+
+    return null;
 }

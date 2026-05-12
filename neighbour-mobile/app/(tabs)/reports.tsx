@@ -1,4 +1,3 @@
-import AppBottomSheet from "@/components/AppBottomSheet";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
@@ -7,219 +6,375 @@ import IssuesCard from "@/components/IssuesCard";
 import colors from "@/Utilis/config";
 import {useRouter} from "expo-router";
 import {StatusBar} from "expo-status-bar";
-import {useState, useRef, useMemo, useEffect, useCallback,} from "react";
-import {ScrollView, StyleSheet, TouchableOpacity, View, Button, Text, TextInput} from "react-native";
+import {useState, useRef, useMemo, useEffect, useCallback} from "react";
+import {
+    ScrollView, StyleSheet, TouchableOpacity,
+    View, TextInput, Alert, FlatList
+} from "react-native";
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import Calendar from '@/assets/icons/Calendar.svg'
 import Filter from '@/assets/icons/Filter.svg'
-import {GestureHandlerRootView} from "react-native-gesture-handler";
-import MapView, {PROVIDER_GOOGLE} from "react-native-maps";
-import {SafeAreaView} from "react-native-safe-area-context";
 import PlusIcon from '@/assets/icons/Plus.svg'
-import BottomSheet, {BottomSheetView} from "@gorhom/bottom-sheet";
-import {useBottomSheet} from "../../context/BottomSheetContext";
+import {GestureHandlerRootView} from "react-native-gesture-handler";
+import MapView, {Marker, PROVIDER_GOOGLE} from "react-native-maps";
+import BottomSheet, {BottomSheetScrollView, BottomSheetView} from "@gorhom/bottom-sheet";
+import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
+import {Image} from "expo-image";
+import issuesApi from "@/api/issues";
+import LoadingScreen from "@/components/LoadingScreen";
 
+const CATEGORIES = ['Community', 'Neighbours']
+const SEVERITY_OPTIONS = ['low', 'moderate', 'high', 'critical']
 
 const Reports = () => {
     const [selectedIndex, setSelectedIndex] = useState(0)
+    const [issues, setIssues] = useState([])
+    const [loading, setLoading] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
     const router = useRouter()
-    const sheetRef = useRef<BottomSheet>(null);
-    const snapPoints = useMemo(() => ["50%"], []);
-    const {isOpen, openSheet, closeSheet} = useBottomSheet();
-    const bottomSheetRef = useRef<BottomSheet>(null);
 
+    // bottom sheet
+    const sheetRef = useRef<BottomSheet>(null)
+    const snapPoints = useMemo(() => ["70%"], [])
+
+    // form state
+    const [title, setTitle] = useState('')
+    const [description, setDescription] = useState('')
+    const [severity, setSeverity] = useState('moderate')
+    const [images, setImages] = useState<string[]>([])
+    const [location, setLocation] = useState<{ latitude: number, longitude: number } | null>(null)
 
     useEffect(() => {
-        if (isOpen) {
-            sheetRef.current?.expand();
-        } else {
-            sheetRef.current?.close();
+        fetchIssues()
+    }, [selectedIndex])
+
+    const fetchIssues = async () => {
+        try {
+            setLoading(true)
+            const category = CATEGORIES[selectedIndex].toLowerCase()
+            const res = await issuesApi.getIssues(category)
+            setIssues(res.data ?? [])
+        } catch (e) {
+            console.log(e)
+        } finally {
+            setLoading(false)
         }
-    }, [isOpen]);
+    }
+
+    const pickImage = async () => {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
+        if (!permission.granted) {
+            Alert.alert('Permission required', 'Please allow media library access')
+            return
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsMultipleSelection: true,
+            quality: 0.8,
+        })
+        if (!result.canceled) {
+            setImages(prev => [...prev, ...result.assets.map(a => a.uri)])
+        }
+    }
+
+    const getCurrentLocation = async () => {
+        const {status} = await Location.requestForegroundPermissionsAsync()
+        if (status !== 'granted') {
+            Alert.alert('Permission required', 'Please allow location access')
+            return
+        }
+        const loc = await Location.getCurrentPositionAsync({})
+        setLocation({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude
+        })
+    }
+
+    const handleSubmit = async () => {
+        if (!title || !description) {
+            Alert.alert('Error', 'Title and description are required')
+            return
+        }
+        try {
+            setSubmitting(true)
+            const formData = new FormData()
+            formData.append('title', title)
+            formData.append('description', description)
+            formData.append('severity', severity)
+            formData.append('category', CATEGORIES[selectedIndex].toLowerCase())
+
+            if (location) {
+                formData.append('latitude', location.latitude.toString())
+                formData.append('longitude', location.longitude.toString())
+                formData.append('latitude_delta', '0.05')
+                formData.append('longitude_delta', '0.05')
+            }
+
+            images.forEach((uri, index) => {
+                formData.append('uploaded_images', {
+                    uri,
+                    name: `image_${index}.jpg`,
+                    type: 'image/jpeg'
+                } as any)
+            })
+
+            await issuesApi.createIssue(formData)
+
+            // reset form
+            setTitle('')
+            setDescription('')
+            setSeverity('moderate')
+            setImages([])
+            setLocation(null)
+
+            sheetRef.current?.close()
+            fetchIssues()
+            Alert.alert('Success', 'Issue created successfully')
+        } catch (e: any) {
+            console.log('Error:', e?.response?.data)
+            Alert.alert('Error', 'Failed to create issue. Try again.')
+        } finally {
+            setSubmitting(false)
+        }
+    }
 
     return (
-        <AppScreen style={styles.screen}>
-            <StatusBar barStyle="dark-content"/>
-            <View style={{
-                flexDirection: "row",
-                position: "relative"
-            }}>
-                <AppText styles={{
-                    textAlign: "center",
-                    fontWeight: "500",
-                    fontSize: 17,
-                    width: "100%"
-                }}>
-                    Issues
-                </AppText>
-                <TouchableOpacity onPress={openSheet} style={{
-                    position: "absolute",
-                    alignSelf: "center",
-                    right: 0
-                }}>
-                    <PlusIcon/>
-                </TouchableOpacity>
-            </View>
-            <SegmentedControl
-                style={{
-                    marginTop: 20
-                }}
-                values={['Community', 'Neighbours']}
-                selectedIndex={selectedIndex}
-                onChange={(event) => {
-                    setSelectedIndex(event.nativeEvent.selectedSegmentIndex);
-                }}
-            />
-            <View style={{
-                marginTop: 16,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between"
-            }}>
-                <View style={{
-                    flexDirection: "row",
-                    padding: 5,
-                    backgroundColor: "#E9E9E9",
-                    borderRadius: 9,
-                    gap: 10,
-                    width: 81,
+        <GestureHandlerRootView style={{flex: 1}}>
+            <AppScreen screenStyle={styles.screen}>
+                {loading && <LoadingScreen/>}
+                <StatusBar style="dark"/>
 
-                }}>
-                    <Calendar/>
+                {/* Header */}
+                <View style={{flexDirection: "row", position: "relative"}}>
                     <AppText styles={{
-                        fontSize: 10
-                    }}>Tues, 23</AppText>
+                        textAlign: "center",
+                        fontWeight: "500",
+                        fontSize: 17,
+                        width: "100%"
+                    }}>Issues</AppText>
+                    <TouchableOpacity
+                        onPress={() => sheetRef.current?.expand()}
+                        style={{position: "absolute", alignSelf: "center", right: 0}}
+                    >
+                        <PlusIcon/>
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity>
-                    <Filter/>
-                </TouchableOpacity>
-            </View>
-            <ScrollView showsVerticalScrollIn10dicator={false}>
+
+                {/* Filter tabs */}
+                <SegmentedControl
+                    style={{marginTop: 20}}
+                    values={CATEGORIES}
+                    selectedIndex={selectedIndex}
+                    onChange={(event) => {
+                        setSelectedIndex(event.nativeEvent.selectedSegmentIndex)
+                    }}
+                />
+
+                {/* Date & Filter */}
                 <View style={{
-                    flex: 1,
-                    height: "100%",
-                    marginTop: 32,
-                    gap: 15,
-                    paddingBottom: 10
+                    marginTop: 16,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between"
                 }}>
-                    <IssuesCard onPress={() => router.navigate('/reports/issueDetails')}/>
-                    <IssuesCard/>
-                    <IssuesCard/>
-                </View>
-            </ScrollView>
-            <AppBottomSheet/>
-            {
-                isOpen ? <BottomSheet
-                    ref={bottomSheetRef}
-                    enablePanDownToClose
-                    snapPoints={['95%']}
-                    index={1}
-                    onClose={closeSheet}
-                >
-                    <BottomSheetView style={{
-                        height: "100%",
-                        paddingTop: 10,
+                    <View style={{
+                        flexDirection: "row",
+                        padding: 5,
+                        backgroundColor: "#E9E9E9",
+                        borderRadius: 9,
+                        gap: 10,
+                        width: 81,
                     }}>
+                        <Calendar/>
+                        <AppText styles={{fontSize: 10}}>Tues, 23</AppText>
+                    </View>
+                    <TouchableOpacity onPress={() => router.navigate('/reports/issueDetails')}>
+                        <Filter/>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Issues List */}
+                <FlatList
+                    data={issues}
+                    keyExtractor={(item: any) => item.id.toString()}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{gap: 15, paddingBottom: 10, marginTop: 32}}
+                    renderItem={({item}) => (
+                        <IssuesCard
+                            issue={item}
+                            onPress={() => router.navigate({
+                                pathname: '/reports/issueDetails',
+                                params: {id: item.id}
+                            })}
+                        />
+                    )}
+                    ListEmptyComponent={
+                        <AppText styles={{textAlign: 'center', color: '#A5A5A5', marginTop: 32}}>
+                            No issues found
+                        </AppText>
+                    }
+                />
+
+                {/* Add Issue Bottom Sheet */}
+                <BottomSheet
+                    ref={sheetRef}
+                    snapPoints={snapPoints}
+                    index={-1}
+                    enablePanDownToClose
+                >
+                    <BottomSheetScrollView contentContainerStyle={{paddingBottom: 100}}>
+                        {submitting && <LoadingScreen/>}
+
                         <AppText styles={{
                             fontSize: 16,
-                            textAlign: "center"
+                            textAlign: "center",
+                            marginBottom: 16
                         }}>Add Issue</AppText>
-                        <ScrollView>
-                            <View style={{
-                                paddingBottom: 100
-                            }}>
-                                <View style={{
-                                    alignItems: "flex-start",
-                                    paddingHorizontal: 14,
-                                    gap: 24,
 
-                                }}>
-                                    <View style={{
-                                        width: "100%",
-                                        gap: 16
-                                    }}>
-                                        <AppText styles={{
-                                            textAlign: "left",
-                                            fontSize: 14
-                                        }}>Title</AppText>
-                                        <TextInput
-                                            style={styles.formInput}
-                                            placeholder="Supcious activites"
-                                            placeholderTextColor={colors.TGrey60}
-                                        />
-                                    </View>
-                                    <View style={{
-                                        width: "100%",
-                                        gap: 16
-                                    }}>
-                                        <AppText styles={{
-                                            textAlign: "left",
-                                            fontSize: 14
-                                        }}>Description</AppText>
-                                        <TextInput
-                                            style={[styles.formInput, {
-                                                height: 130,
-                                                paddingTop: 24
-                                            }]}
-                                            placeholder="Supcious activites"
-                                            placeholderTextColor={colors.TGrey60}
-                                            multiline
-                                        />
-                                    </View>
-                                    <View style={{
-                                        width: "100%",
-                                        gap: 24
-                                    }}>
-                                        <AppText styles={{
-                                            textAlign: "left",
-                                            fontSize: 14
-                                        }}>Set Location</AppText>
-                                        <TouchableOpacity>
-                                            <MapView provider={PROVIDER_GOOGLE} mapType="satellite" initialRegion={{
-                                                latitude: -6.7924,
-                                                longitude: 39.2083,
-                                                latitudeDelta: 0.05,
-                                                longitudeDelta: 0.05,
-                                            }} style={{
-                                                width: "100%",
-                                                height: 120,
-                                                borderRadius: 24
-                                            }}/>
+                        <View style={{paddingHorizontal: 16, gap: 24}}>
+
+                            {/* Title */}
+                            <View style={{gap: 8}}>
+                                <AppText styles={{fontSize: 14}}>Title</AppText>
+                                <TextInput
+                                    style={styles.formInput}
+                                    placeholder="Suspicious activities"
+                                    placeholderTextColor={colors.TGrey60}
+                                    value={title}
+                                    onChangeText={setTitle}
+                                />
+                            </View>
+
+                            {/* Description */}
+                            <View style={{gap: 8}}>
+                                <AppText styles={{fontSize: 14}}>Description</AppText>
+                                <TextInput
+                                    style={[styles.formInput, {height: 130, paddingTop: 16}]}
+                                    placeholder="Describe the issue..."
+                                    placeholderTextColor={colors.TGrey60}
+                                    multiline
+                                    textAlignVertical="top"
+                                    value={description}
+                                    onChangeText={setDescription}
+                                />
+                            </View>
+
+                            {/* Severity */}
+                            <View style={{gap: 8}}>
+                                <AppText styles={{fontSize: 14}}>Severity</AppText>
+                                <View style={{flexDirection: 'row', gap: 8, flexWrap: 'wrap'}}>
+                                    {SEVERITY_OPTIONS.map(opt => (
+                                        <TouchableOpacity
+                                            key={opt}
+                                            onPress={() => setSeverity(opt)}
+                                            style={[
+                                                styles.severityButton,
+                                                severity === opt && {
+                                                    backgroundColor: colors.primary,
+                                                    borderColor: colors.primary
+                                                }
+                                            ]}
+                                        >
+                                            <AppText styles={{
+                                                fontSize: 12,
+                                                color: severity === opt ? '#fff' : '#A5A5A5'
+                                            }}>
+                                                {opt}
+                                            </AppText>
                                         </TouchableOpacity>
-                                    </View>
-                                </View>
-                                <View style={{
-                                    width: "100%",
-                                    gap: 16,
-                                    paddingLeft: 16,
-                                    marginTop: 32
-                                }}>
-                                    <AppText styles={{
-                                        textAlign: "left",
-                                        fontSize: 14
-                                    }}>Media</AppText>
-                                    <ImageSlider/>
-                                </View>
-                                <View style={{
-                                    width: "100%",
-                                    paddingHorizontal: 16,
-                                    marginTop: 24
-                                }}>
-                                    <AppButton>Add Issue</AppButton>
+                                    ))}
                                 </View>
                             </View>
-                        </ScrollView>
-                    </BottomSheetView>
-                </BottomSheet> : null
-            }
-        </AppScreen>
+
+                            {/* Location */}
+                            <View style={{gap: 8}}>
+                                <AppText styles={{fontSize: 14}}>Set Location</AppText>
+                                <TouchableOpacity onPress={getCurrentLocation}>
+                                    <MapView
+                                        provider={PROVIDER_GOOGLE}
+                                        mapType="satellite"
+                                        pointerEvents="none"
+                                        initialRegion={{
+                                            latitude: location?.latitude ?? -6.7924,
+                                            longitude: location?.longitude ?? 39.2083,
+                                            latitudeDelta: 0.05,
+                                            longitudeDelta: 0.05,
+                                        }}
+                                        region={location ? {
+                                            latitude: location.latitude,
+                                            longitude: location.longitude,
+                                            latitudeDelta: 0.01,
+                                            longitudeDelta: 0.01,
+                                        } : undefined}
+                                        style={{width: "100%", height: 120, borderRadius: 16}}
+                                    >
+                                        {location && <Marker coordinate={location}/>}
+                                    </MapView>
+                                </TouchableOpacity>
+                                {location && (
+                                    <AppText styles={{fontSize: 10, color: '#A5A5A5'}}>
+                                        Location set: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                                    </AppText>
+                                )}
+                            </View>
+
+                            {/* Media */}
+                            <View style={{gap: 8}}>
+                                <AppText styles={{fontSize: 14}}>Media</AppText>
+                                <FlatList
+                                    horizontal
+                                    data={[...images, 'add']}
+                                    keyExtractor={(item, index) => index.toString()}
+                                    showsHorizontalScrollIndicator={false}
+                                    renderItem={({item}) => {
+                                        if (item === 'add') {
+                                            return (
+                                                <TouchableOpacity
+                                                    onPress={pickImage}
+                                                    style={styles.addImageButton}
+                                                >
+                                                    <AppText styles={{fontSize: 28, color: '#A5A5A5'}}>+</AppText>
+                                                </TouchableOpacity>
+                                            )
+                                        }
+                                        return (
+                                            <View style={{position: 'relative', marginRight: 8}}>
+                                                <Image
+                                                    source={item}
+                                                    style={styles.mediaImage}
+                                                    contentFit="cover"
+                                                />
+                                                <TouchableOpacity
+                                                    style={styles.removeImage}
+                                                    onPress={() => setImages(prev => prev.filter(i => i !== item))}
+                                                >
+                                                    <AppText styles={{color: '#fff', fontSize: 10}}>✕</AppText>
+                                                </TouchableOpacity>
+                                            </View>
+                                        )
+                                    }}
+                                />
+                            </View>
+
+                            <AppButton
+                                onPress={handleSubmit}
+                                buttonStyles={{backgroundColor: colors.primary}}
+                            >
+                                Add Issue
+                            </AppButton>
+                        </View>
+                    </BottomSheetScrollView>
+                </BottomSheet>
+            </AppScreen>
+        </GestureHandlerRootView>
     )
 }
 
 const styles = StyleSheet.create({
     screen: {
         flex: 1,
-        paddingBottom: -25,
+        paddingBottom: 0,
         backgroundColor: "#fff",
         paddingHorizontal: 16,
         paddingTop: 24,
@@ -228,10 +383,44 @@ const styles = StyleSheet.create({
         width: "100%",
         height: 63,
         borderColor: "#D9D9D9",
-        borderStyle: "solid",
         borderWidth: 1,
         paddingLeft: 18,
         borderRadius: 15
+    },
+    severityButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#E0E0E0'
+    },
+    mediaImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 12,
+    },
+    addImageButton: {
+        width: 100,
+        height: 100,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        borderStyle: 'dashed',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8
+    },
+    removeImage: {
+        position: 'absolute',
+        top: 4,
+        right: 4,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 10,
+        width: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center'
     }
 })
+
 export default Reports;

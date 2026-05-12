@@ -1,4 +1,5 @@
-import {HomeTypes, LocationType} from "@/types/AuthTypes";
+import {LocationType, ResidenceTypes} from "@/types/ResidenceTypes";
+
 import apiClient from "./client";
 
 const login = (email: string, password: string) =>
@@ -30,8 +31,8 @@ const verifyOtp = (phoneNumber: string, otp: string) =>
         otp
     });
 
-const registerHome = (email: string, values: HomeTypes) =>
-    apiClient.post('/api/main/Residences/', {
+const registerHome = (email: string, values: any) =>
+    apiClient.post('/api/main/residences/', {
         email,
         residence_name: values.residenceName,
         house_number: values.houseNumber,
@@ -44,11 +45,11 @@ const setLocation = (
     id: number,
     values: LocationType
 ) =>
-    apiClient.patch(`/api/main/Residences/${id}/`, {
-        latitude: values.latitude,
-        longitude: values.longitude,
-        latitude_delta: values.latitudeDelta,
-        longitude_delta: values.longitudeDelta
+    apiClient.patch(`/api/main/residences/${id}/`, {
+        location: {
+            latitude: values.latitude,
+            longitude: values.longitude,
+        }
     });
 
 const profileUpdate = (data: FormData) =>
