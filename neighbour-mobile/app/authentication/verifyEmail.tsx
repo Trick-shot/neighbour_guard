@@ -4,7 +4,7 @@ import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
 
 import {useAuth} from "@/context/AuthContext";
-import colors from "@/Utilis/config";
+import colors from "@/utils/config";
 import {useRouter, useLocalSearchParams} from "expo-router";
 import {useState, useEffect, useRef} from "react";
 import {StyleSheet, View, Alert} from "react-native";

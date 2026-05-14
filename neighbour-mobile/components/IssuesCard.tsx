@@ -1,5 +1,5 @@
 import AppText from "@/components/AppText";
-import colors from "@/Utilis/config";
+import colors from "@/utils/config";
 import {TouchableOpacity, View} from "react-native";
 
 interface IssueCardProps {

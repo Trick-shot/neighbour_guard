@@ -1,7 +1,7 @@
 import AppText from "@/components/AppText";
 import {Image} from "expo-image";
 import {View, StyleSheet} from "react-native";
-import colors from "@/Utilis/config"
+import colors from "@/utils/config"
 
 const MessageChat = () => {
     return (

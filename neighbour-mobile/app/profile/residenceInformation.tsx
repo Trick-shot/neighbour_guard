@@ -3,7 +3,7 @@ import SettingIcon from "@/assets/icons/settingIcon.svg";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
-import colors from "@/Utilis/config";
+import colors from "@/utils/config";
 import {Image} from "expo-image";
 import {useRouter} from "expo-router";
 import {StyleSheet, TextInput, TouchableOpacity, View} from "react-native";

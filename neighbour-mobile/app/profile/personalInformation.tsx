@@ -1,6 +1,6 @@
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
-import colors from "@/Utilis/config";
+import colors from "@/utils/config";
 import SettingIcon from "@/assets/icons/settingIcon.svg"
 import BackIcon from "@/assets/icons/backIcon.svg"
 import {useRouter} from "expo-router";

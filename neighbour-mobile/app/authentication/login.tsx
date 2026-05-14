@@ -7,7 +7,7 @@ import {Checkbox} from 'expo-checkbox';
 import * as Yup from "yup";
 
 import {TokenType} from "@/types/AuthTypes";
-import colors from '../../Utilis/config';
+import colors from '@/utils/config';
 import authApi from "@/api/auth"
 import {useAuth} from "@/context/AuthContext";
 

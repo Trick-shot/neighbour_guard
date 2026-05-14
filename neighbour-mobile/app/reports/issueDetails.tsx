@@ -10,7 +10,7 @@ import {
     ScrollView, TextInput, Alert, Modal,
     Dimensions, KeyboardAvoidingView, Platform, FlatList
 } from "react-native";
-import colors from "@/Utilis/config";
+import colors from "@/utils/config";
 import LocationIcon from "@/assets/icons/LocationIcon.svg"
 import ClockIcon from "@/assets/icons/Clock.svg"
 import issuesApi from "@/api/issues";

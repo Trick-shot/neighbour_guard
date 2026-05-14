@@ -8,7 +8,7 @@ import LocationIcon from "@/assets/icons/location.svg";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
-import colors from "@/Utilis/config";
+import colors from "@/utils/config";
 
 
 const AllowLocation = () => {

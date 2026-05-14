@@ -1,7 +1,7 @@
 import AppText from "@/components/AppText";
 import {useEffect, useState} from "react";
 import {Pressable, StyleSheet} from "react-native";
-import colors from "@/Utilis/config";
+import colors from "@/utils/config";
 
 const FilterButton = ({active, onPress, buttonText}: { buttonText: string, active: boolean, onPress: () => void }) => {
     return (

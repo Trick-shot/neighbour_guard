@@ -11,7 +11,7 @@ import {TextInput, View, KeyboardAvoidingView, Platform, StyleSheet} from "react
 import {useRouter} from "expo-router";
 
 import HomeIcon from "@/assets/icons/homeIcon.svg"
-import colors from "@/Utilis/config"
+import colors from "@/utils/config"
 import {KeyboardAwareScrollView} from "react-native-keyboard-controller";
 import * as Yup from "yup";
 
@@ -19,7 +19,7 @@ import authApi from '../../api/auth'
 
 
 const validationSchema = Yup.object().shape({
-    houseNumber: Yup.string().required().label('House number').required(),
+    houseNumber: Yup.number().required().label('House number').required(),
     streetName: Yup.string().required().label('Street Name').required(),
     district: Yup.string().required().label('District').required(),
     residenceName: Yup.string().required().label('Residence Name').required(),

@@ -3,7 +3,7 @@ import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import LoadingScreen from "@/components/LoadingScreen";
 import {useAuth} from "@/context/AuthContext";
-import colors from "@/Utilis/config";
+import colors from "@/utils/config";
 import {ApiResponse} from "apisauce";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import {useState, useEffect, useRef} from "react";

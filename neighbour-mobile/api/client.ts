@@ -5,8 +5,8 @@ import authStorage from "../auth/storage";
 
 const baseURL = Platform.OS === 'ios'
     // ? 'http://10.0.2.2:8000'
-    ? 'http://192.168.1.7:8000'
-    : 'http://192.168.1.7:8000';
+    ? 'http://172.20.10.4:8000'
+    : 'http://172.20.10.4:8000';
 
 const apiClient = create({baseURL});
 

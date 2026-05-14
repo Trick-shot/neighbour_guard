@@ -8,7 +8,7 @@ import {useRouter} from "expo-router";
 import {navigate} from "expo-router/build/global-state/routing";
 import {useState} from "react";
 import {ActivityIndicator, Alert, Pressable, View} from "react-native";
-import colors from "@/Utilis/config"
+import colors from "@/utils/config"
 import Profile from "@/assets/images/Profile.svg"
 import * as ImagePicker from 'expo-image-picker';
 import CameraIcon from '@/assets/icons/Camera.svg'

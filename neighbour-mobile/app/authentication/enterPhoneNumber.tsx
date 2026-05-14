@@ -6,7 +6,7 @@ import {TextInput, View, Alert} from "react-native";
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
-import colors from "@/Utilis/config";
+import colors from "@/utils/config";
 import {Formik} from "formik";
 import * as Yup from "yup";
 import {useAuth} from "@/context/AuthContext";

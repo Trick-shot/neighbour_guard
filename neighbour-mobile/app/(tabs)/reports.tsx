@@ -3,7 +3,7 @@ import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import ImageSlider from "@/components/ImageSlider";
 import IssuesCard from "@/components/IssuesCard";
-import colors from "@/Utilis/config";
+import colors from "@/utils/config";
 import {useRouter} from "expo-router";
 import {StatusBar} from "expo-status-bar";
 import {useState, useRef, useMemo, useEffect, useCallback} from "react";

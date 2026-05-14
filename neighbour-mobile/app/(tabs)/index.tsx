@@ -14,20 +14,19 @@ import BellIcon from "@/assets/icons/bellFill.svg";
 import MapLocation from "@/assets/icons/mapLocation.svg";
 import profileApi from "@/api/profile"
 import residenceApi from "@/api/residence"
-import * as Location from 'expo-location'
+import {getRandomColor} from '../../utils/randomColor'
+import * as Notifications from 'expo-notifications';
+import alertsApi from "@/api/alerts";
+import AlertModal from "@/components/home/AlertModal";
+import {registerPushToken} from "@/utils/registerPushToken";
 
-
-const users = [
-    {id: 1, name: 'Alice', coords: {latitude: 37.78825, longitude: -122.4324}},
-    {id: 2, name: 'Bob', coords: {latitude: 37.78925, longitude: -122.4334}},
-];
 
 const Index = () => {
     const [isLoading, setIsLoading] = useState(true)
     const [userData, setUserData] = useState<ProfileType | null>(null)
     const [residenceData, setResidenceData] = useState<ResidenceTypes | null>(null)
     const bottomSheetRef = useRef<BottomSheet>(null)
-    const [neighbours, setNeighbours] = useState<ResidenceTypes[]>([]);
+    const [neighbours, setNeighbours] = useState<(ResidenceTypes & { color: string })[]>([]);
     const mapRef = useRef<MapView | null>(null)
     const [selectedResidence, setSelectedResidence] = useState<ResidenceTypes | null>(null)
 
@@ -54,12 +53,22 @@ const Index = () => {
     }, [])
 
     const fetchNeighbours = async () => {
-        const res: ApiResponse<any> = await residenceApi.getNeighbours();
-        if (res.ok) {
-            setNeighbours(res.data);
+        try {
+            const res: ApiResponse<any> = await residenceApi.getNeighbours();
+            console.log("Neighbours response:", res.status, res.data);
+            if (res.ok) {
+                const withColors = res.data.map((n: ResidenceTypes) => ({
+                    ...n,
+                    color: getRandomColor(),
+                }));
+                setNeighbours(withColors);
+            } else {
+                console.log("Failed to fetch neighbours:", res.problem);
+            }
+        } catch (e) {
+            console.log("Error fetching neighbours:", e); // ✅ catch silent crashes
         }
     };
-
 
     const getHomeData = async () => {
         try {
@@ -80,26 +89,62 @@ const Index = () => {
             longitude: residenceData?.location?.longitude,
             latitudeDelta: 0.05,
             longitudeDelta: 0.05,
-        }, 1000); // 1000ms duration
+        }, 1000);
     };
 
-    console.log(selectedResidence)
-    // useEffect(() => {
-    //     if (mapRef.current && userLocation) {
-    //         // Define the NW and SE corners of your 30m box
-    //         const northEast = {
-    //             latitude: userLocation.latitude + delta,
-    //             longitude: userLocation.longitude + delta,
-    //         };
-    //         const southWest = {
-    //             latitude: userLocation.latitude - delta,
-    //             longitude: userLocation.longitude - delta,
-    //         };
-    //
-    //         // Locks the user inside this specific area
-    //         mapRef.current.setMapBoundaries(northEast, southWest);
-    //     }
-    // }, [userLocation]);
+    const [alertModalVisible, setAlertModalVisible] = useState(false);
+    const [isSendingAlert, setIsSendingAlert] = useState(false);
+
+    useEffect(() => {
+        getHomeData();
+        fetchNeighbours();
+        registerPushToken(); // ✅ register on mount
+    }, []);
+
+    // ✅ listen for incoming alerts while app is open
+    useEffect(() => {
+        const subscription = Notifications.addNotificationReceivedListener(notification => {
+            console.log("🚨 Alert received:", notification);
+            fetchNeighbours(); // refresh map
+        });
+        return () => subscription.remove();
+    }, []);
+
+    // ✅ handle notification tap
+    useEffect(() => {
+        const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+            const data = response.notification.request.content.data;
+            console.log("Notification tapped:", data);
+            // you can navigate or zoom map to alert location here
+            if (data.latitude && data.longitude) {
+                mapRef.current?.animateToRegion({
+                    latitude: data.latitude,
+                    longitude: data.longitude,
+                    latitudeDelta: 0.001,
+                    longitudeDelta: 0.001,
+                }, 1000);
+            }
+        });
+        return () => subscription.remove();
+    }, []);
+
+    const handleSendAlert = async (alert_type: string, message: string) => {
+        try {
+            setIsSendingAlert(true);
+            const res = await alertsApi.sendAlert(alert_type, message);
+            if (res.ok) {
+                setAlertModalVisible(false);
+                console.log(`✅ Alert sent, notified ${res.data.notified_count} neighbours`);
+            } else {
+                console.log("Failed to send alert:", res.problem);
+            }
+        } catch (e) {
+            console.log("Error sending alert:", e);
+        } finally {
+            setIsSendingAlert(false);
+        }
+    };
+
 
     return (
         <View style={{flex: 1}}>
@@ -132,7 +177,7 @@ const Index = () => {
                     title="Your Home"
                 >
                     <View style={styles.markerContainer}>
-                        <HomeIndicator/>
+                        <HomeIndicator color="#1CED7F"/>
                         <View style={styles.markerDot}/>
                     </View>
                 </Marker>
@@ -148,9 +193,8 @@ const Index = () => {
                         title={neighbour.residence_name}
                         description={neighbour.street_name}
                     >
-                        {/* Different icon to distinguish neighbours */}
                         <View style={styles.markerContainer}>
-                            <HomeIndicator/>
+                            <HomeIndicator color={neighbour.color}/>
                             <View style={styles.markerDot}/>
                         </View>
                     </Marker>
@@ -163,7 +207,7 @@ const Index = () => {
                         alignItems: "flex-start",
                         width: "100%"
                     }}>
-                        <Pressable>
+                        <Pressable onPress={() => setAlertModalVisible(true)}>
                             <AlertIcon/>
                         </Pressable>
                         <View style={{alignItems: "center", gap: 40}}>
@@ -187,6 +231,7 @@ const Index = () => {
                     </View>
                 </View>
             </MapView>
+
             <GestureHandlerRootView style={{
                 flex: 1,
                 ...StyleSheet.absoluteFillObject
@@ -217,6 +262,12 @@ const Index = () => {
                         )}
                     </BottomSheetView>
                 </BottomSheet>
+                <AlertModal
+                    visible={alertModalVisible}
+                    onClose={() => setAlertModalVisible(false)}
+                    onSend={handleSendAlert}
+                    isSending={isSendingAlert}
+                />
             </GestureHandlerRootView>
         </View>
     );
