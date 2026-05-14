@@ -2,6 +2,7 @@ import HomeIndicator from "@/components/home/HomeIndicator";
 import UserComponent from "@/components/home/UserComponent";
 import {ResidenceTypes} from "@/types/ResidenceTypes";
 import {ProfileType} from "@/types/ProfileType";
+import {ApiResponse} from "apisauce";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
@@ -11,11 +12,9 @@ import MapView, {PROVIDER_GOOGLE, Marker} from 'react-native-maps';
 import AlertIcon from "@/assets/icons/alertIcon.svg";
 import BellIcon from "@/assets/icons/bellFill.svg";
 import MapLocation from "@/assets/icons/mapLocation.svg";
-import LoadingScreen from "@/components/LoadingScreen";
 import profileApi from "@/api/profile"
 import residenceApi from "@/api/residence"
 import * as Location from 'expo-location'
-import HomeIcon from "@/assets/icons/homeIcon.svg";
 
 
 const users = [
@@ -28,23 +27,44 @@ const Index = () => {
     const [userData, setUserData] = useState<ProfileType | null>(null)
     const [residenceData, setResidenceData] = useState<ResidenceTypes | null>(null)
     const bottomSheetRef = useRef<BottomSheet>(null)
+    const [neighbours, setNeighbours] = useState<ResidenceTypes[]>([]);
     const mapRef = useRef<MapView | null>(null)
-    const delta = 0.00027
+    const [selectedResidence, setSelectedResidence] = useState<ResidenceTypes | null>(null)
 
     const handleSheetChanges = useCallback((index: number) => {
         console.log('handleSheetChanges', index);
     }, []);
 
+    const handleNeighbourPress = (neighbour: ResidenceTypes) => {
+        setSelectedResidence(neighbour);
+        bottomSheetRef.current?.expand();
+    };
+
+    // ✅ when user presses their own marker, reset to own data
+    const handleOwnMarkerPress = () => {
+        setSelectedResidence(null);
+        bottomSheetRef.current?.expand();
+    };
+
+
     useEffect(() => {
         getHomeData()
+        fetchNeighbours();
+
     }, [])
+
+    const fetchNeighbours = async () => {
+        const res: ApiResponse<any> = await residenceApi.getNeighbours();
+        if (res.ok) {
+            setNeighbours(res.data);
+        }
+    };
+
 
     const getHomeData = async () => {
         try {
             const userProfile = await profileApi.userProfile()
             const residenceRes = await residenceApi.userResidence()
-            console.log('Profile:', userProfile.data)
-            console.log('Residence:', residenceRes.data)
             setUserData(userProfile.data ?? null)
             setResidenceData(residenceRes.data ?? null)
         } catch (e) {
@@ -55,18 +75,15 @@ const Index = () => {
     }
 
     const goToCurrentLocation = async () => {
-        // 1. Get current position
-        let {coords} = await Location.getCurrentPositionAsync();
-
-        // 2. Animate map to those coordinates
         mapRef.current?.animateToRegion({
-            latitude: residenceData?.location.latitude,
-            longitude: residenceData?.location.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
+            latitude: residenceData?.location?.latitude,
+            longitude: residenceData?.location?.longitude,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
         }, 1000); // 1000ms duration
     };
 
+    console.log(selectedResidence)
     // useEffect(() => {
     //     if (mapRef.current && userLocation) {
     //         // Define the NW and SE corners of your 30m box
@@ -95,17 +112,17 @@ const Index = () => {
                 followsUserLocation={true}
                 minZoomLevel={18.5}
                 initialRegion={{
-                    latitude: residenceData?.latitude ?? -6.7924,
-                    longitude: residenceData?.longitude ?? 39.2083,
-                    latitudeDelta: residenceData?.latitude_delta ?? 0.05,
-                    longitudeDelta: residenceData?.longitude_delta ?? 0.05,
+                    latitude: residenceData?.location?.latitude ?? -6.7924,
+                    longitude: residenceData?.location?.longitude ?? 39.2083,
+                    latitudeDelta: 0.05,
+                    longitudeDelta: 0.05,
                 }}
                 style={{width: "100%", height: "100%"}}
             >
                 <Marker
                     coordinate={{
-                        latitude: residenceData?.location.latitude,
-                        longitude: residenceData?.location.longitude,
+                        latitude: residenceData?.location?.latitude,
+                        longitude: residenceData?.location?.longitude,
                     }}
                     draggable
                     onDragEnd={(e) => {
@@ -119,6 +136,25 @@ const Index = () => {
                         <View style={styles.markerDot}/>
                     </View>
                 </Marker>
+
+                {neighbours.map((neighbour, index) => (
+                    <Marker
+                        onPress={() => handleNeighbourPress(neighbour)}
+                        key={neighbour.id}
+                        coordinate={{
+                            latitude: neighbour.location?.latitude,
+                            longitude: neighbour.location?.longitude,
+                        }}
+                        title={neighbour.residence_name}
+                        description={neighbour.street_name}
+                    >
+                        {/* Different icon to distinguish neighbours */}
+                        <View style={styles.markerContainer}>
+                            <HomeIndicator/>
+                            <View style={styles.markerDot}/>
+                        </View>
+                    </Marker>
+                ))}
 
                 <View style={{flex: 1, paddingTop: 48, paddingHorizontal: 16}}>
                     <View style={{
@@ -168,13 +204,17 @@ const Index = () => {
                         paddingHorizontal: 24,
                         alignItems: 'flex-start',
                     }}>
-                        <UserComponent
-                            userProfile={userData?.profile_pic ?? null}
-                            userFullName={userData?.user?.full_name ?? ''}
-                            residenceHouseNumber={residenceData?.house_number ?? ''}
-                            residenceStreet={residenceData?.street_name ?? ''}
-                            residenceName={residenceData?.residence_name ?? ''}
-                        />
+                        {selectedResidence ? (
+                            <UserComponent
+                                residence={selectedResidence}
+                                user={null}
+                            />
+                        ) : (
+                            <UserComponent
+                                residence={residenceData}
+                                user={userData}
+                            />
+                        )}
                     </BottomSheetView>
                 </BottomSheet>
             </GestureHandlerRootView>
