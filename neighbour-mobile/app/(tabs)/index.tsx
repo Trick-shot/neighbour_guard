@@ -1,5 +1,6 @@
 import HomeIndicator from "@/components/home/HomeIndicator";
 import UserComponent from "@/components/home/UserComponent";
+import LoadingScreen from "@/components/LoadingScreen";
 import {ResidenceTypes} from "@/types/ResidenceTypes";
 import {ProfileType} from "@/types/ProfileType";
 import {ApiResponse} from "apisauce";
@@ -29,6 +30,7 @@ const Index = () => {
     const [neighbours, setNeighbours] = useState<(ResidenceTypes & { color: string })[]>([]);
     const mapRef = useRef<MapView | null>(null)
     const [selectedResidence, setSelectedResidence] = useState<ResidenceTypes | null>(null)
+    const [location, setLocation] = useState(null)
 
     const handleSheetChanges = useCallback((index: number) => {
         console.log('handleSheetChanges', index);
@@ -39,18 +41,11 @@ const Index = () => {
         bottomSheetRef.current?.expand();
     };
 
-    // ✅ when user presses their own marker, reset to own data
     const handleOwnMarkerPress = () => {
         setSelectedResidence(null);
         bottomSheetRef.current?.expand();
     };
 
-
-    useEffect(() => {
-        getHomeData()
-        fetchNeighbours();
-
-    }, [])
 
     const fetchNeighbours = async () => {
         try {
@@ -98,10 +93,9 @@ const Index = () => {
     useEffect(() => {
         getHomeData();
         fetchNeighbours();
-        registerPushToken(); // ✅ register on mount
+        registerPushToken();
     }, []);
 
-    // ✅ listen for incoming alerts while app is open
     useEffect(() => {
         const subscription = Notifications.addNotificationReceivedListener(notification => {
             console.log("🚨 Alert received:", notification);
@@ -115,14 +109,13 @@ const Index = () => {
         const subscription = Notifications.addNotificationResponseReceivedListener(response => {
             const data = response.notification.request.content.data;
             console.log("Notification tapped:", data);
-            // you can navigate or zoom map to alert location here
             if (data.latitude && data.longitude) {
                 mapRef.current?.animateToRegion({
                     latitude: data.latitude,
                     longitude: data.longitude,
                     latitudeDelta: 0.001,
                     longitudeDelta: 0.001,
-                }, 1000);
+                } as Region, 1000);
             }
         });
         return () => subscription.remove();
@@ -145,7 +138,9 @@ const Index = () => {
         }
     };
 
+    console.log("residence", selectedResidence?.residence_members[0])
 
+    if (isLoading) return <LoadingScreen/>
     return (
         <View style={{flex: 1}}>
             <StatusBar style="light" animated/>
@@ -165,6 +160,7 @@ const Index = () => {
                 style={{width: "100%", height: "100%"}}
             >
                 <Marker
+                    onPress={() => setSelectedResidence(null)}
                     coordinate={{
                         latitude: residenceData?.location?.latitude,
                         longitude: residenceData?.location?.longitude,
@@ -252,7 +248,7 @@ const Index = () => {
                         {selectedResidence ? (
                             <UserComponent
                                 residence={selectedResidence}
-                                user={null}
+                                user={selectedResidence.residence_members}
                             />
                         ) : (
                             <UserComponent

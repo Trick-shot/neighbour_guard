@@ -4,6 +4,7 @@ import animationData from "@/assets/animation/location.json";
 import BackIcon from "@/assets/icons/backIcon.svg";
 import AppButton from "@/components/AppButton";
 import AppText from "@/components/AppText";
+import HomeIndicator from "@/components/home/HomeIndicator";
 import LoadingScreen from "@/components/LoadingScreen";
 import {LocationType} from "@/types/ResidenceTypes";
 import BottomSheet, {BottomSheetView} from "@gorhom/bottom-sheet";
@@ -28,8 +29,6 @@ const UpdateResidenceLocation = () => {
     const [location, setLocation] = useState<LocationType>({
         latitude: 0.0000,
         longitude: 0.0000,
-        latitudeDelta: 0.0006,
-        longitudeDelta: 0.0006,
     });
 
     const handleSheetChanges = useCallback((index: number) => {
@@ -86,6 +85,8 @@ const UpdateResidenceLocation = () => {
         }
     }, [ready]);
 
+    if (isLoading) return <LoadingScreen/>
+
     return (
         <GestureHandlerRootView style={styles.container}>
             {isLoading && <LoadingScreen/>}
@@ -100,23 +101,32 @@ const UpdateResidenceLocation = () => {
                 region={{
                     latitude: location.latitude,
                     longitude: location.longitude,
-                    latitudeDelta: location.latitudeDelta,
-                    longitudeDelta: location.longitudeDelta,
+                    latitudeDelta: 0.05,
+                    longitudeDelta: 0.05,
                 }}
                 style={StyleSheet.absoluteFillObject}
             >
                 <Marker
+                    onPress={() => setOnLocation()}
                     coordinate={{
-                        latitude: location.latitude,
-                        longitude: location.longitude,
+                        latitude: location?.latitude,
+                        longitude: location?.longitude,
+                        latitudeDelta: 0.05,
+                        longitudeDelta: 0.05,
                     }}
                     draggable
                     onDragEnd={(e) => {
                         const {latitude, longitude} = e.nativeEvent.coordinate;
                         setLocation((prev) => ({...prev, latitude, longitude}));
                     }}
-                    title="Your Location"
-                />
+                    title="Your Home"
+                >
+                    <View style={styles.markerContainer}>
+                        <HomeIndicator color="#1CED7F"/>
+                        <View style={styles.markerDot}/>
+                    </View>
+                </Marker>
+
             </MapView>
 
             {/* ✅ Fix Bug 3: overlay sits outside MapView */}
@@ -172,6 +182,16 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
         justifyContent: "space-evenly",
         gap: 20,
+    },
+    markerContainer: {
+        alignItems: "center",
+    },
+    markerDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: "#FF5A5F",
+        marginTop: 2,
     },
 });
 

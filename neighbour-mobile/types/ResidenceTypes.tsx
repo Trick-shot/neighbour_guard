@@ -1,6 +1,9 @@
+import {UserType} from "@/types/AuthTypes";
+
 export interface ResidenceTypes {
     id: string,
     residence_name: string,
+    residence_members: UserType [],
     house_number: string,
     location?: LocationType,
     street_name: string,
@@ -10,8 +13,6 @@ export interface ResidenceTypes {
 
 export interface LocationType {
     id?: number;
-    latitude: number | null;
-    longitude: number | null;
-    latitudeDelta: number | null;
-    longitudeDelta: number | null;
+    latitude: number;
+    longitude: number;
 }

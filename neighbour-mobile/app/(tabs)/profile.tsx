@@ -1,22 +1,26 @@
+import authApi from "@/api/auth";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
-import {useRouter} from "expo-router";
-import {useRef} from "react";
-import {StyleSheet, TouchableOpacity, View} from "react-native";
+import LoadingScreen from "@/components/LoadingScreen";
+import {ProfileType} from "@/types/ProfileType";
+import {ApiResponse} from "apisauce";
+import * as ImagePicker from "expo-image-picker";
+import {useRouter,useFocusEffect} from "expo-router";
+import {useEffect, useRef, useState,useCallback} from "react";
+import {Alert, Pressable, StyleSheet, TouchableOpacity, View} from "react-native";
 import {Image} from 'expo-image';
-import {MenuView, type MenuComponentRef} from '@react-native-menu/menu';
 import LogoIcon from "@/assets/icons/logo.svg"
 import Right from "@/assets/icons/right.svg"
 import UserProfile from "@/assets/icons/UserProfile.svg"
 import Logout from "@/assets/icons/Logout.svg"
-import {useAuth} from "@/context/AuthContext";
 import * as SecureStore from 'expo-secure-store';
+import profileApi from "@/api/profile";
 
 
 const Profile = () => {
-    const menuRef = useRef<MenuComponentRef>(null);
     const router = useRouter()
-    const {logout} = useAuth()
+
+    const [profileData, setProfileData] = useState<ProfileType | null>(null)
 
     const handleLogout = async () => {
         try {
@@ -32,6 +36,24 @@ const Profile = () => {
         }
     }
 
+    const getUserProfile = async () => {
+        try {
+            const res: ApiResponse<ProfileType> = await profileApi.userProfile()
+            setProfileData(res.data)
+
+        } catch (e) {
+
+        }
+    }
+
+    useFocusEffect(
+        useCallback(() => {
+            getUserProfile()
+        }, [])
+    )
+
+    if (!profileData) return <LoadingScreen/>
+
     return (
         <AppScreen screenStyle={styles.screen}>
             <View style={{
@@ -43,7 +65,7 @@ const Profile = () => {
                         height: 100,
                         borderRadius: 50,
                     }}
-                    source="https://picsum.photos/seed/696/3000/2000"
+                    source={profileData.profile_pic}
                     contentFit="cover"
                     transition={1000}
                 />
@@ -55,10 +77,10 @@ const Profile = () => {
                     <AppText styles={{
                         fontSize: 16,
                         fontWeight: "bold"
-                    }}>Erick Luoga</AppText>
+                    }}>{profileData.user.full_name}</AppText>
                     <AppText styles={{
                         fontSize: 12
-                    }}>erickluoga1722@gmail.com</AppText>
+                    }}>{profileData.user.email}</AppText>
                 </View>
             </View>
             <View style={{
@@ -109,7 +131,10 @@ const Profile = () => {
                         fontSize: 16,
                         fontWeight: "bold",
                     }}>General</AppText>
-                    <TouchableOpacity onPress={() => router.push("/profile/personalInformation")} style={{
+                    <TouchableOpacity onPress={() => router.navigate({
+                        pathname: "/profile/personalInformation",
+                        params: {profileData: JSON.stringify(profileData)}
+                    })} style={{
                         padding: 20,
                         backgroundColor: "rgba(233,233,233,0.2)",
                         borderRadius: 20,

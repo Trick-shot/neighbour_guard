@@ -1,20 +1,70 @@
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
+import LoadingScreen from "@/components/LoadingScreen";
+import {ProfileType} from "@/types/ProfileType";
 import colors from "@/utils/config";
 import SettingIcon from "@/assets/icons/settingIcon.svg"
 import BackIcon from "@/assets/icons/backIcon.svg"
-import {useRouter} from "expo-router";
-import {useRef} from "react";
-import {StyleSheet, TextInput, TouchableOpacity, View, Platform} from "react-native";
+import profileApi from "@/api/profile";
+import {useLocalSearchParams, useRouter} from "expo-router";
+import {useState} from "react";
+import {Alert, StyleSheet, TextInput, TouchableOpacity, View, Pressable} from "react-native";
 import {Image} from 'expo-image';
-import {MenuView, type MenuComponentRef} from '@react-native-menu/menu';
-import Logout from "@/assets/icons/Logout.svg"
+import * as ImagePicker from 'expo-image-picker';
 
 
 const PersonalInformation = () => {
-    const menuRef = useRef<MenuComponentRef>(null);
     const router = useRouter()
+    const [image, setImage] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false)
 
+
+    const {profileData} = useLocalSearchParams()
+    const parsedProfile: ProfileType = JSON.parse(profileData as string)
+
+    const uploadPhoto = async (uri: string) => {
+        try {
+            setLoading(true)
+            const formData = new FormData();
+            formData.append('email', parsedProfile.user.email);
+            formData.append('profile_pic', {
+                uri,
+                name: 'profile.jpg',
+                type: 'image/jpeg',
+            } as any);
+
+            await profileApi.updateProfile(formData);
+
+        } catch (e: any) {
+            console.log(e?.response?.data)
+            Alert.alert('Error', 'Failed to upload photo. Try again.')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const pickImage = async () => {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+            Alert.alert('Permission required', 'Permission to access the media library is required.');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            const uri = result.assets[0].uri
+            setImage(uri)
+            await uploadPhoto(uri)
+        }
+    }
+
+    if (loading) return <LoadingScreen/>
 
     return (
         <AppScreen screenStyle={styles.screen}>
@@ -30,17 +80,19 @@ const PersonalInformation = () => {
             <View style={{
                 alignItems: "center",
             }}>
-                <Image
-                    style={{
-                        width: 100,
-                        height: 100,
-                        borderRadius: 50,
-                        backgroundColor: "green"
-                    }}
-                    source="https://picsum.photos/seed/696/3000/2000"
-                    contentFit="cover"
-                    transition={1000}
-                />
+                <Pressable onPress={pickImage}>
+                    <Image
+                        style={{
+                            width: 100,
+                            height: 100,
+                            borderRadius: 50,
+                            backgroundColor: colors.TGrey20
+                        }}
+                        source={image ?? parsedProfile.profile_pic}
+                        contentFit="cover"
+                        transition={1000}
+                    />
+                </Pressable>
                 <View style={{
                     alignItems: "center",
                     gap: 5,
@@ -49,10 +101,10 @@ const PersonalInformation = () => {
                     <AppText styles={{
                         fontSize: 16,
                         fontWeight: "bold"
-                    }}>Erick Luoga</AppText>
+                    }}>{parsedProfile.user.full_name}</AppText>
                     <AppText styles={{
                         fontSize: 12
-                    }}>erickluoga1722@gmail.com</AppText>
+                    }}>{parsedProfile.user.email}</AppText>
                 </View>
             </View>
             <View style={{
@@ -68,9 +120,9 @@ const PersonalInformation = () => {
                     }}>Email</AppText>
                     <TextInput
                         style={styles.formInput}
-                        placeholder="Password"
-                        placeholderTextColor={colors.TGrey40}
-
+                        placeholder={parsedProfile.user.email}
+                        placeholderTextColor={colors.TGrey60}
+                        editable={false}
                     />
                 </View>
                 <View style={{
@@ -81,9 +133,9 @@ const PersonalInformation = () => {
                     }}>Full Name</AppText>
                     <TextInput
                         style={styles.formInput}
-                        placeholder="Password"
-                        placeholderTextColor={colors.TGrey40}
-
+                        placeholder={parsedProfile.user.full_name}
+                        placeholderTextColor={colors.TGrey60}
+                        editable={false}
                     />
                 </View>
                 <View style={{
@@ -94,9 +146,9 @@ const PersonalInformation = () => {
                     }}>Phone No.</AppText>
                     <TextInput
                         style={styles.formInput}
-                        placeholder="+25574375852"
-                        placeholderTextColor={colors.TGrey40}
-
+                        placeholder={parsedProfile.phone_number}
+                        placeholderTextColor={colors.TGrey60}
+                        editable={false}
                     />
                 </View>
                 <View style={{
@@ -107,13 +159,14 @@ const PersonalInformation = () => {
                     }}>Password</AppText>
                     <TextInput
                         style={styles.formInput}
-                        placeholder="****"
-                        placeholderTextColor={colors.TGrey40}
+                        placeholder="*******"
+                        placeholderTextColor={colors.TGrey60}
+                        editable={false}
 
                     />
                     <TouchableOpacity style={{
                         width: "100%",
-                        marginTop: 16
+                        marginTop: 48
                     }}>
                         <AppText styles={{
                             textAlign: "center",
