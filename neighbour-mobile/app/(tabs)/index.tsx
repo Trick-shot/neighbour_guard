@@ -223,7 +223,6 @@ const Index = () => {
                         </View>
                     </View>
                     <View>
-
                     </View>
                 </View>
             </MapView>
@@ -248,7 +247,7 @@ const Index = () => {
                         {selectedResidence ? (
                             <UserComponent
                                 residence={selectedResidence}
-                                user={selectedResidence.residence_members}
+                                user={selectedResidence.residence_members[0]}
                             />
                         ) : (
                             <UserComponent

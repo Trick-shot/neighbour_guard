@@ -21,6 +21,7 @@
     "@react-navigation/native": "^7.1.8",
     "@types/react-dom": "~19.1.7",
     "apisauce": "^3.2.2",
+    "dayjs": "^1.11.20",
     "expo": "~54.0.33",
     "expo-checkbox": "~5.0.8",
     "expo-constants": "~18.0.13",

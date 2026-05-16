@@ -38,7 +38,7 @@ const UpdateResidenceLocation = () => {
     const setOnLocation = async () => {
         try {
             setIsLoading(true);
-            const residenceRes = await residenceApi.userResidence()
+            const residenceRes: ApiResponse<any> = await residenceApi.userResidence()
             const results: ApiResponse<any> = await authApi.setLocation(residenceRes.data.id, location);
             console.log(results)
             if (!results.ok) {
@@ -111,8 +111,6 @@ const UpdateResidenceLocation = () => {
                     coordinate={{
                         latitude: location?.latitude,
                         longitude: location?.longitude,
-                        latitudeDelta: 0.05,
-                        longitudeDelta: 0.05,
                     }}
                     draggable
                     onDragEnd={(e) => {

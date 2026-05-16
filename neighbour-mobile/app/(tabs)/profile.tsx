@@ -5,8 +5,8 @@ import LoadingScreen from "@/components/LoadingScreen";
 import {ProfileType} from "@/types/ProfileType";
 import {ApiResponse} from "apisauce";
 import * as ImagePicker from "expo-image-picker";
-import {useRouter,useFocusEffect} from "expo-router";
-import {useEffect, useRef, useState,useCallback} from "react";
+import {useRouter, useFocusEffect} from "expo-router";
+import {useEffect, useRef, useState, useCallback} from "react";
 import {Alert, Pressable, StyleSheet, TouchableOpacity, View} from "react-native";
 import {Image} from 'expo-image';
 import LogoIcon from "@/assets/icons/logo.svg"
@@ -65,7 +65,7 @@ const Profile = () => {
                         height: 100,
                         borderRadius: 50,
                     }}
-                    source={profileData.profile_pic}
+                    source={profileData?.profile_pic}
                     contentFit="cover"
                     transition={1000}
                 />
@@ -77,10 +77,10 @@ const Profile = () => {
                     <AppText styles={{
                         fontSize: 16,
                         fontWeight: "bold"
-                    }}>{profileData.user.full_name}</AppText>
+                    }}>{profileData?.user?.full_name}</AppText>
                     <AppText styles={{
                         fontSize: 12
-                    }}>{profileData.user.email}</AppText>
+                    }}>{profileData?.user?.email}</AppText>
                 </View>
             </View>
             <View style={{

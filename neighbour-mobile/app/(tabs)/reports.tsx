@@ -1,23 +1,20 @@
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
-import ImageSlider from "@/components/ImageSlider";
 import IssuesCard from "@/components/IssuesCard";
 import colors from "@/utils/config";
+import {ApiResponse} from "apisauce";
 import {useRouter} from "expo-router";
 import {StatusBar} from "expo-status-bar";
-import {useState, useRef, useMemo, useEffect, useCallback} from "react";
-import {
-    ScrollView, StyleSheet, TouchableOpacity,
-    View, TextInput, Alert, FlatList
-} from "react-native";
+import {useState, useRef, useMemo, useEffect} from "react";
+import {StyleSheet, TouchableOpacity, View, TextInput, Alert, FlatList} from "react-native";
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import Calendar from '@/assets/icons/Calendar.svg'
 import Filter from '@/assets/icons/Filter.svg'
 import PlusIcon from '@/assets/icons/Plus.svg'
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import MapView, {Marker, PROVIDER_GOOGLE} from "react-native-maps";
-import BottomSheet, {BottomSheetScrollView, BottomSheetView} from "@gorhom/bottom-sheet";
+import BottomSheet, {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import {Image} from "expo-image";
@@ -36,7 +33,7 @@ const Reports = () => {
 
     // bottom sheet
     const sheetRef = useRef<BottomSheet>(null)
-    const snapPoints = useMemo(() => ["70%"], [])
+    const snapPoints = useMemo(() => ["60%"], [])
 
     // form state
     const [title, setTitle] = useState('')
@@ -53,7 +50,7 @@ const Reports = () => {
         try {
             setLoading(true)
             const category = CATEGORIES[selectedIndex].toLowerCase()
-            const res = await issuesApi.getIssues(category)
+            const res: ApiResponse<any> = await issuesApi.getIssues(category)
             setIssues(res.data ?? [])
         } catch (e) {
             console.log(e)
@@ -96,6 +93,10 @@ const Reports = () => {
             Alert.alert('Error', 'Title and description are required')
             return
         }
+        if (!residenceData?.id) {
+            Alert.alert('Error', 'Residence not found')
+            return
+        }
         try {
             setSubmitting(true)
             const formData = new FormData()
@@ -103,12 +104,11 @@ const Reports = () => {
             formData.append('description', description)
             formData.append('severity', severity)
             formData.append('category', CATEGORIES[selectedIndex].toLowerCase())
+            formData.append('residence', String(residenceData?.id))
 
             if (location) {
                 formData.append('latitude', location.latitude.toString())
                 formData.append('longitude', location.longitude.toString())
-                formData.append('latitude_delta', '0.05')
-                formData.append('longitude_delta', '0.05')
             }
 
             images.forEach((uri, index) => {
@@ -197,7 +197,7 @@ const Reports = () => {
                 {/* Issues List */}
                 <FlatList
                     data={issues}
-                    keyExtractor={(item: any) => item.id.toString()}
+                    keyExtractor={(item: any, index) => (item?.id ?? index).toString()}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{gap: 15, paddingBottom: 10, marginTop: 32}}
                     renderItem={({item}) => (
@@ -220,7 +220,7 @@ const Reports = () => {
                 <BottomSheet
                     ref={sheetRef}
                     snapPoints={snapPoints}
-                    index={-1}
+                    index={0}
                     enablePanDownToClose
                 >
                     <BottomSheetScrollView contentContainerStyle={{paddingBottom: 100}}>
