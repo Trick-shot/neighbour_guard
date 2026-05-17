@@ -23,6 +23,7 @@
     "apisauce": "^3.2.2",
     "dayjs": "^1.11.20",
     "expo": "~54.0.33",
+    "expo-av": "~16.0.8",
     "expo-checkbox": "~5.0.8",
     "expo-constants": "~18.0.13",
     "expo-device": "~8.0.10",

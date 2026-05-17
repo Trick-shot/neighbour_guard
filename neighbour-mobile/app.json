@@ -21,6 +21,10 @@
       }
     },
     "android": {
+      "permissions": [
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#0088FF",
         "foregroundImage": "./assets/icons/android.png",
@@ -36,6 +40,14 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/alarm.mp3"
+          ]
+        }
+      ],
       [
         "expo-notifications",
         {

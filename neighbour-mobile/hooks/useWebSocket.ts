@@ -10,7 +10,7 @@ export interface ChatMessage {
     type: string;
 }
 
-const WS_BASE = 'ws://192.168.1.2:8000';
+const WS_BASE = 'ws://192.168.1.6:8000';
 
 export const useWebSocket = (conversationId: number) => {
     const ws = useRef<WebSocket | null>(null);
@@ -25,17 +25,17 @@ export const useWebSocket = (conversationId: number) => {
 
     const connect = async () => {
         const token = await authStorage.getToken();
-        ws.current = new WebSocket(`${WS_BASE}/ws/chat/${conversationId}/`, [], {
-            headers: {Authorization: `JWT ${token}`}
-        });
+
+        ws.current = new WebSocket(`${WS_BASE}/ws/chat/${conversationId}/?token=${token}`);
 
         ws.current.onopen = () => {
             setIsConnected(true);
-            console.log('WebSocket connected');
+            console.log('WebSocket connected ✅');
         };
 
         ws.current.onmessage = (e) => {
             const data = JSON.parse(e.data);
+            console.log('WS message:', data);
 
             if (data.type === 'message') {
                 setMessages(prev => [...prev, data]);
@@ -48,9 +48,9 @@ export const useWebSocket = (conversationId: number) => {
             }
         };
 
-        ws.current.onclose = () => {
+        ws.current.onclose = (e) => {
             setIsConnected(false);
-            // reconnect after 3 seconds
+            console.log('WS closed:', e.code);
             setTimeout(connect, 3000);
         };
 

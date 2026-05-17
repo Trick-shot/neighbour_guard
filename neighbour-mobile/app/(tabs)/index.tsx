@@ -1,5 +1,6 @@
 import HomeIndicator from "@/components/home/HomeIndicator";
 import UserComponent from "@/components/home/UserComponent";
+import AlarmModal from "@/components/home/AlarmModal";
 import LoadingScreen from "@/components/LoadingScreen";
 import {ResidenceTypes} from "@/types/ResidenceTypes";
 import {ProfileType} from "@/types/ProfileType";
@@ -20,6 +21,7 @@ import * as Notifications from 'expo-notifications';
 import alertsApi from "@/api/alerts";
 import AlertModal from "@/components/home/AlertModal";
 import {registerPushToken} from "@/utils/registerPushToken";
+import {startAlarmWithInterval, stopAlarm} from "@/utils/alarmNotification";
 
 
 const Index = () => {
@@ -31,6 +33,12 @@ const Index = () => {
     const mapRef = useRef<MapView | null>(null)
     const [selectedResidence, setSelectedResidence] = useState<ResidenceTypes | null>(null)
     const [location, setLocation] = useState(null)
+    const [alertModalVisible, setAlertModalVisible] = useState(false);
+    const [isSendingAlert, setIsSendingAlert] = useState(false);
+
+    // ✅ alarm state
+    const [alarmVisible, setAlarmVisible] = useState(false);
+    const [activeAlert, setActiveAlert] = useState<any>(null);
 
     const handleSheetChanges = useCallback((index: number) => {
         console.log('handleSheetChanges', index);
@@ -46,22 +54,18 @@ const Index = () => {
         bottomSheetRef.current?.expand();
     };
 
-
     const fetchNeighbours = async () => {
         try {
             const res: ApiResponse<any> = await residenceApi.getNeighbours();
-            console.log("Neighbours response:", res.status, res.data);
             if (res.ok) {
                 const withColors = res.data.map((n: ResidenceTypes) => ({
                     ...n,
                     color: getRandomColor(),
                 }));
                 setNeighbours(withColors);
-            } else {
-                console.log("Failed to fetch neighbours:", res.problem);
             }
         } catch (e) {
-            console.log("Error fetching neighbours:", e); // ✅ catch silent crashes
+            console.log("Error fetching neighbours:", e);
         }
     };
 
@@ -87,8 +91,12 @@ const Index = () => {
         }, 1000);
     };
 
-    const [alertModalVisible, setAlertModalVisible] = useState(false);
-    const [isSendingAlert, setIsSendingAlert] = useState(false);
+    // ✅ dismiss alarm handler
+    const handleDismissAlarm = async () => {
+        await stopAlarm();
+        setAlarmVisible(false);
+        setActiveAlert(null);
+    };
 
     useEffect(() => {
         getHomeData();
@@ -96,26 +104,49 @@ const Index = () => {
         registerPushToken();
     }, []);
 
+    // ✅ trigger alarm when alert notification received
     useEffect(() => {
-        const subscription = Notifications.addNotificationReceivedListener(notification => {
+        const subscription = Notifications.addNotificationReceivedListener(async notification => {
             console.log("🚨 Alert received:", notification);
-            fetchNeighbours(); // refresh map
+            const data = notification.request.content.data;
+
+            if (data?.alert_type) {
+                setActiveAlert({
+                    ...data,
+                    body: notification.request.content.body
+                });
+                setAlarmVisible(true);
+
+                // ✅ play alarm and repeat every 30 seconds up to 5 times
+                await startAlarmWithInterval(
+                    data.alert_type,
+                    notification.request.content.body ?? '',
+                    30
+                );
+            }
+
+            fetchNeighbours();
         });
         return () => subscription.remove();
     }, []);
 
-    // ✅ handle notification tap
+    // ✅ handle notification tap - navigate map to alert location
     useEffect(() => {
-        const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+        const subscription = Notifications.addNotificationResponseReceivedListener(async response => {
             const data = response.notification.request.content.data;
             console.log("Notification tapped:", data);
+
+            // stop alarm when user taps notification
+            await stopAlarm();
+            setAlarmVisible(false);
+
             if (data.latitude && data.longitude) {
                 mapRef.current?.animateToRegion({
                     latitude: data.latitude,
                     longitude: data.longitude,
                     latitudeDelta: 0.001,
                     longitudeDelta: 0.001,
-                } as Region, 1000);
+                }, 1000);
             }
         });
         return () => subscription.remove();
@@ -138,9 +169,8 @@ const Index = () => {
         }
     };
 
-    console.log("residence", selectedResidence?.residence_members[0])
-
     if (isLoading) return <LoadingScreen/>
+
     return (
         <View style={{flex: 1}}>
             <StatusBar style="light" animated/>
@@ -178,7 +208,7 @@ const Index = () => {
                     </View>
                 </Marker>
 
-                {neighbours.map((neighbour, index) => (
+                {neighbours.map((neighbour) => (
                     <Marker
                         onPress={() => handleNeighbourPress(neighbour)}
                         key={neighbour.id}
@@ -222,8 +252,6 @@ const Index = () => {
                             </Pressable>
                         </View>
                     </View>
-                    <View>
-                    </View>
                 </View>
             </MapView>
 
@@ -257,11 +285,20 @@ const Index = () => {
                         )}
                     </BottomSheetView>
                 </BottomSheet>
+
+                {/* existing alert sending modal */}
                 <AlertModal
                     visible={alertModalVisible}
                     onClose={() => setAlertModalVisible(false)}
                     onSend={handleSendAlert}
                     isSending={isSendingAlert}
+                />
+
+                {/* ✅ alarm modal when neighbour sends alert */}
+                <AlarmModal
+                    visible={alarmVisible}
+                    alert={activeAlert}
+                    onDismiss={handleDismissAlarm}
                 />
             </GestureHandlerRootView>
         </View>

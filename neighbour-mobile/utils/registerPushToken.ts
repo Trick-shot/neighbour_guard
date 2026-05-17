@@ -1,17 +1,31 @@
-// utils/registerPushToken.ts
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import {Platform} from 'react-native';
 import alertsApi from '@/api/alerts';
 
+// ✅ Handle notifications when app is in foreground
+Notifications.setNotificationHandler({
+    handleNotification: async (notification) => {
+        const data = notification.request.content.data;
+        const isAlert = data?.alert_type !== undefined;
+
+        return {
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+            priority: isAlert
+                ? Notifications.AndroidNotificationPriority.MAX
+                : Notifications.AndroidNotificationPriority.DEFAULT,
+        };
+    },
+});
+
 export const registerPushToken = async () => {
-    // push notifications only work on physical devices
     if (!Device.isDevice) {
         console.log('Push notifications require a physical device');
         return;
     }
 
-    // request permissions
     const {status: existingStatus} = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
@@ -20,7 +34,7 @@ export const registerPushToken = async () => {
             ios: {
                 allowAlert: true,
                 allowSound: true,
-                allowCriticalAlerts: true, // ✅ bypass DND for emergencies
+                allowCriticalAlerts: true,  // ← bypasses silent mode on iOS
             }
         });
         finalStatus = status;
@@ -31,12 +45,10 @@ export const registerPushToken = async () => {
         return;
     }
 
-    // get push token
     const tokenData = await Notifications.getExpoPushTokenAsync();
     const token = tokenData.data;
     console.log("Expo push token:", token);
 
-    // save to backend
     const res = await alertsApi.savePushToken(token);
     if (res.ok) {
         console.log("Push token saved to backend ✅");
@@ -44,14 +56,23 @@ export const registerPushToken = async () => {
         console.log("Failed to save push token:", res.problem);
     }
 
-    // setup Android notification channel
+    // ✅ Android alarm channel - loud, bypasses DND
     if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('alerts', {
             name: 'Neighbour Alerts',
             importance: Notifications.AndroidImportance.MAX,
+            sound: 'alarm.mp3',                           // ← custom alarm sound
+            vibrationPattern: [0, 500, 200, 500, 200, 500], // ← aggressive vibration
+            lightColor: '#FF0000',
+            bypassDnd: true,                              // ← bypasses Do Not Disturb
+        });
+
+        // separate channel for messages
+        await Notifications.setNotificationChannelAsync('messages', {
+            name: 'Messages',
+            importance: Notifications.AndroidImportance.DEFAULT,
             sound: 'default',
-            vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#FF5A5F',
+            vibrationPattern: [0, 250],
         });
     }
 

@@ -52,7 +52,7 @@ const Profile = () => {
         }, [])
     )
 
-    if (!profileData) return <LoadingScreen/>
+    // if (!profileData) return <LoadingScreen/>
 
     return (
         <AppScreen screenStyle={styles.screen}>
