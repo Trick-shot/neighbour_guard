@@ -16,7 +16,7 @@ import BellIcon from "@/assets/icons/bellFill.svg";
 import MapLocation from "@/assets/icons/mapLocation.svg";
 import profileApi from "@/api/profile"
 import residenceApi from "@/api/residence"
-import {getRandomColor} from '../../utils/randomColor'
+import {getRandomColor} from '@/utils/randomColor'
 import * as Notifications from 'expo-notifications';
 import alertsApi from "@/api/alerts";
 import AlertModal from "@/components/home/AlertModal";
@@ -108,7 +108,7 @@ const Index = () => {
     useEffect(() => {
         const subscription = Notifications.addNotificationReceivedListener(async notification => {
             console.log("🚨 Alert received:", notification);
-            const data = notification.request.content.data;
+            const data: any = notification.request.content.data;
 
             if (data?.alert_type) {
                 setActiveAlert({
@@ -155,7 +155,7 @@ const Index = () => {
     const handleSendAlert = async (alert_type: string, message: string) => {
         try {
             setIsSendingAlert(true);
-            const res = await alertsApi.sendAlert(alert_type, message);
+            const res: ApiResponse<any> = await alertsApi.sendAlert(alert_type, message);
             if (res.ok) {
                 setAlertModalVisible(false);
                 console.log(`✅ Alert sent, notified ${res.data.notified_count} neighbours`);
@@ -285,16 +285,12 @@ const Index = () => {
                         )}
                     </BottomSheetView>
                 </BottomSheet>
-
-                {/* existing alert sending modal */}
                 <AlertModal
                     visible={alertModalVisible}
                     onClose={() => setAlertModalVisible(false)}
                     onSend={handleSendAlert}
                     isSending={isSendingAlert}
                 />
-
-                {/* ✅ alarm modal when neighbour sends alert */}
                 <AlarmModal
                     visible={alarmVisible}
                     alert={activeAlert}

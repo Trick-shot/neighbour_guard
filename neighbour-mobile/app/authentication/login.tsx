@@ -2,15 +2,12 @@ import {ApiResponse} from "apisauce";
 import {Formik} from "formik";
 import {useRouter} from "expo-router";
 import {useState, useEffect} from "react";
-import {View, StyleSheet, TextInput, TouchableOpacity, Alert} from "react-native";
+import {View, StyleSheet, TextInput, TouchableOpacity} from "react-native";
 import {Checkbox} from 'expo-checkbox';
 import * as Yup from "yup";
-
-import {TokenType} from "@/types/AuthTypes";
 import colors from '@/utils/config';
 import authApi from "@/api/auth"
 import {useAuth} from "@/context/AuthContext";
-
 import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
@@ -26,7 +23,7 @@ const Login = () => {
     const [isChecked, setChecked] = useState(false)
     const router = useRouter()
     const [loading, setLoading] = useState(false)
-    const [errorMessage, setErrorMessage] = useState(null)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const {login} = useAuth()
 
     useEffect(() => {
@@ -42,12 +39,15 @@ const Login = () => {
     const onSubmit = async ({email, password}: { email: string, password: string }) => {
         try {
             setLoading(true)
-            const res = await authApi.login(email, password)
             setErrorMessage(null)
-            // store tokens via context
-            await login(res.data.access, res.data.refresh)
 
-            // navigate to home
+            const res: ApiResponse<any> = await authApi.login(email, password)
+            console.log(res)
+            if (!res.ok) {
+                setErrorMessage('Invalid email or password')
+                return
+            }
+            await login(res.data.access, res.data.refresh)
             router.replace('/(tabs)')
 
         } catch (e: any) {
