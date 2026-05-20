@@ -10,8 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import os
+from datetime import timedelta
 from pathlib import Path
-from decouple import config
+from decouple import config, Csv
 import africastalking
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -27,12 +28,15 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-# ALLOWED_HOSTS = ['167.86.72.150', 'www.trickshot.tech', 'trickshot.tech', '127.0.0.1', 'test.trickshot.tech']
-ALLOWED_HOSTS = ['*']  # for development only
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    cast=Csv()
+)
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,13 +44,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
-    'core.apps.CoreConfig',  # ← keep this
+    'core.apps.CoreConfig',
     'rest_framework_simplejwt',
     'rest_framework',
     'djoser',
-    # 'core',  ← remove this
-    'main'
+    'main',
+    'channels',
+
 ]
+
+ASGI_APPLICATION = 'backend.asgi.application'
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -54,7 +61,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -83,34 +90,48 @@ TEMPLATES = [
 ]
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-# Email backends
-
-# EMAIL_BACKEND = config('EMAIL_BACKEND')
-# EMAIL_HOST = config('EMAIL_HOST')
-# EMAIL_PORT = config('EMAIL_PORT', cast=int)
-# EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
-# EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-# EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
 # Initialize SDK
 username = config('AFRICASTALKING_USERNAME')
 api_key = config('AFRICASTALKING_API_KEY')
 africastalking.initialize(username, api_key)
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.mail.yahoo.com"
-EMAIL_PORT = 587
-EMAIL_HOST_USER = "erickluoga1722@yahoo.com"
-EMAIL_HOST_PASSWORD = "vpkpbtflxmprtndj"
-EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# EMAIL_BACKEND = config('EMAIL_BACKEND')
+
+# EMAIL_HOST = config('EMAIL_HOST')
+# EMAIL_PORT = config('EMAIL_PORT')
+# EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+# EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+# EMAIL_USE_SSL = config('EMAIL_USE_SSL')
+# EMAIL_USE_TLS = config('EMAIL_USE_TLS')
+#
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+EMAIL_HOST = 'smtp.mail.yahoo.com'
+EMAIL_PORT = 465
+
+EMAIL_HOST_USER = 'erickluoga1722@yahoo.com'
+EMAIL_HOST_PASSWORD = 'vpkpbtflxmprtndj'
+
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False
+
+DEFAULT_FROM_EMAIL = 'erickluoga1722@yahoo.com'
+SERVER_EMAIL = 'erickluoga1722@yahoo.com'
 
 # CORS_ALLOWED_ORIGINS = [
 #     "http://localhost:8080",
 # ]
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://172.20.10.2:8000',
+]
 
 LANGUAGE_CODE = 'en-us'
 
@@ -197,13 +218,15 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('JWT',),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # ✅ access token lasts 1 day
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # optional but recommended
 }
 
 DJOSER = {
     "SEND_ACTIVATION_EMAIL": True,
     "ACTIVATION_URL": "activate/{uid}/{token}",
     # 'DOMAIN': 'test.trickshot.tech',
-    'DOMAIN': 'localhost:5173',  # ← change from 8000 to 5173
+    'DOMAIN': 'localhost:8000',  # ← fix this
     'SITE_NAME': 'NeighbourGuard',
     'PROTOCOL': 'http',
     'SERIALIZERS': {
@@ -213,8 +236,19 @@ DJOSER = {
 }
 
 STORAGES = {
-    # ...
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)],
+        },
     },
 }

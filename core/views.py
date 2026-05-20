@@ -7,12 +7,23 @@ from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from main.models import OTPVerification, Profile
 from djoser.views import UserViewSet
 
 
 class CustomUserViewSet(UserViewSet):
+    def get_permissions(self):
+        public_actions = [
+            'create',  # POST /users/
+            'activation',  # POST /users/activation/
+            'resend_activation',  # POST /users/resend_activation/
+            'reset_password',  # POST /users/reset_password/
+        ]
+        if self.action in public_actions:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
     def perform_create(self, serializer):
         try:
             super().perform_create(serializer)

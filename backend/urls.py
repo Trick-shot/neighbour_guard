@@ -33,8 +33,9 @@ urlpatterns = [
 
     # DRF browsable API (dev only)
     path('api-auth/', include('rest_framework.urls')),
-    re_path(r'^.*$', FrontendAppView.as_view(), name='web'),
 
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+urlpatterns += [re_path(r'^.*$', FrontendAppView.as_view(), name='web')]

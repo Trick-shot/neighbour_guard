@@ -26,6 +26,8 @@ class User(AbstractUser):
     full_name = models.CharField(max_length=100)
     is_admin = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
+    push_token = models.CharField(max_length=255, blank=True, null=True)
+    is_online = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
