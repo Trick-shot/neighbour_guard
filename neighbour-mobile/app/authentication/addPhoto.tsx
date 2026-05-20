@@ -23,15 +23,11 @@ const AddPhoto = () => {
 
 
     const uploadPhoto = async () => {
-        if (!image) {
-            router.replace('/(tabs)');
-            return;
-        }
         try {
             setLoading(true)
             const formData = new FormData();
             formData.append('email', email);
-            formData.append('profile_image', {
+            formData.append('profile_pic', {
                 uri: image,
                 name: 'profile.jpg',
                 type: 'image/jpeg',

@@ -38,9 +38,8 @@ const Profile = () => {
 
     const getUserProfile = async () => {
         try {
-            const res: ApiResponse<ProfileType> = await profileApi.userProfile()
+            const res: ApiResponse<any> = await profileApi.userProfile()
             setProfileData(res.data)
-
         } catch (e) {
 
         }

@@ -10,6 +10,7 @@ import {getRandomColor} from '@/utils/randomColor';
 import {registerPushToken} from "@/utils/registerPushToken";
 import {ApiResponse} from "apisauce";
 import * as Notifications from 'expo-notifications';
+import {useFocusEffect} from "expo-router";
 import {StatusBar} from "expo-status-bar";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -124,11 +125,13 @@ const Index = () => {
     };
 
     // ── Effects ───────────────────────────────────────────────────────────────
-    useEffect(() => {
-        getHomeData();
-        fetchNeighbours();
-        registerPushToken();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            getHomeData();
+            fetchNeighbours();
+            registerPushToken();
+        }, [])
+    );
 
     useEffect(() => {
         const subscription = Notifications.addNotificationReceivedListener(async notification => {
@@ -151,7 +154,7 @@ const Index = () => {
 
     useEffect(() => {
         const subscription = Notifications.addNotificationResponseReceivedListener(async response => {
-            const data = response.notification.request.content.data;
+            const data: any = response.notification.request.content.data;
             console.log("Notification tapped:", data);
             await stopAlarm();
             setAlarmVisible(false);

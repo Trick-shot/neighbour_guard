@@ -1,3 +1,4 @@
+import apiClient from "@/api/client";
 import {ApiResponse} from "apisauce";
 import {Formik} from "formik";
 import {useRouter} from "expo-router";
@@ -25,6 +26,8 @@ const Login = () => {
     const [loading, setLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const {login} = useAuth()
+    const baseURL = process.env.EXPO_PUBLIC_API_URL;
+
 
     useEffect(() => {
         if (errorMessage) {
@@ -42,7 +45,6 @@ const Login = () => {
             setErrorMessage(null)
 
             const res: ApiResponse<any> = await authApi.login(email, password)
-            console.log(res)
             if (!res.ok) {
                 setErrorMessage('Invalid email or password')
                 return
@@ -50,8 +52,10 @@ const Login = () => {
             await login(res.data.access, res.data.refresh)
             router.replace('/(tabs)')
 
+
         } catch (e: any) {
             const detail = e?.response?.data?.detail
+            console.log(detail)
             setErrorMessage('Invalid email or password')
         } finally {
             setLoading(false)
