@@ -1,45 +1,51 @@
+import AlarmModal from "@/components/home/AlarmModal";
+import AlertModal from "@/components/home/AlertModal";
 import HomeIndicator from "@/components/home/HomeIndicator";
 import UserComponent from "@/components/home/UserComponent";
-import AlarmModal from "@/components/home/AlarmModal";
 import LoadingScreen from "@/components/LoadingScreen";
-import {ResidenceTypes} from "@/types/ResidenceTypes";
 import {ProfileType} from "@/types/ProfileType";
+import {ResidenceTypes} from "@/types/ResidenceTypes";
+import {startAlarmWithInterval, stopAlarm} from "@/utils/alarmNotification";
+import {getRandomColor} from '@/utils/randomColor';
+import {registerPushToken} from "@/utils/registerPushToken";
 import {ApiResponse} from "apisauce";
+import * as Notifications from 'expo-notifications';
+import {StatusBar} from "expo-status-bar";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {Pressable, StyleSheet, View} from "react-native";
+import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
-import {StatusBar} from "expo-status-bar";
-import {View, StyleSheet, Pressable} from "react-native";
-import MapView, {PROVIDER_GOOGLE, Marker} from 'react-native-maps';
 import AlertIcon from "@/assets/icons/alertIcon.svg";
 import BellIcon from "@/assets/icons/bellFill.svg";
 import MapLocation from "@/assets/icons/mapLocation.svg";
-import profileApi from "@/api/profile"
-import residenceApi from "@/api/residence"
-import {getRandomColor} from '@/utils/randomColor'
-import * as Notifications from 'expo-notifications';
 import alertsApi from "@/api/alerts";
-import AlertModal from "@/components/home/AlertModal";
-import {registerPushToken} from "@/utils/registerPushToken";
-import {startAlarmWithInterval, stopAlarm} from "@/utils/alarmNotification";
+import profileApi from "@/api/profile";
+import residenceApi from "@/api/residence";
 
 
 const Index = () => {
-    const [isLoading, setIsLoading] = useState(true)
-    const [userData, setUserData] = useState<ProfileType | null>(null)
-    const [residenceData, setResidenceData] = useState<ResidenceTypes | null>(null)
-    const bottomSheetRef = useRef<BottomSheet>(null)
+    // ── State ────────────────────────────────────────────────────────────────
+    const [isLoading, setIsLoading] = useState(true);
+    const [userData, setUserData] = useState<ProfileType | null>(null);
+    const [residenceData, setResidenceData] = useState<ResidenceTypes | null>(null);
     const [neighbours, setNeighbours] = useState<(ResidenceTypes & { color: string })[]>([]);
-    const mapRef = useRef<MapView | null>(null)
-    const [selectedResidence, setSelectedResidence] = useState<ResidenceTypes | null>(null)
-    const [location, setLocation] = useState(null)
+    const [selectedResidence, setSelectedResidence] = useState<ResidenceTypes | null>(null);
+    const [location, setLocation] = useState(null);
+
+    // Alert modal
     const [alertModalVisible, setAlertModalVisible] = useState(false);
     const [isSendingAlert, setIsSendingAlert] = useState(false);
 
-    // ✅ alarm state
+    // Alarm
     const [alarmVisible, setAlarmVisible] = useState(false);
     const [activeAlert, setActiveAlert] = useState<any>(null);
 
+    // ── Refs ─────────────────────────────────────────────────────────────────
+    const bottomSheetRef = useRef<BottomSheet>(null);
+    const mapRef = useRef<MapView | null>(null);
+
+    // ── Handlers ─────────────────────────────────────────────────────────────
     const handleSheetChanges = useCallback((index: number) => {
         console.log('handleSheetChanges', index);
     }, []);
@@ -54,103 +60,11 @@ const Index = () => {
         bottomSheetRef.current?.expand();
     };
 
-    const fetchNeighbours = async () => {
-        try {
-            const res: ApiResponse<any> = await residenceApi.getNeighbours();
-            if (res.ok) {
-                const withColors = res.data.map((n: ResidenceTypes) => ({
-                    ...n,
-                    color: getRandomColor(),
-                }));
-                setNeighbours(withColors);
-            }
-        } catch (e) {
-            console.log("Error fetching neighbours:", e);
-        }
-    };
-
-    const getHomeData = async () => {
-        try {
-            const userProfile = await profileApi.userProfile()
-            const residenceRes = await residenceApi.userResidence()
-            setUserData(userProfile.data ?? null)
-            setResidenceData(residenceRes.data ?? null)
-        } catch (e) {
-            console.log('Error fetching home data:', e)
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    const goToCurrentLocation = async () => {
-        mapRef.current?.animateToRegion({
-            latitude: residenceData?.location?.latitude,
-            longitude: residenceData?.location?.longitude,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-        }, 1000);
-    };
-
-    // ✅ dismiss alarm handler
     const handleDismissAlarm = async () => {
         await stopAlarm();
         setAlarmVisible(false);
         setActiveAlert(null);
     };
-
-    useEffect(() => {
-        getHomeData();
-        fetchNeighbours();
-        registerPushToken();
-    }, []);
-
-    // ✅ trigger alarm when alert notification received
-    useEffect(() => {
-        const subscription = Notifications.addNotificationReceivedListener(async notification => {
-            console.log("🚨 Alert received:", notification);
-            const data: any = notification.request.content.data;
-
-            if (data?.alert_type) {
-                setActiveAlert({
-                    ...data,
-                    body: notification.request.content.body
-                });
-                setAlarmVisible(true);
-
-                // ✅ play alarm and repeat every 30 seconds up to 5 times
-                await startAlarmWithInterval(
-                    data.alert_type,
-                    notification.request.content.body ?? '',
-                    30
-                );
-            }
-
-            fetchNeighbours();
-        });
-        return () => subscription.remove();
-    }, []);
-
-    // ✅ handle notification tap - navigate map to alert location
-    useEffect(() => {
-        const subscription = Notifications.addNotificationResponseReceivedListener(async response => {
-            const data = response.notification.request.content.data;
-            console.log("Notification tapped:", data);
-
-            // stop alarm when user taps notification
-            await stopAlarm();
-            setAlarmVisible(false);
-
-            if (data.latitude && data.longitude) {
-                mapRef.current?.animateToRegion({
-                    latitude: data.latitude,
-                    longitude: data.longitude,
-                    latitudeDelta: 0.001,
-                    longitudeDelta: 0.001,
-                }, 1000);
-            }
-        });
-        return () => subscription.remove();
-    }, []);
 
     const handleSendAlert = async (alert_type: string, message: string) => {
         try {
@@ -169,11 +83,98 @@ const Index = () => {
         }
     };
 
-    if (isLoading) return <LoadingScreen/>
+    const goToCurrentLocation = () => {
+        mapRef.current?.animateToRegion({
+            latitude: residenceData?.location?.latitude ?? 0,
+            longitude: residenceData?.location?.longitude ?? 0,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+        }, 1000);
+    };
+
+    // ── Data fetching ─────────────────────────────────────────────────────────
+    const getHomeData = async () => {
+        try {
+            const [userProfile, residenceRes] = await Promise.all([
+                profileApi.userProfile(),
+                residenceApi.userResidence(),
+            ]);
+            setUserData(userProfile.data ?? null);
+            setResidenceData(residenceRes.data ?? null);
+        } catch (e) {
+            console.log('Error fetching home data:', e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const fetchNeighbours = async () => {
+        try {
+            const res: ApiResponse<any> = await residenceApi.getNeighbours();
+            if (res.ok) {
+                const withColors = res.data.map((n: ResidenceTypes) => ({
+                    ...n,
+                    color: getRandomColor(),
+                }));
+                setNeighbours(withColors);
+            }
+        } catch (e) {
+            console.log("Error fetching neighbours:", e);
+        }
+    };
+
+    // ── Effects ───────────────────────────────────────────────────────────────
+    useEffect(() => {
+        getHomeData();
+        fetchNeighbours();
+        registerPushToken();
+    }, []);
+
+    useEffect(() => {
+        const subscription = Notifications.addNotificationReceivedListener(async notification => {
+            console.log("🚨 Alert received:", notification);
+            const data: any = notification.request.content.data;
+
+            if (data?.alert_type) {
+                setActiveAlert({...data, body: notification.request.content.body});
+                setAlarmVisible(true);
+                await startAlarmWithInterval(
+                    data.alert_type,
+                    notification.request.content.body ?? '',
+                    30
+                );
+            }
+            fetchNeighbours();
+        });
+        return () => subscription.remove();
+    }, []);
+
+    useEffect(() => {
+        const subscription = Notifications.addNotificationResponseReceivedListener(async response => {
+            const data = response.notification.request.content.data;
+            console.log("Notification tapped:", data);
+            await stopAlarm();
+            setAlarmVisible(false);
+            if (data.latitude && data.longitude) {
+                mapRef.current?.animateToRegion({
+                    latitude: data.latitude,
+                    longitude: data.longitude,
+                    latitudeDelta: 0.001,
+                    longitudeDelta: 0.001,
+                }, 1000);
+            }
+        });
+        return () => subscription.remove();
+    }, []);
+
+    // ── Render ────────────────────────────────────────────────────────────────
+    if (isLoading) return <LoadingScreen/>;
 
     return (
         <View style={{flex: 1}}>
             <StatusBar style="light" animated/>
+
+            {/* Map */}
             <MapView
                 provider={PROVIDER_GOOGLE}
                 ref={mapRef}
@@ -189,11 +190,12 @@ const Index = () => {
                 }}
                 style={{width: "100%", height: "100%"}}
             >
+                {/* Own marker */}
                 <Marker
-                    onPress={() => setSelectedResidence(null)}
+                    onPress={handleOwnMarkerPress}
                     coordinate={{
-                        latitude: residenceData?.location?.latitude,
-                        longitude: residenceData?.location?.longitude,
+                        latitude: residenceData?.location?.latitude ?? 0,
+                        longitude: residenceData?.location?.longitude ?? 0,
                     }}
                     draggable
                     onDragEnd={(e) => {
@@ -208,13 +210,14 @@ const Index = () => {
                     </View>
                 </Marker>
 
+                {/* Neighbour markers */}
                 {neighbours.map((neighbour) => (
                     <Marker
-                        onPress={() => handleNeighbourPress(neighbour)}
                         key={neighbour.id}
+                        onPress={() => handleNeighbourPress(neighbour)}
                         coordinate={{
-                            latitude: neighbour.location?.latitude,
-                            longitude: neighbour.location?.longitude,
+                            latitude: neighbour?.location?.latitude ?? 0,
+                            longitude: neighbour?.location?.longitude ?? 0,
                         }}
                         title={neighbour.residence_name}
                         description={neighbour.street_name}
@@ -226,25 +229,19 @@ const Index = () => {
                     </Marker>
                 ))}
 
+                {/* Map overlay controls */}
                 <View style={{flex: 1, paddingTop: 48, paddingHorizontal: 16}}>
                     <View style={{
                         flexDirection: "row",
                         justifyContent: "space-between",
                         alignItems: "flex-start",
-                        width: "100%"
+                        width: "100%",
                     }}>
                         <Pressable onPress={() => setAlertModalVisible(true)}>
                             <AlertIcon/>
                         </Pressable>
                         <View style={{alignItems: "center", gap: 40}}>
-                            <Pressable style={{
-                                width: 20,
-                                height: 20,
-                                borderRadius: 10,
-                                justifyContent: "center",
-                                alignItems: "center",
-                                backgroundColor: "rgba(120,120,128,1.6)"
-                            }}>
+                            <Pressable style={styles.bellButton}>
                                 <BellIcon/>
                             </Pressable>
                             <Pressable onPress={goToCurrentLocation}>
@@ -255,23 +252,15 @@ const Index = () => {
                 </View>
             </MapView>
 
-            <GestureHandlerRootView style={{
-                flex: 1,
-                ...StyleSheet.absoluteFillObject
-            }}>
+            {/* Bottom sheet + modals */}
+            <GestureHandlerRootView style={{flex: 1, ...StyleSheet.absoluteFillObject}}>
                 <BottomSheet
                     ref={bottomSheetRef}
                     onChange={handleSheetChanges}
                     snapPoints={['22%']}
                     index={1}
                 >
-                    <BottomSheetView style={{
-                        height: "20%",
-                        padding: 36,
-                        paddingTop: 14,
-                        paddingHorizontal: 24,
-                        alignItems: 'flex-start',
-                    }}>
+                    <BottomSheetView style={styles.bottomSheetContent}>
                         {selectedResidence ? (
                             <UserComponent
                                 residence={selectedResidence}
@@ -285,12 +274,14 @@ const Index = () => {
                         )}
                     </BottomSheetView>
                 </BottomSheet>
+
                 <AlertModal
                     visible={alertModalVisible}
                     onClose={() => setAlertModalVisible(false)}
                     onSend={handleSendAlert}
                     isSending={isSendingAlert}
                 />
+
                 <AlarmModal
                     visible={alarmVisible}
                     alert={activeAlert}
@@ -299,7 +290,7 @@ const Index = () => {
             </GestureHandlerRootView>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     markerContainer: {
@@ -312,6 +303,21 @@ const styles = StyleSheet.create({
         backgroundColor: "#FF5A5F",
         marginTop: 2,
     },
-})
+    bellButton: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(120,120,128,1.6)",
+    },
+    bottomSheetContent: {
+        height: "20%",
+        padding: 36,
+        paddingTop: 14,
+        paddingHorizontal: 24,
+        alignItems: 'flex-start',
+    },
+});
 
 export default Index;

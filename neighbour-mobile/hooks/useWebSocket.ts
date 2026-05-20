@@ -10,7 +10,7 @@ export interface ChatMessage {
     type: string;
 }
 
-const WS_BASE = 'ws://192.168.1.6:8000';
+const WS_BASE = 'ws://192.168.1.4:8000';
 
 export const useWebSocket = (conversationId: number) => {
     const ws = useRef<WebSocket | null>(null);

@@ -2,12 +2,13 @@ import AppButton from "@/components/AppButton";
 import AppScreen from "@/components/AppScreen";
 import AppText from "@/components/AppText";
 import IssuesCard from "@/components/IssuesCard";
+import {useBottomSheet} from "@/context/BottomSheetContext";
 import colors from "@/utils/config";
 import {ApiResponse} from "apisauce";
 import {useRouter} from "expo-router";
 import {StatusBar} from "expo-status-bar";
 import {useState, useRef, useMemo, useEffect} from "react";
-import {StyleSheet, TouchableOpacity, View, TextInput, Alert, FlatList} from "react-native";
+import {StyleSheet, TouchableOpacity, View, TextInput, Alert, FlatList, Pressable} from "react-native";
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import Calendar from '@/assets/icons/Calendar.svg'
 import Filter from '@/assets/icons/Filter.svg'
@@ -20,6 +21,8 @@ import * as Location from "expo-location";
 import {Image} from "expo-image";
 import issuesApi from "@/api/issues";
 import LoadingScreen from "@/components/LoadingScreen";
+import residenceApi from "@/api/residence"  // ← add this import
+
 
 const CATEGORIES = ['Community', 'Neighbours']
 const SEVERITY_OPTIONS = ['low', 'moderate', 'high', 'critical']
@@ -33,18 +36,23 @@ const Reports = () => {
 
     // bottom sheet
     const sheetRef = useRef<BottomSheet>(null)
-    const snapPoints = useMemo(() => ["60%"], [])
+    const snapPoints = useMemo(() => ["100%"], [])
 
     // form state
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [severity, setSeverity] = useState('moderate')
     const [images, setImages] = useState<string[]>([])
+    const [residenceData, setResidenceData] = useState<any>(null)
     const [location, setLocation] = useState<{ latitude: number, longitude: number } | null>(null)
 
     useEffect(() => {
         fetchIssues()
+        fetchResidence()
     }, [selectedIndex])
+
+    const {openSheet, closeSheet} = useBottomSheet();
+
 
     const fetchIssues = async () => {
         try {
@@ -72,6 +80,15 @@ const Reports = () => {
         })
         if (!result.canceled) {
             setImages(prev => [...prev, ...result.assets.map(a => a.uri)])
+        }
+    }
+
+    const fetchResidence = async () => {
+        try {
+            const res = await residenceApi.userResidence()
+            setResidenceData(res.data)
+        } catch (e) {
+            console.log('Error fetching residence:', e)
         }
     }
 
@@ -154,7 +171,10 @@ const Reports = () => {
                         width: "100%"
                     }}>Issues</AppText>
                     <TouchableOpacity
-                        onPress={() => sheetRef.current?.expand()}
+                        onPress={() => {
+                            sheetRef.current?.expand()
+                            openSheet()
+                        }}
                         style={{position: "absolute", alignSelf: "center", right: 0}}
                     >
                         <PlusIcon/>
@@ -220,19 +240,22 @@ const Reports = () => {
                 <BottomSheet
                     ref={sheetRef}
                     snapPoints={snapPoints}
-                    index={0}
+                    index={-1}
                     enablePanDownToClose
+                    onClose={() => closeSheet()}
                 >
-                    <BottomSheetScrollView contentContainerStyle={{paddingBottom: 100}}>
+                    <BottomSheetScrollView
+                        contentContainerStyle={{height: "100%",}}>
                         {submitting && <LoadingScreen/>}
 
                         <AppText styles={{
                             fontSize: 16,
                             textAlign: "center",
+                            marginTop: 32,
                             marginBottom: 16
                         }}>Add Issue</AppText>
 
-                        <View style={{paddingHorizontal: 16, gap: 24}}>
+                        <View style={{paddingHorizontal: 16, gap: 24, paddingBottom: 100}}>
 
                             {/* Title */}
                             <View style={{gap: 8}}>
@@ -290,7 +313,7 @@ const Reports = () => {
                             {/* Location */}
                             <View style={{gap: 8}}>
                                 <AppText styles={{fontSize: 14}}>Set Location</AppText>
-                                <TouchableOpacity onPress={getCurrentLocation}>
+                                <View>
                                     <MapView
                                         provider={PROVIDER_GOOGLE}
                                         mapType="satellite"
@@ -309,9 +332,9 @@ const Reports = () => {
                                         } : undefined}
                                         style={{width: "100%", height: 120, borderRadius: 16}}
                                     >
-                                        {location && <Marker coordinate={location}/>}
+                                        {location && <Marker draggable coordinate={location}/>}
                                     </MapView>
-                                </TouchableOpacity>
+                                </View>
                                 {location && (
                                     <AppText styles={{fontSize: 10, color: '#A5A5A5'}}>
                                         Location set: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
