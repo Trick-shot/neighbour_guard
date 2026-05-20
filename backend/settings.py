@@ -95,43 +95,19 @@ username = config('AFRICASTALKING_USERNAME')
 api_key = config('AFRICASTALKING_API_KEY')
 africastalking.initialize(username, api_key)
 
-# EMAIL_BACKEND = config('EMAIL_BACKEND')
-
-# EMAIL_HOST = config('EMAIL_HOST')
-# EMAIL_PORT = config('EMAIL_PORT')
-# EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-# EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-# EMAIL_USE_SSL = config('EMAIL_USE_SSL')
-# EMAIL_USE_TLS = config('EMAIL_USE_TLS')
-#
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
-
+# Email
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
 EMAIL_HOST = 'smtp.mail.yahoo.com'
 EMAIL_PORT = 465
-
-EMAIL_HOST_USER = 'erickluoga1722@yahoo.com'
-EMAIL_HOST_PASSWORD = 'vpkpbtflxmprtndj'
-
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 EMAIL_USE_SSL = True
 EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER')
+SERVER_EMAIL = config('EMAIL_HOST_USER')
 
-DEFAULT_FROM_EMAIL = 'erickluoga1722@yahoo.com'
-SERVER_EMAIL = 'erickluoga1722@yahoo.com'
-
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:8080",
-# ]
-
-CORS_ALLOW_ALL_ORIGINS = True
-
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-    'http://172.20.10.2:8000',
-]
+CORS_ALLOW_ALL_ORIGINS = False
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', cast=Csv())
 
 LANGUAGE_CODE = 'en-us'
 
@@ -218,17 +194,16 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('JWT',),
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # ✅ access token lasts 1 day
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # optional but recommended
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
 DJOSER = {
     "SEND_ACTIVATION_EMAIL": True,
     "ACTIVATION_URL": "activate/{uid}/{token}",
-    # 'DOMAIN': 'test.trickshot.tech',
-    'DOMAIN': 'localhost:8000',  # ← fix this
+    'DOMAIN': config('DOMAIN', default='localhost:8000'),
     'SITE_NAME': 'NeighbourGuard',
-    'PROTOCOL': 'http',
+    'PROTOCOL': config('PROTOCOL', default='http'),
     'SERIALIZERS': {
         'user_create': 'core.serializers.UserCreateSerializer',
         'current_user': 'core.serializers.UserSerializer',
