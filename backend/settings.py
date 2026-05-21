@@ -198,15 +198,27 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
+# DJOSER = {
+#     "SEND_ACTIVATION_EMAIL": True,
+#     "ACTIVATION_URL": "activate/{uid}/{token}",
+#     'DOMAIN': config('DOMAIN', default='localhost:8000'),
+#     'SITE_NAME': 'NeighbourGuard',
+#     'PROTOCOL': config('PROTOCOL', default='http'),
+#     'SERIALIZERS': {
+#         'user_create': 'core.serializers.UserCreateSerializer',
+#         'current_user': 'core.serializers.UserSerializer',
+#     }
+# }
+
 DJOSER = {
     "SEND_ACTIVATION_EMAIL": True,
     "ACTIVATION_URL": "activate/{uid}/{token}",
-    'DOMAIN': config('DOMAIN', default='localhost:8000'),
-    'SITE_NAME': 'NeighbourGuard',
-    'PROTOCOL': config('PROTOCOL', default='http'),
-    'SERIALIZERS': {
-        'user_create': 'core.serializers.UserCreateSerializer',
-        'current_user': 'core.serializers.UserSerializer',
+    "DOMAIN": config('DOMAIN', default='localhost'),
+    "PROTOCOL": config('PROTOCOL', default='http'),
+    "SITE_NAME": "NeighbourGuard",
+    "SERIALIZERS": {
+        "user_create": "core.serializers.UserCreateSerializer",
+        "current_user": "core.serializers.UserSerializer",
     }
 }
 
