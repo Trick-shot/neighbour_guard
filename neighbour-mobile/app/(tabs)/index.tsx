@@ -1,6 +1,7 @@
 import AlarmModal from "@/components/home/AlarmModal";
 import AlertModal from "@/components/home/AlertModal";
 import HomeIndicator from "@/components/home/HomeIndicator";
+import StatsSheet from "@/components/home/StatsSheet";
 import UserComponent from "@/components/home/UserComponent";
 import LoadingScreen from "@/components/LoadingScreen";
 import {ProfileType} from "@/types/ProfileType";
@@ -14,7 +15,7 @@ import {useFocusEffect} from "expo-router";
 import {StatusBar} from "expo-status-bar";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {Pressable, StyleSheet, View} from "react-native";
+import {Pressable, ScrollView, StyleSheet, View} from "react-native";
 import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
 import AlertIcon from "@/assets/icons/alertIcon.svg";
@@ -33,6 +34,9 @@ const Index = () => {
     const [neighbours, setNeighbours] = useState<(ResidenceTypes & { color: string })[]>([]);
     const [selectedResidence, setSelectedResidence] = useState<ResidenceTypes | null>(null);
     const [location, setLocation] = useState(null);
+
+    const [statsVisible, setStatsVisible] = useState(false);
+    const statsSheetRef = useRef<BottomSheet>(null);
 
     // Alert modal
     const [alertModalVisible, setAlertModalVisible] = useState(false);
@@ -244,7 +248,7 @@ const Index = () => {
                             <AlertIcon/>
                         </Pressable>
                         <View style={{alignItems: "center", gap: 40}}>
-                            <Pressable style={styles.bellButton}>
+                            <Pressable style={styles.bellButton} onPress={() => statsSheetRef.current?.expand()}>
                                 <BellIcon/>
                             </Pressable>
                             <Pressable onPress={goToCurrentLocation}>
@@ -290,6 +294,16 @@ const Index = () => {
                     alert={activeAlert}
                     onDismiss={handleDismissAlarm}
                 />
+                <BottomSheet
+                    ref={statsSheetRef}
+                    snapPoints={['70%', '90%']}
+                    index={-1}
+                    enablePanDownToClose
+                >
+                    <BottomSheetView style={{flex: 1}}>
+                        <StatsSheet/>
+                    </BottomSheetView>
+                </BottomSheet>
             </GestureHandlerRootView>
         </View>
     );

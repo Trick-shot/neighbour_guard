@@ -207,11 +207,8 @@ const Reports = () => {
                         width: 81,
                     }}>
                         <Calendar/>
-                        <AppText styles={{fontSize: 10}}>Tues, 23</AppText>
+                        <AppText styles={{fontSize: 10}}>Thur, 21</AppText>
                     </View>
-                    <TouchableOpacity onPress={() => router.navigate('/reports/issueDetails')}>
-                        <Filter/>
-                    </TouchableOpacity>
                 </View>
 
                 {/* Issues List */}
