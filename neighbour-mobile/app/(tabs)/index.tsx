@@ -11,6 +11,7 @@ import {AlertPin, MePin} from '@/components/ui/MapPin';
 import StatusCompact from '@/components/ui/StatusCompact';
 import Text from '@/components/ui/Text';
 import {alertsApi, placesApi} from '@/lib/endpoints';
+import {alarmsAreAtRisk} from '@/lib/notifications';
 import {Alert, Area, MyResidence} from '@/lib/types';
 import {shadow, useColors} from '@/theme';
 import {streetMapStyle} from '@/theme/mapStyle';
@@ -28,6 +29,7 @@ export default function Home() {
     const [satellite, setSatellite] = useState(false);
     const [actionsOpen, setActionsOpen] = useState(false);
     const [noHome, setNoHome] = useState(false);
+    const [alarmRisk, setAlarmRisk] = useState(false);
 
     const load = useCallback(async () => {
         try {
@@ -44,6 +46,8 @@ export default function Home() {
 
     useFocusEffect(useCallback(() => {
         load();
+        // Phone settings change outside the app, so re-read them every time Home comes into focus.
+        alarmsAreAtRisk().then(setAlarmRisk);
         const t = setInterval(load, 20_000);
         return () => clearInterval(t);
     }, [load]));
@@ -102,14 +106,28 @@ export default function Home() {
             <View style={[styles.top, {top: insets.top + 6}]}>
                 <StatusCompact {...status} badge={alerts.length}
                                onPress={() => nearest ? router.push(`/alert/${nearest.id}`) : undefined}/>
+                {/* An alarm that cannot ring is the one failure nobody notices until it matters. */}
+                {alarmRisk && (
+                    <Pressable
+                        accessibilityRole="button"
+                        onPress={() => router.push('/system/alarm-check')}
+                        style={[styles.notice, shadow.control, {backgroundColor: c.feedback.errorBg}]}>
+                        <Icon name="triangle-alert" size={22} color={c.icon.danger}/>
+                        <View style={styles.noticeText}>
+                            <Text variant="label" color={c.text.danger}>Alarms can’t reach you</Text>
+                            <Text variant="footnote" color={c.text.danger}>A neighbour’s SOS would stay silent. Fix it.</Text>
+                        </View>
+                        <Icon name="chevron-right" size={20} color={c.icon.danger}/>
+                    </Pressable>
+                )}
                 {/* No home means no neighbourhood, so an SOS would reach nobody. Say so and offer the fix. */}
                 {noHome && (
                     <Pressable
                         accessibilityRole="button"
                         onPress={() => router.push('/authentication/location')}
-                        style={[styles.noHome, shadow.control, {backgroundColor: c.bg.surface}]}>
+                        style={[styles.notice, shadow.control, {backgroundColor: c.bg.surface}]}>
                         <Icon name="map-pin" size={22} color={c.icon.brand}/>
-                        <View style={styles.noHomeText}>
+                        <View style={styles.noticeText}>
                             <Text variant="label">Pin your home</Text>
                             <Text variant="footnote" color={c.text.secondary}>Until you do, an alert reaches nobody.</Text>
                         </View>
@@ -153,8 +171,8 @@ export default function Home() {
 const styles = StyleSheet.create({
     screen: {flex: 1},
     top: {position: 'absolute', left: 16, right: 16, gap: 8},
-    noHome: {flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16},
-    noHomeText: {flex: 1},
+    notice: {flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16},
+    noticeText: {flex: 1},
     rail: {position: 'absolute', left: 16, alignItems: 'center', gap: 4, paddingTop: 10, paddingBottom: 12, paddingHorizontal: 10, borderRadius: 999},
     expand: {width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center'},
     badge: {position: 'absolute', left: 32, top: -4, width: 18, height: 18, borderRadius: 9, borderWidth: 2, backgroundColor: '#e52e2e', alignItems: 'center', justifyContent: 'center'},

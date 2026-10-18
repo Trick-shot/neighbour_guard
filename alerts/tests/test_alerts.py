@@ -225,6 +225,17 @@ class AlertApiTests(APITestCase):
         self.assertEqual(self.client.post('/api/v2/alerts/push-token/', {'token': 'hello'}).status_code, 400)
         self.assertEqual(self.client.post('/api/v2/alerts/push-token/', {'token': 'ExponentPushToken[x]'}).status_code, 200)
 
+    def test_saving_a_push_token_needs_a_login(self):
+        self.assertEqual(self.client.post('/api/v2/alerts/push-token/', {'token': 'ExponentPushToken[x]'}).status_code, 401)
+
+    def test_saving_the_same_token_again_is_safe(self):
+        # The Alarm check screen re-sends the token every time it runs, so this must stay idempotent.
+        self.client.force_authenticate(self.sender)
+        for token in ('ExponentPushToken[one]', 'ExponentPushToken[one]', 'ExponentPushToken[two]'):
+            self.assertEqual(self.client.post('/api/v2/alerts/push-token/', {'token': token}).status_code, 200)
+        self.sender.refresh_from_db()
+        self.assertEqual(self.sender.push_token, 'ExponentPushToken[two]')
+
 
 class CountdownExtrasTests(AlertApiTests):
     def test_type_can_change_only_during_the_countdown(self):
