@@ -8,7 +8,7 @@ import Icon from '@/components/ui/Icon';
 import ListRow from '@/components/ui/ListRow';
 import Text from '@/components/ui/Text';
 import {useAuth} from '@/context/AuthContext';
-import {alertsApi, placesApi, profileApi} from '@/lib/endpoints';
+import {alertsApi, contactsApi, placesApi, profileApi} from '@/lib/endpoints';
 import {Me, MyResidence} from '@/lib/types';
 import {radius, shadow, useColors} from '@/theme';
 
@@ -21,6 +21,7 @@ export default function Profile() {
     const [home, setHome] = useState<MyResidence | null>(null);
     const [pinsSet, setPinsSet] = useState<boolean | null>(null);
     const [household, setHousehold] = useState<number | null>(null);
+    const [contacts, setContacts] = useState<number | null>(null);
 
     const load = useCallback(async () => {
         setMe(await profileApi.me().catch(() => null));
@@ -28,6 +29,7 @@ export default function Profile() {
         setHome(myHome);
         setPinsSet((await alertsApi.pinStatus().catch(() => null))?.is_set ?? null);
         setHousehold(myHome ? (await placesApi.household().catch(() => []))?.length ?? null : null);
+        setContacts((await contactsApi.list().catch(() => []))?.length ?? null);
     }, []);
 
     useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -71,10 +73,14 @@ export default function Profile() {
                 <ListRow first title="Home and address" icon="home"
                          value={home ? `${home.house_number} ${home.street}` : 'Not set'}
                          onPress={() => router.push(home ? '/profile/home' : '/authentication/location')}/>
-                <ListRow last title="Who lives here" icon="users"
+                <ListRow title="Who lives here" icon="users"
                          subtitle="Only shown to neighbours responding to your alert"
                          value={household === null ? undefined : `${household}`}
                          onPress={() => router.push('/profile/household')}/>
+                <ListRow last title="Emergency contacts" icon="message-circle"
+                         subtitle="Texted when your alert goes out"
+                         value={contacts === null ? undefined : `${contacts}`}
+                         onPress={() => router.push('/profile/contacts')}/>
             </View>
 
             <Text variant="label" color={c.text.muted} style={styles.heading}>Safety</Text>

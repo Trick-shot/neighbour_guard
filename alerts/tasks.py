@@ -21,3 +21,24 @@ def sweep_due_alerts():
 @shared_task(ignore_result=True)
 def widen_if_no_response(alert_id: int):
     services.widen_if_no_response(alert_id)
+
+
+@shared_task(ignore_result=True)
+def notify_emergency_contacts(alert_id: int):
+    """Text the sender's own emergency contacts once the alert is out.
+
+    Slow work, so it is a task. The numbers and the message body are never logged.
+    """
+    from core.sms import send_sms
+
+    alert = (Alert.objects.select_related('sender', 'residence')
+             .filter(pk=alert_id, status=Alert.Status.SENT).first())
+    if not alert:
+        return
+    numbers = list(alert.sender.emergency_contacts.values_list('phone', flat=True))
+    if not numbers:
+        return
+    where = f'{alert.residence.house_number} {alert.residence.street}'.strip()
+    body = (f'{alert.sender.full_name} sent a {alert.get_type_display().lower()} alert on '
+            f'NeighbourGuard from {where}. Neighbours nearby have been alerted.')
+    send_sms(body, numbers)

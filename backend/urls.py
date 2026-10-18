@@ -32,6 +32,8 @@ urlpatterns = [
     path('api/main/', include('main.urls')),
 
     # v2 (the rebuild, see docs/reference/backend.md)
+    path('api/v2/contacts/', include('core.urls_contacts')),
+    path('api/v2/sms/', include('alerts.urls_sms')),
     path('api/v2/places/', include('places.urls')),
     path('api/v2/alerts/', include('alerts.urls')),
     path('api/v2/chat/', include('chat.urls')),

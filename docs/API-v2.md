@@ -22,6 +22,40 @@ cancel, already sent).
 | PATCH | `places/household/<id>/` | `name?, age_group?, needs_help?` | The person. 404 for another home's household |
 | DELETE | `places/household/<id>/` | | 204. 404 for another home's household |
 
+## Emergency contacts
+
+| Method | Path | Body | Returns |
+| --- | --- | --- | --- |
+| GET | `contacts/` | | My own contacts: `[{id, name, relation, phone}]` |
+| POST | `contacts/` | `name, relation?, phone` | 201 the contact. Max 5. The owner comes from the token |
+| PATCH | `contacts/<id>/` | `name?, relation?, phone?` | The contact. 404 for someone else's |
+| DELETE | `contacts/<id>/` | | 204. 404 for someone else's |
+
+They are texted when an alert reaches `sent`, never during the countdown, and never again when the
+radius widens.
+
+## SMS fallback (no data connection)
+
+| Method | Path | Body | Returns |
+| --- | --- | --- | --- |
+| POST | `sms/inbound/?key=<SMS_INBOUND_SECRET>` | Africa's Talking fields: `from, to, text, date, id` | `{received: true, alert_id?}` |
+
+The phone shows the user a prefilled SMS: `SOS <type> <ref>`, where `ref` is the first 8 characters
+of the `client_id` it already made. The webhook then:
+
+- refuses everything unless `key` matches `SMS_INBOUND_SECRET` (403), and refuses everything if that
+  setting is empty (503) — Africa's Talking does not sign callbacks, and this endpoint can raise an
+  alert with no login;
+- requires `from` to match a **verified** profile; anything else gets a plain 200 and raises nothing,
+  so the gateway stops retrying;
+- raises an `sms` channel alert, which skips the countdown (the person chose to send by texting);
+- stores the `ref`, so when the app gets data back and retries `POST alerts/` with the full
+  `client_id`, `create_alert` adopts that alert instead of raising a second one. A `ref` belonging to
+  another user is ignored, not refused.
+
+An unparseable message is still an emergency: someone texting this is not in a position to get the
+wording right.
+
 ## Alerts (SOS)
 
 | Method | Path | Body | Returns |

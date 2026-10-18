@@ -3,14 +3,18 @@ import logging
 import secrets
 import hashlib
 from django.conf import settings
+from django.db import IntegrityError
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from core.models import EmergencyContact
+from core.serializers import EmergencyContactSerializer
 from main.models import OTPVerification, Profile
 from djoser.views import UserViewSet
 
+from core.phone import format_phone_number
 from core.sms import send_sms
 
 logger = logging.getLogger(__name__)
@@ -41,15 +45,6 @@ class CustomUserViewSet(UserViewSet):
 
 def hash_otp(code: str) -> str:
     return hashlib.sha256(code.encode()).hexdigest()
-
-
-def format_phone_number(phone: str) -> str:
-    phone = phone.replace(' ', '').replace('-', '')
-    if phone.startswith('0'):
-        return '+255' + phone[1:]
-    if phone.startswith('255'):
-        return '+' + phone
-    return phone
 
 
 class MinuteWindowThrottle(UserRateThrottle):
@@ -212,3 +207,52 @@ class EmailCodeVerifyView(APIView):
             return Response({'error': 'Account not found.'}, status=status.HTTP_400_BAD_REQUEST)
         refresh = RefreshToken.for_user(user)
         return Response({'access': str(refresh.access_token), 'refresh': str(refresh)})
+
+
+class EmergencyContactsView(APIView):
+    """GET / POST /api/v2/contacts/ — the people texted when I send an SOS.
+
+    They are mine and only mine: the list is always filtered by `request.user`, and the serializer
+    has no `user` field, so a body naming someone else changes nothing.
+    """
+
+    def get(self, request):
+        contacts = EmergencyContact.objects.filter(user=request.user)
+        return Response(EmergencyContactSerializer(contacts, many=True).data)
+
+    def post(self, request):
+        if EmergencyContact.objects.filter(user=request.user).count() >= EmergencyContact.MAX_PER_USER:
+            return Response({'detail': f'You can have {EmergencyContact.MAX_PER_USER} emergency contacts.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        serializer = EmergencyContactSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.save(user=request.user)
+        except IntegrityError:
+            return Response({'detail': 'That number is already one of your contacts.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class EmergencyContactView(APIView):
+    """PATCH / DELETE /api/v2/contacts/<id>/ — one of my own contacts."""
+
+    def _get(self, request, pk):
+        # Filtered by user, so someone else's contact is a 404: you may not know it exists.
+        return EmergencyContact.objects.filter(pk=pk, user=request.user).first()
+
+    def patch(self, request, pk):
+        contact = self._get(request, pk)
+        if not contact:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = EmergencyContactSerializer(contact, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, pk):
+        contact = self._get(request, pk)
+        if not contact:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        contact.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

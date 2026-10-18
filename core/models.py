@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
@@ -36,3 +37,29 @@ class User(AbstractUser):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
+
+
+class EmergencyContact(models.Model):
+    """Someone outside the neighbourhood who should be told when you send an SOS.
+
+    Family, usually. They are texted when the alert goes out, because the people who care most are
+    often not the people who are nearby.
+    """
+
+    MAX_PER_USER = 5
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             related_name='emergency_contacts')
+    name = models.CharField(max_length=100)
+    relation = models.CharField(max_length=40, blank=True, help_text='Mother, brother, landlord…')
+    phone = models.CharField(max_length=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['id']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'phone'], name='one_contact_per_number'),
+        ]
+
+    def __str__(self):
+        return f'{self.name} for {self.user_id}'

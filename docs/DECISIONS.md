@@ -2,6 +2,31 @@
 
 Each entry: the decision, why, and what would make us revisit it. Newest first.
 
+## 2026-10-18 · Emergency contacts live in `core`, not a new `accounts` app
+The reference called them `accounts`. They belong to a person, not a place or an alert, and `core`
+already owns the user, so they are `core.EmergencyContact` and no new app was added.
+**Revisit:** if profile skills and medical notes arrive and `core` starts feeling crowded.
+
+## 2026-10-18 · Family is texted on send, never during the countdown
+`fan_out` queues the SMS, and only on the first fan-out. **Why:** ten seconds exist so an alert can
+be cancelled, and a cancelled alert must not have already frightened someone's mother. Widening the
+radius does not text them twice either.
+
+## 2026-10-18 · The inbound SMS webhook needs a shared secret
+`POST /api/v2/sms/inbound/` takes `?key=`, checked against `SMS_INBOUND_SECRET`, and refuses
+everything with 503 while that setting is empty. **Why:** it is the only endpoint that can raise an
+alert with no JWT, Africa's Talking does not sign its callbacks, and the `from` field is just text
+in a request body — without a secret, anyone who knew a verified number could raise an alert as
+that person. The verified-profile check is the second gate, not the only one. **Revisit:** if
+Africa's Talking ever signs callbacks, check the signature instead.
+
+## 2026-10-18 · An SMS carries an 8-character ref, not a UUID
+`Alert.sms_ref` holds the first 8 characters of the phone's own `client_id`. **Why:** nobody types
+36 characters under threat, and an SMS has no room. When data comes back and the app retries with
+the real `client_id`, `create_alert` finds the alert by its ref and adopts it, so one emergency
+never becomes two alerts. A ref that belongs to someone else is ignored rather than refused — that
+caller still needs an alert of their own, and a test covers it.
+
 ## 2026-10-18 · The web app calls the API at a relative `/api`
 `web/src/api/client.ts` had `baseURL: "http://127.0.0.1:8000/api"` hardcoded. Django serves the web
 app and the API from the same origin, so the base URL is now relative. **Why:** the old value meant

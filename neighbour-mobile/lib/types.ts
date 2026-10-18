@@ -76,6 +76,13 @@ export type Me = {
     is_phone_verified: boolean;
 };
 
+export type EmergencyContact = {
+    id: number;
+    name: string;
+    relation: string;
+    phone: string;
+};
+
 export type HouseholdPerson = {
     id: number;
     name: string;

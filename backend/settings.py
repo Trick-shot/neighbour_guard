@@ -148,6 +148,11 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # need real credentials.
 AFRICASTALKING_USERNAME = config('AFRICASTALKING_USERNAME', default='')
 AFRICASTALKING_API_KEY = config('AFRICASTALKING_API_KEY', default='')
+# Shared secret in the inbound-SMS callback URL. Africa's Talking does not sign its callbacks, and
+# that endpoint can raise an alert without a login, so with no secret set it refuses everything.
+SMS_INBOUND_SECRET = config('SMS_INBOUND_SECRET', default='')
+# The number people text an SOS to when they have no data. Shown on the SMS fallback screen.
+SMS_SHORTCODE = config('SMS_SHORTCODE', default='')
 
 # --- DRF / JWT ----------------------------------------------------------------
 REST_FRAMEWORK = {

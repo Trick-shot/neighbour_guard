@@ -80,6 +80,12 @@ EMAIL_HOST_PASSWORD=...
 
 AFRICASTALKING_USERNAME=...
 AFRICASTALKING_API_KEY=...
+# Inbound SMS. The webhook refuses everything (503) while this is empty, because it can raise an
+# alert with no login and Africa's Talking does not sign its callbacks. Generate one the same way as
+# SECRET_KEY, then point the Africa's Talking callback at
+#   https://YOUR_DOMAIN/api/v2/sms/inbound/?key=<the same value>
+SMS_INBOUND_SECRET=
+SMS_SHORTCODE=            # the number people text an SOS to when they have no data
 
 REDIS_URL=redis://127.0.0.1:6379/0
 LOG_LEVEL=INFO

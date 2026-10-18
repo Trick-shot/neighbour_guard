@@ -26,6 +26,10 @@ class Alert(models.Model):
         SMS = 'sms', 'SMS fallback'
 
     client_id = models.UUIDField(unique=True, default=uuid.uuid4)
+    # The short code an SMS carries instead of a full UUID (an SMS has no room, and nobody types
+    # 36 characters under threat). When the app gets data back and retries with the real client_id,
+    # `create_alert` finds this alert by its ref and adopts it, so one SOS never becomes two.
+    sms_ref = models.CharField(max_length=8, blank=True, default='', db_index=True)
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='alerts_sent')
     residence = models.ForeignKey('places.Residence', on_delete=models.CASCADE, related_name='alerts')
     neighbourhood = models.ForeignKey('places.Neighbourhood', on_delete=models.CASCADE, related_name='alerts')
@@ -51,6 +55,11 @@ class Alert(models.Model):
 
     def __str__(self):
         return f'{self.get_type_display()} from {self.residence} ({self.status})'
+
+    @staticmethod
+    def ref_for(client_id) -> str:
+        """The 8-character code the phone prints in an SMS, derived from its own client_id."""
+        return str(client_id).replace('-', '')[:8].lower()
 
     @property
     def is_live(self):

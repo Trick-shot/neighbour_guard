@@ -1,5 +1,6 @@
 """SOS rules. Every state change is a conditional UPDATE, so two devices can never both win a race."""
 import logging
+import uuid
 from datetime import timedelta
 
 from django.conf import settings
@@ -22,9 +23,22 @@ class AlertError(Exception):
         self.code = code
 
 
-def create_alert(user, *, client_id, type, message='', channel=Alert.Channel.APP) -> tuple[Alert, bool]:
+def create_alert(user, *, client_id, type, message='', channel=Alert.Channel.APP,
+                 sms_ref='') -> tuple[Alert, bool]:
     """Start the countdown. A retry with the same client_id returns the same alert (created=False)."""
+    # An SMS carries an 8-character ref, not a UUID, so the server makes the id in that case.
+    if client_id is None:
+        client_id = uuid.uuid4()
     existing = Alert.objects.filter(client_id=client_id).first()
+    if not existing:
+        # The same SOS may have already arrived by SMS, carrying only its short ref. Adopt that
+        # alert rather than raising a second one for the same emergency. A ref that belongs to
+        # someone else is ignored, not refused: it is their alert, and this caller still needs one.
+        candidate = Alert.objects.filter(sms_ref=Alert.ref_for(client_id)).exclude(sms_ref='').first()
+        if candidate and candidate.sender_id == user.id:
+            Alert.objects.filter(pk=candidate.pk).update(client_id=client_id)
+            candidate.refresh_from_db()
+            existing = candidate
     if existing:
         if existing.sender_id != user.id:
             raise AlertError('This id belongs to another alert.', 'conflict')
@@ -40,7 +54,8 @@ def create_alert(user, *, client_id, type, message='', channel=Alert.Channel.APP
         with transaction.atomic():
             alert = Alert.objects.create(
                 client_id=client_id, sender=user, residence=residence, neighbourhood=residence.neighbourhood,
-                type=type, message=message, channel=channel, radius_m=settings.SOS_RADIUS_M,
+                type=type, message=message, channel=channel, sms_ref=sms_ref,
+                radius_m=settings.SOS_RADIUS_M,
                 # SMS skips the countdown: the person already chose to send by tapping Send.
                 send_at=now if sms else now + timedelta(seconds=settings.SOS_COUNTDOWN_SECONDS),
             )
@@ -121,6 +136,12 @@ def fan_out(alert: Alert, radius_m: int, exclude_user_ids=()):
 
     from chat.services import post_alert_card
     post_alert_card(alert)
+
+    # Family first hears about this now, not during the countdown: a cancelled alert must never
+    # frighten anyone. Only on the first fan-out, so widening does not text them twice.
+    if not exclude_user_ids:
+        from .tasks import notify_emergency_contacts
+        notify_emergency_contacts.delay(alert.pk)
     logger.info('Alert %s sent to %d devices within %d m', alert.pk, accepted, radius_m)
 
 

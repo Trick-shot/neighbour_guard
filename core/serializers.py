@@ -2,6 +2,9 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from djoser.serializers import UserSerializer as BaseUserSerializer, UserCreateSerializer as BaseUserCreateSerializer
+
+from core.models import EmergencyContact
+from core.phone import normalise_tz_phone
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer as BaseTokenObtainPairSerializer
 
 
@@ -52,3 +55,17 @@ class TokenObtainPairSerializer(BaseTokenObtainPairSerializer):
 class PhoneNumberVerifyOTPSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=15)
     otp = serializers.CharField(max_length=6)
+
+
+class EmergencyContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmergencyContact
+        # No `user` field: it comes from the token, so it cannot be set from the body.
+        fields = ['id', 'name', 'relation', 'phone']
+        read_only_fields = ['id']
+
+    def validate_phone(self, value):
+        number = normalise_tz_phone(value)
+        if not number:
+            raise serializers.ValidationError('Enter a Tanzanian mobile number, like 0712 345 678.')
+        return number

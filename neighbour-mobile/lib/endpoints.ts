@@ -1,8 +1,8 @@
 /** Typed calls to /api/v2 (see docs/API-v2.md). */
 import {api, call} from './api';
 import {
-    Alert, AlertType, Area, ChatMessage, Conversation, HouseholdPerson, Me, MyResidence, NewResidence,
-    ResponseState,
+    Alert, AlertType, Area, ChatMessage, Conversation, EmergencyContact, HouseholdPerson, Me, MyResidence,
+    NewResidence, ResponseState,
 } from './types';
 
 type Tokens = { access: string; refresh: string };
@@ -45,6 +45,13 @@ export const profileApi = {
     me: () => call<Me>(api.get('/api/auth/users/me/')),
     // Only the name is writable: the phone reaches the profile through verify-otp and nowhere else.
     rename: (full_name: string) => call<Me>(api.patch('/api/auth/users/me/', {full_name})),
+};
+
+export const contactsApi = {
+    list: () => call<EmergencyContact[]>(api.get('/api/v2/contacts/')),
+    add: (contact: Omit<EmergencyContact, 'id'>) =>
+        call<EmergencyContact>(api.post('/api/v2/contacts/', contact)),
+    remove: (id: number) => call(api.delete(`/api/v2/contacts/${id}/`)),
 };
 
 export const alertsApi = {
