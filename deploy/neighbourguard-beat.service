@@ -1,0 +1,23 @@
+# The safety net. Every 15 s it sends any pending alert whose send_at has passed, so an SOS still
+# goes out if a worker died holding its scheduled task. Treat this as load-bearing, not optional.
+[Unit]
+Description=NeighbourGuard Celery beat (overdue-alert sweeper, every 15s)
+After=network-online.target redis-server.service
+Wants=network-online.target redis-server.service
+
+[Service]
+User=neighbour
+Group=neighbour
+WorkingDirectory=/srv/neighbourguard
+Environment=DJANGO_SETTINGS_MODULE=backend.settings
+# systemd creates and owns /var/lib/neighbourguard for the schedule file.
+StateDirectory=neighbourguard
+ExecStart=/srv/neighbourguard/venv/bin/celery -A backend beat -l info \
+    --schedule=/var/lib/neighbourguard/celerybeat-schedule
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

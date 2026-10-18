@@ -1,0 +1,22 @@
+# HTTP + WebSockets. Copy to /etc/systemd/system/, change User, Group and the paths, then:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now neighbourguard-web
+[Unit]
+Description=NeighbourGuard web (daphne, HTTP + WebSockets)
+After=network-online.target redis-server.service
+Wants=network-online.target redis-server.service
+
+[Service]
+User=neighbour
+Group=neighbour
+WorkingDirectory=/srv/neighbourguard
+Environment=DJANGO_SETTINGS_MODULE=backend.settings
+# Secrets come from /srv/neighbourguard/.env, which python-decouple reads itself. Keep it 600.
+ExecStart=/srv/neighbourguard/venv/bin/daphne -b 127.0.0.1 -p 8000 backend.asgi:application
+Restart=always
+RestartSec=3
+# Logs go to the journal: journalctl -u neighbourguard-web -f
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -100,6 +100,54 @@ reports that it cannot tell, and opens the setting, instead of displaying a gree
 
 ---
 
+## 2026-10-18 — Claude Code — deploy runbook, and two things it turned up
+
+Branch `rebuild/v2`. Preparation for the roadmap's deploy item: `docs/DEPLOY.md` plus copy-ready
+unit files in `deploy/`. **The item is not ticked** — it is only done once it has been run on the
+server and this file matches what actually happened.
+
+**Two real bugs found by reading the deploy path**
+1. **Sign-up could never complete on a deployed server.** `web/src/api/client.ts` hardcoded
+   `http://127.0.0.1:8000/api`, so the email-activation page in a visitor's browser called *their
+   own* machine. The mobile sign-up waits for activation before it can sign in, so the whole demo
+   path from step 2 would have died on the server while working perfectly on the laptop. The base
+   URL is now relative (`/api`), which is right on any domain; `web/dist` rebuilt and checked — the
+   old URL is gone from the bundle.
+2. **`SECRET_KEY` is weak** (`check --deploy` W009). SimpleJWT signs every access token with it, so
+   a guessable key means forgeable tokens — anyone could act as any user, which here means sending
+   and reading alerts. Erick must generate a fresh 50+ character key **on the server**; the runbook
+   has the command and explains that rotating it just logs everyone out.
+
+**Done**
+- `docs/DEPLOY.md`: first-time setup, every-deploy steps, verification commands (with the status
+  codes to expect), rollback, and a "things that bite" list at the top — `collectstatic` is
+  mandatory, `web/` must be built before it, nginx must serve `/media/`, the phone bakes in its
+  server URL, and Redis must not evict the Celery queue.
+- `deploy/`: three systemd units (`daphne`, `celery worker`, `celery beat`) and an nginx site that
+  passes WebSockets through properly (`Upgrade` header, 1 h read timeout — without that nginx cuts
+  every chat socket at 60 s). Beat's schedule file lives in a systemd `StateDirectory`.
+- `backend/settings.py`: all the HTTPS settings behind one `HTTPS=True` env flag, off by default so
+  a certificate-less host cannot redirect-loop itself. Added `CsrfViewMiddleware` — defence in
+  depth only, see DECISIONS; it does not change today's behaviour.
+- `backend/tests.py` (new): the JWT API still works with no CSRF token, authenticated and not, and
+  the admin refuses a CSRF-less POST. **79 tests pass.** `check --deploy` with `HTTPS=True` is down
+  to the two HSTS warnings we turn off on purpose, plus the SECRET_KEY one only Erick can fix.
+- `web/.env.example` for the `npm run dev` case.
+
+**Erick must do these**
+- Generate the production `SECRET_KEY` first. Everything else is secondary to that.
+- Work through `docs/DEPLOY.md` on the server and correct it as you go — it was written from the
+  code, not from a real run, so treat every path and package name as a guess until proven.
+- After deploying: set `EXPO_PUBLIC_API_URL`/`EXPO_PUBLIC_WS_URL` in `neighbour-mobile/.env` to the
+  real domain, then `npx expo prebuild --clean && npx expo run:android` again. The phone compiles
+  those in; it will otherwise keep calling the laptop.
+
+**Left undone / notes**
+- No backups and no error reporting on the server. Both listed at the bottom of DEPLOY.md.
+- I did not run anything against the server: no access, and deploying is Erick's call.
+
+---
+
 ## 2026-10-18 — Claude Code — Maps key from env, and the Alarm check screen
 
 Branch `rebuild/v2`. Roadmap items: "Google Maps Android key via `app.config.js`" and

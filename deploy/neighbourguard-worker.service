@@ -1,0 +1,23 @@
+# Sends the SOS pushes, the SMS and anything else slow. Without this running, an alert is created
+# and never leaves the server.
+[Unit]
+Description=NeighbourGuard Celery worker (SOS sends, push)
+After=network-online.target redis-server.service
+Wants=network-online.target redis-server.service
+
+[Service]
+User=neighbour
+Group=neighbour
+WorkingDirectory=/srv/neighbourguard
+Environment=DJANGO_SETTINGS_MODULE=backend.settings
+ExecStart=/srv/neighbourguard/venv/bin/celery -A backend worker -l info --concurrency=2
+Restart=always
+RestartSec=3
+# Warm shutdown: let an in-flight push finish rather than losing it. CELERY_TASK_TIME_LIMIT is 60s.
+KillSignal=SIGQUIT
+TimeoutStopSec=70
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

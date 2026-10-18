@@ -23,6 +23,9 @@ Pitch: DIC 2026, 24–25 Oct 2026 (Yeosu). Concept note due 20 Oct.
       something is off. *(2026-10-18. Also sends a test alarm on the real channel.)*
 - [ ] Deploy `rebuild/v2` to the server: Redis, `celery worker` and `celery beat` systemd services,
       `migrate`, `import_v1_residences`. Update `docs/DEPLOY.md` with the exact steps used.
+      *(2026-10-18: `docs/DEPLOY.md` and `deploy/` are written and ready to follow, but nothing has
+      been run on the server. Generate a fresh `SECRET_KEY` there first — the current one is weak
+      and SimpleJWT signs tokens with it. Correct the runbook as you go.)*
 - [ ] Rehearse the demo three times on the deployed server with two phones.
 
 ## Next — after the pitch
