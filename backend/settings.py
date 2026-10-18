@@ -51,6 +51,11 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    # Defence in depth, not a fix for a known hole: the admin already wraps each of its own views
+    # in csrf_protect, and every API endpoint is a DRF view, which DRF makes csrf_exempt. This
+    # catches any future session-authenticated view that forgets to protect itself, and it makes
+    # `manage.py check --deploy` clean so a real warning stands out.
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -110,6 +115,22 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # --- CORS / CSRF -------------------------------------------------------------
 CORS_ALLOW_ALL_ORIGINS = False
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
+
+# --- HTTPS ------------------------------------------------------------------
+# Off by default, so a host without a working certificate cannot redirect-loop itself. Turn these
+# on with HTTPS=True once TLS actually serves the domain (see docs/DEPLOY.md), and not before.
+HTTPS = config('HTTPS', default=False, cast=bool)
+if HTTPS:
+    # nginx terminates TLS, so Django has to be told what the forwarded request looked like.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # One hour to start. Raise it only when every subdomain can do HTTPS: browsers remember HSTS
+    # and there is no quick way back.
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=3600, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
 
 # --- Email --------------------------------------------------------------------
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
