@@ -1,6 +1,4 @@
 from django.db.models import Count
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status, serializers
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -12,7 +10,7 @@ from rest_framework.mixins import RetrieveModelMixin, UpdateModelMixin, CreateMo
     ListModelMixin
 from django.contrib.auth import get_user_model
 from .models import Profile
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from django.db import models
 from .serializers import IssueSerializer, IssueCommentSerializer, AlertSerializer
@@ -21,35 +19,26 @@ from .utils import get_neighbours_within_radius, send_push_notifications, ALERT_
 User = get_user_model()
 
 
-@method_decorator(csrf_exempt, name='dispatch')
 class ResidenceViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, CreateModelMixin, DestroyModelMixin,
                        GenericViewSet):
-    queryset = Residence.objects.all()
+    """v1 residences. A user can only see and change residences they belong to."""
     serializer_class = ResidenceSerializer
+    permission_classes = [IsAuthenticated]
 
-    def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update']:
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    def get_queryset(self):
+        return Residence.objects.filter(residence_members=self.request.user).select_related('location')
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-
         if not serializer.is_valid():
             return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        email = serializer.validated_data.pop("email")
-        user = User.objects.filter(email=email).first()
-
-        if not user:
-            return Response({"errors": "User with this email not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        if Residence.objects.filter(residence_members=user).exists():
+        if Residence.objects.filter(residence_members=request.user).exists():
             return Response({"error": "User is already in a residence"}, status=status.HTTP_400_BAD_REQUEST)
 
         residence = serializer.save()
-        residence.residence_members.add(user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        residence.residence_members.add(request.user)
+        return Response(self.get_serializer(residence).data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'], url_path='my-residence')
     def my_residence(self, request, *args, **kwargs):
@@ -86,53 +75,27 @@ class ResidenceViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Cre
         return Response(serializer.data)
 
 
-class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
-    queryset = Profile.objects.all()
+class ProfileViewSet(RetrieveModelMixin, GenericViewSet):
+    """v1 profiles. Only your own profile is reachable; the phone number changes only through OTP verify."""
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
-    def get_permissions(self):
-        if self.action in ['update_profile', 'update_profile']:
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    def get_queryset(self):
+        return Profile.objects.filter(user=self.request.user)
 
     @action(detail=False, methods=['get'], url_path='my-profile')
     def my_profile(self, request):
-        profile = Profile.objects.filter(user=request.user).first()
-
-        if not profile:
-            return Response(
-                {"errors": "Profile not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        serializer = self.get_serializer(profile)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        return Response(self.get_serializer(profile).data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["patch"], url_path="update-profile")
     def update_profile(self, request, *args, **kwargs):
-        email = request.data.get("email")
-
-        if not email:
-            return Response({"errors": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        user = User.objects.filter(email=email).first()
-        if not user:
-            return Response({"errors": "User with this email not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        profile = Profile.objects.filter(user=user).first()
-        if not profile:
-            return Response({"errors": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
-
+        profile, _ = Profile.objects.get_or_create(user=request.user)
         serializer = self.get_serializer(profile, data=request.data, partial=True)
-
         if not serializer.is_valid():
             return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
         serializer.save()
-        print("FILES:", request.FILES)
-        print("DATA:", request.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -150,6 +113,13 @@ class IssueViewSet(ListModelMixin, RetrieveModelMixin, CreateModelMixin, Destroy
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        issue = self.get_object()
+        if issue.created_by_id != request.user.id and not request.user.is_staff:
+            return Response({"error": "Only the person who reported this issue can delete it"},
+                            status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=['post'], url_path='add-comment')
     def add_comment(self, request, pk=None):
@@ -173,7 +143,7 @@ class IssueViewSet(ListModelMixin, RetrieveModelMixin, CreateModelMixin, Destroy
     @action(detail=True, methods=['post'], url_path='like-comment')
     def like_comment(self, request, pk=None):
         comment_id = request.data.get('comment_id')
-        comment = IssueComment.objects.filter(id=comment_id).first()
+        comment = IssueComment.objects.filter(id=comment_id, issue_id=pk).first()
 
         if not comment:
             return Response({"error": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -321,11 +291,6 @@ class ConversationViewSet(ListModelMixin, CreateModelMixin, RetrieveModelMixin, 
         name = request.data.get('name', None)
 
         participant_ids = [int(pid) for pid in participant_ids]
-
-        print(f"USER ID: {request.user.id}")
-        print(f"PARTICIPANT IDS: {participant_ids}")
-        print(f"TYPE: {conversation_type}")
-
         if conversation_type == 'direct' and len(participant_ids) == 1:
             existing = Conversation.objects.filter(
                 conversation_type='direct',
@@ -337,13 +302,7 @@ class ConversationViewSet(ListModelMixin, CreateModelMixin, RetrieveModelMixin, 
             ).filter(
                 participant_count=2
             )
-
-            print(f"QUERY: {existing.query}")  # ← prints the actual SQL
-            print(f"RESULTS: {list(existing)}")
-
             existing = existing.first()
-            print(f"EXISTING: {existing}")
-
             if existing:
                 serializer = self.get_serializer(existing, context={'request': request})
                 return Response(serializer.data, status=200)

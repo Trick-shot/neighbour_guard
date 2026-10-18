@@ -15,15 +15,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_group_name = f'chat_{self.conversation_id}'
         self.user = await self.get_user_from_token()
 
-        if not self.user:
-            print("WebSocket auth failed - no user found")
-            await self.close()
+        if not self.user or not await self.is_participant():
+            await self.close(code=4403)
             return
 
         await self.set_online_status(True)
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
-        print(f"WebSocket connected: user={self.user.id}")
+        self.accepted = True
 
         await self.channel_layer.group_send(self.room_group_name, {
             'type': 'user_status',
@@ -32,6 +31,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         })
 
     async def disconnect(self, close_code):
+        if not getattr(self, 'user', None) or not getattr(self, 'accepted', False):
+            return
         await self.set_online_status(False)
         await self.channel_layer.group_send(self.room_group_name, {
             'type': 'user_status',
@@ -45,7 +46,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message_type = data.get('type', 'message')
 
         if message_type == 'message':
-            message = await self.save_message(data.get('content'))
+            content = (data.get('content') or '').strip()
+            if not content:
+                return
+            message = await self.save_message(content)
             await self.channel_layer.group_send(self.room_group_name, {
                 'type': 'chat_message',
                 'message_id': message.id,
@@ -86,6 +90,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     @database_sync_to_async
+    def is_participant(self):
+        return Conversation.objects.filter(id=self.conversation_id, participants=self.user).exists()
+
+    @database_sync_to_async
     def save_message(self, content):
         conversation = Conversation.objects.get(id=self.conversation_id)
         return Message.objects.create(
@@ -112,10 +120,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             params = parse_qs(query_string)
             token = params.get('token', [None])[0]
             if not token:
-                print("No token in query params")
                 return None
             access_token = AccessToken(token)
             return User.objects.get(id=access_token['user_id'])
-        except Exception as e:
-            print(f"Token auth error: {e}")
+        except Exception:
             return None

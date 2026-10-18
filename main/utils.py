@@ -1,8 +1,12 @@
 # utils.py
 
+import logging
+
 import requests
 from django.conf import settings
 from geopy.distance import geodesic
+
+logger = logging.getLogger(__name__)
 
 
 def get_neighbours_within_radius(current_location, all_residences, radius_meters=30):
@@ -29,7 +33,8 @@ ALERT_LABELS = {
 CRITICAL_TYPES = ["emergency", "fire"]
 
 
-def send_push_notifications(tokens: list, title: str, body: str, data: dict = {}):
+def send_push_notifications(tokens: list, title: str, body: str, data: dict | None = None):
+    data = data or {}
     if not tokens:
         return
 
@@ -48,13 +53,11 @@ def send_push_notifications(tokens: list, title: str, body: str, data: dict = {}
 
     try:
         response = requests.post(
-            "https://exp.host/--/api/v2/push/send",
+            settings.EXPO_PUSH_URL,
             json=messages,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            }
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            timeout=5,
         )
-        print("Push notification response:", response.json())
-    except Exception as e:
-        print("Push notification error:", e)
+        response.raise_for_status()
+    except requests.RequestException:
+        logger.exception("Expo push failed for %d tokens", len(messages))

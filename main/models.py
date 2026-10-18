@@ -1,8 +1,8 @@
 from datetime import timedelta
-from time import timezone
+
+from django.conf import settings
 from django.db import models
-from backend import settings
-import hashlib
+from django.utils import timezone
 
 
 class Profile(models.Model):
@@ -33,11 +33,14 @@ class OTPVerification(models.Model):
     is_used = models.BooleanField(default=False, null=True, blank=True)
     attempts = models.IntegerField(default=0, null=True, blank=True)
 
+    VALID_FOR = timedelta(minutes=10)
+    MAX_ATTEMPTS = 3
+
     def is_expired(self):
-        return timezone.now() > self.created_at + timezone.timedelta(minutes=5)
+        return timezone.now() > self.created_at + self.VALID_FOR
 
     def is_locked(self):
-        return self.attempts >= 3
+        return (self.attempts or 0) >= self.MAX_ATTEMPTS
 
     def __str__(self):
         return f"{self.phone_number} - {self.created_at}"
@@ -58,10 +61,6 @@ class Residence(models.Model):
 
     def __str__(self):
         return self.residence_name or "Unnamed Residence"
-
-
-from django.conf import settings
-from django.db import models
 
 
 class Issue(models.Model):

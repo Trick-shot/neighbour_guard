@@ -11,7 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'full_name', 'profile_pic']
+        fields = ['id', 'email', 'full_name', 'profile_pic']
 
     def get_profile_pic(self, obj):
         try:
@@ -26,21 +26,13 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(write_only=True)
     user = UserSerializer(read_only=True)
 
     class Meta:
         model = Profile
-        fields = ['email', 'user', 'profile_pic', 'phone_number']
-
-    def update(self, instance, validated_data):
-        validated_data.pop('email', None)
-
-        instance.profile_pic = validated_data.get('profile_pic', instance.profile_pic)
-        instance.phone_number = validated_data.get('phone_number', instance.phone_number)
-        instance.save()
-
-        return instance
+        fields = ['user', 'profile_pic', 'phone_number', 'is_phone_verified']
+        # The phone number decides where SMS alerts go, so it is set only by OTP verify.
+        read_only_fields = ['phone_number', 'is_phone_verified']
 
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -51,13 +43,18 @@ class LocationSerializer(serializers.ModelSerializer):
 
 class ResidenceSerializer(serializers.ModelSerializer):
     residence_members = UserSerializer(many=True, read_only=True)
-    email = serializers.EmailField(write_only=True)
     location = LocationSerializer(required=False, allow_null=True)
 
     class Meta:
         model = Residence
-        fields = ['id', 'email', 'residence_members', 'residence_name', 'house_number', 'location', 'street_name',
+        fields = ['id', 'residence_members', 'residence_name', 'house_number', 'location', 'street_name',
                   'district']
+
+    def create(self, validated_data):
+        location_data = validated_data.pop("location", None)
+        if location_data:
+            validated_data["location"] = Location.objects.create(**location_data)
+        return Residence.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
         location_data = validated_data.pop("location", None)

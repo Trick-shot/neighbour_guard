@@ -28,13 +28,17 @@ urlpatterns = [
     path('api/auth/', include('djoser.urls')),
     path('api/auth/', include('djoser.urls.jwt')),
 
-    # App
+    # v1 app (old mobile app; security-patched, to be retired)
     path('api/main/', include('main.urls')),
 
-    # DRF browsable API (dev only)
-    path('api-auth/', include('rest_framework.urls')),
+    # v2 (the rebuild, see docs/reference/backend.md)
+    path('api/v2/places/', include('places.urls')),
+    path('api/v2/alerts/', include('alerts.urls')),
+    path('api/v2/chat/', include('chat.urls')),
 
 ]
+if settings.DEBUG:
+    urlpatterns += [path('api-auth/', include('rest_framework.urls'))]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
