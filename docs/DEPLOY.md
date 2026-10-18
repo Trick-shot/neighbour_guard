@@ -92,6 +92,19 @@ AFRICASTALKING_API_KEY=...
 SMS_INBOUND_SECRET=
 SMS_SHORTCODE=            # the number people text an SOS to when they have no data
 
+# Mobile money for pooled street plans. All empty = the feature reports "not configured" instead of
+# pretending to charge anyone, which is the right state until the Vodacom TZ contract is confirmed.
+# MPESA_CALLBACK_SECRET guards the only endpoint that can mark a payment paid: generate it like
+# SECRET_KEY and put the same value in the gateway's callback URL:
+#   https://YOUR_DOMAIN/api/v2/providers/mpesa/callback/?key=<the same value>
+MPESA_BASE_URL=
+MPESA_KEY=
+MPESA_SECRET=
+MPESA_SHORTCODE=
+MPESA_PASSKEY=
+MPESA_CALLBACK_URL=
+MPESA_CALLBACK_SECRET=
+
 REDIS_URL=redis://127.0.0.1:6379/0
 LOG_LEVEL=INFO
 ```

@@ -142,6 +142,9 @@ def fan_out(alert: Alert, radius_m: int, exclude_user_ids=()):
     if not exclude_user_ids:
         from .tasks import notify_emergency_contacts
         notify_emergency_contacts.delay(alert.pk)
+        # A paid-up street also gets its provider's guard asked.
+        from providers.services import dispatch_for_alert
+        dispatch_for_alert(alert)
     logger.info('Alert %s sent to %d devices within %d m', alert.pk, accepted, radius_m)
 
 
@@ -225,6 +228,12 @@ def alert_summary(alert: Alert) -> dict:
         'responders': [
             {'user_id': r.responder_id, 'name': r.responder.full_name, 'state': r.state, 'eta_min': r.eta_min}
             for r in alert.responses.select_related('responder')
+        ],
+        # A guard, when the street is covered by a paid-up plan. `requested` means asked, not coming:
+        # only the provider moves it on, and the sender is shown exactly that.
+        'guards': [
+            {'provider': d.provider.name, 'status': d.status, 'eta_min': d.eta_min, 'name': d.guard_name or None}
+            for d in alert.dispatches.select_related('provider')
         ],
     }
 

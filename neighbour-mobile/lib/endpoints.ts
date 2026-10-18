@@ -2,7 +2,8 @@
 import {api, call} from './api';
 import {
     Alert, AlertType, Area, Attachment, AttachmentKind, ChatMessage, Conversation, EmergencyContact,
-    HouseholdPerson, Issue, IssueComment, IssueStatus, Me, MyResidence, Neighbour, NewResidence, ResponseState,
+    HouseholdPerson, Issue, IssueComment, IssueStatus, Me, MyResidence, MySubscription, Neighbour,
+    NewResidence, PaymentStatus, ResponseState, SecurityProvider,
 } from './types';
 
 type Tokens = { access: string; refresh: string };
@@ -92,6 +93,15 @@ export const issuesApi = {
         call<IssueComment>(api.post(`/api/v2/issues/${id}/comments/`, {body})),
     share: (id: number) =>
         call<{ conversation_id: number; message_id: number }>(api.post(`/api/v2/issues/${id}/share/`)),
+};
+
+export const providersApi = {
+    list: () => call<SecurityProvider[]>(api.get('/api/v2/providers/')),
+    mine: () => call<MySubscription[]>(api.get('/api/v2/providers/subscriptions/')),
+    join: (planId: number) => call<MySubscription>(api.post(`/api/v2/providers/plans/${planId}/join/`)),
+    leave: (planId: number) => call(api.delete(`/api/v2/providers/plans/${planId}/join/`)),
+    /** Poll while a payment is on the customer's phone. The server decides `paid`, never the app. */
+    payment: (id: number) => call<PaymentStatus>(api.get(`/api/v2/providers/payments/${id}/`)),
 };
 
 export const chatApi = {

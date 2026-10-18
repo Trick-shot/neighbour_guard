@@ -2,6 +2,29 @@
 
 Each entry: the decision, why, and what would make us revisit it. Newest first.
 
+## 2026-10-19 · The payment gateway is Daraja-shaped, and off until confirmed
+`providers/mpesa.py` speaks Daraja's STK-push shape (the documented one) against a configurable
+`MPESA_BASE_URL`, and every credential defaults to empty — with none set, asking for a payment
+raises "not configured" instead of pretending to charge anyone. **Why it is written down:** M-Pesa
+in Tanzania is Vodacom, not Safaricom, so the exact endpoint and field names must be confirmed
+against live credentials before this is switched on. What does *not* depend on the gateway — only a
+callback marks a payment paid, receipts are unique, activation happens once — is implemented and
+tested now. **Revisit:** when Erick has Vodacom credentials; expect to change URLs and field names
+in that one file and nothing else.
+
+## 2026-10-19 · Nothing but a gateway callback can mark a payment paid
+The app polls `GET providers/payments/<id>/` and can never write a status. The callback endpoint
+needs a shared secret (`MPESA_CALLBACK_SECRET`), refuses everything while it is unset, stores every
+callback whole, and relies on a unique receipt number plus a conditional update out of `pending`.
+**Why:** an unauthenticated POST that moves money is worth forging, and a replayed callback must
+not pay twice. Activation is also a conditional update, so two payments in the same second activate
+coverage once — a provider must never be told twice to start a patrol.
+
+## 2026-10-19 · A dispatch says "requested", not "a guard is coming"
+`Dispatch` starts at `requested` and only the provider moves it on; the sender's alert shows that
+state verbatim. **Why:** telling someone in an emergency that help is on the way when all that
+happened is an SMS to a company would be the worst kind of lie this app could tell.
+
 ## 2026-10-18 · Emergency contacts live in `core`, not a new `accounts` app
 The reference called them `accounts`. They belong to a person, not a place or an alert, and `core`
 already owns the user, so they are `core.EmergencyContact` and no new app was added.

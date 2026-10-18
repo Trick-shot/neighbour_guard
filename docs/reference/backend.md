@@ -57,7 +57,7 @@ anyone. SMS-channel alerts are created and sent at once (no countdown).
 **Built since:** SMS to emergency contacts on send (only on the first fan-out, never during the
 countdown); `POST /api/v2/sms/inbound/` with a shared secret, a verified-number check and `sms_ref`
 adoption.
-**To build:** provider dispatch.
+**Built since:** provider dispatch (`providers.services.dispatch_for_alert`, called from `fan_out`).
 
 ## Chat — Built (text + alert cards)
 
@@ -95,7 +95,7 @@ open/in_progress/resolved, visibility neighbourhood/public, lat, lng)`, `IssueMe
 - Migration: copy `main.Issue` with neighbourhood from the reporter's residence; issues whose
   reporter has no residence go to an `unassigned` neighbourhood visible to staff only.
 
-## Security providers and payments — To build (after the pitch)
+## Security providers and payments — Built (not yet exercised against a real gateway)
 
 `Provider(name, licence_no, verified, rating, coverage M2M neighbourhoods)`,
 `Plan(provider, kind street/house, price_tsh, min_houses)` (the provider sets the minimum),

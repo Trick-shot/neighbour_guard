@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/v2/alerts/', include('alerts.urls')),
     path('api/v2/chat/', include('chat.urls')),
     path('api/v2/issues/', include('issues.urls')),
+    path('api/v2/providers/', include('providers.urls')),
 
 ]
 if settings.DEBUG:

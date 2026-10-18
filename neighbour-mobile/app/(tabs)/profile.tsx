@@ -88,9 +88,12 @@ export default function Profile() {
                 <ListRow first title="Safety and duress PINs" icon="lock"
                          value={pinsSet === null ? undefined : pinsSet ? 'Set' : 'Not set'}
                          onPress={() => router.push('/profile/pins')}/>
-                <ListRow last title="Alarm check" icon="siren"
+                <ListRow title="Alarm check" icon="siren"
                          subtitle="Can a neighbour’s SOS reach this phone?"
                          onPress={() => router.push('/system/alarm-check')}/>
+                <ListRow last title="Security providers" icon="shield-check"
+                         subtitle="Pooled street patrols"
+                         onPress={() => router.push('/providers')}/>
             </View>
 
             <View style={[styles.card, shadow.bubble, styles.signOut]}>

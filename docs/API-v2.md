@@ -149,6 +149,36 @@ attachment, created_at}` (`attachment` is `null` for text, else `{id, url, mime,
 Every neighbourhood has one group conversation; members join it automatically when they add their
 home. A sent SOS posts a `kind: "alert"` message there.
 
+## Security providers and pooled plans
+
+| Method | Path | Body | Returns |
+| --- | --- | --- | --- |
+| GET | `providers/` | | **Verified** providers covering my neighbourhood, with their active plans. `coverage` is never returned |
+| POST | `providers/plans/<id>/join/` | | 201 my pool. Free. 403 unless my home is verified and the provider covers my area |
+| DELETE | `providers/plans/<id>/join/` | | 204. A member who has already paid is not removed |
+| GET | `providers/subscriptions/` | | The pools my home is in: `joined`, `paid`, `needed`, `my_status`, `my_payment_id` |
+| GET | `providers/payments/<id>/` | | `{id, amount_tsh, status, created_at, settled_at}`. Someone else's is a 404 |
+| POST | `providers/mpesa/callback/?key=<MPESA_CALLBACK_SECRET>` | gateway callback body | `{received: true}`. 403 wrong key, 503 if the secret is unset |
+
+How a pool works:
+
+1. Houses join for free. Nobody is charged while `joined < plan.min_houses`.
+2. When the pool fills, each member moves `joined → invited` by a conditional update, and only the
+   update that wins queues that member's payment request — so no house is ever asked twice.
+3. The customer approves on their own phone. **We never see a PIN**, and there is no field for one
+   anywhere in the codebase.
+4. **Only the gateway's callback marks a payment paid.** The app polls `payments/<id>/`; nothing it
+   sends can change a status. The receipt number is unique in the database and the row only leaves
+   `pending` via a conditional update, so a replayed callback changes nothing. Every callback is
+   stored whole in `raw_callback`.
+5. Coverage activates once `paid >= min_houses`, by a conditional update — two payments landing in
+   the same second activate it once, so a provider is never told to start twice.
+6. A nightly job lapses a subscription whose paid-up members fall below the minimum.
+
+With an active pool, an SOS from a member's home also creates a `Dispatch` and texts the provider.
+The sender sees it in `alert_summary.guards` as `{provider, status, eta_min, name}` — `requested`
+means a guard was asked, not that one is coming; only the provider moves it on.
+
 ## Auth and phone (core)
 
 | Method | Path | Notes |

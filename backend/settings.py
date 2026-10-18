@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'alerts.apps.AlertsConfig',
     'chat.apps.ChatConfig',
     'issues.apps.IssuesConfig',
+    'providers.apps.ProvidersConfig',
 ]
 
 ASGI_APPLICATION = 'backend.asgi.application'
@@ -155,6 +156,18 @@ SMS_INBOUND_SECRET = config('SMS_INBOUND_SECRET', default='')
 # The number people text an SOS to when they have no data. Shown on the SMS fallback screen.
 SMS_SHORTCODE = config('SMS_SHORTCODE', default='')
 
+# --- Mobile money (pooled street plans) -------------------------------------
+# All empty by default: with no credentials, asking for a payment reports "not configured" rather
+# than pretending to charge anyone. The callback endpoint refuses everything without its secret,
+# because it is the only thing in the system that can mark a payment paid.
+MPESA_BASE_URL = config('MPESA_BASE_URL', default='')
+MPESA_KEY = config('MPESA_KEY', default='')
+MPESA_SECRET = config('MPESA_SECRET', default='')
+MPESA_SHORTCODE = config('MPESA_SHORTCODE', default='')
+MPESA_PASSKEY = config('MPESA_PASSKEY', default='')
+MPESA_CALLBACK_URL = config('MPESA_CALLBACK_URL', default='')
+MPESA_CALLBACK_SECRET = config('MPESA_CALLBACK_SECRET', default='')
+
 # --- DRF / JWT ----------------------------------------------------------------
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -219,6 +232,11 @@ CELERY_BEAT_SCHEDULE = {
     # Uploads that never reached a message would otherwise sit on disk for ever.
     'delete-unused-attachments': {
         'task': 'chat.tasks.delete_unused_attachments',
+        'schedule': 24 * 60 * 60.0,
+    },
+    # Coverage stops when too few members are still paid up.
+    'lapse-unpaid-subscriptions': {
+        'task': 'providers.tasks.lapse_unpaid_subscriptions',
         'schedule': 24 * 60 * 60.0,
     },
 }

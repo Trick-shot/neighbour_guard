@@ -68,6 +68,46 @@ export type NewResidence = {
 
 export type Area = { lat: number; lng: number; homes: number };
 
+export type Plan = {
+    id: number;
+    kind: 'street' | 'house';
+    name: string;
+    description: string;
+    price_tsh: number;
+    min_houses: number;
+};
+
+export type SecurityProvider = {
+    id: number;
+    name: string;
+    licence_no: string;
+    rating: string | null;
+    plans: Plan[];
+};
+
+export type MySubscription = {
+    id: number;
+    status: 'gathering' | 'active' | 'lapsed' | 'cancelled';
+    street: string;
+    starts_at: string | null;
+    plan: Plan;
+    provider: string;
+    joined: number;
+    paid: number;
+    needed: number;
+    my_status: 'joined' | 'invited' | 'paid' | 'left' | null;
+    /** Set while a payment is waiting on the customer's phone; poll it, never assume. */
+    my_payment_id: number | null;
+};
+
+export type PaymentStatus = {
+    id: number;
+    amount_tsh: number;
+    status: 'pending' | 'paid' | 'failed';
+    created_at: string;
+    settled_at: string | null;
+};
+
 export type Neighbour = {
     user_id: number;
     full_name: string;
