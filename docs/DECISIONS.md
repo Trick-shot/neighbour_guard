@@ -2,6 +2,27 @@
 
 Each entry: the decision, why, and what would make us revisit it. Newest first.
 
+## 2026-10-18 · Map keys are build-time config, not `EXPO_PUBLIC_` variables
+`app.config.js` reads `GOOGLE_MAPS_ANDROID_KEY` from the environment and puts it in the native
+config. **Why:** an `EXPO_PUBLIC_` variable is inlined into the JavaScript bundle and served in the
+public manifest; this key belongs in the Android manifest, which only the native build needs. It is
+restricted in the Google console to our package name and signing certificate, which is the control
+that actually matters — a key in a shipped app is readable either way. **Revisit:** if a screen ever
+needs the key at runtime (Places autocomplete, say), that is a separate, separately restricted key.
+
+## 2026-10-18 · Battery optimisation is shown as "check by hand", not guessed
+No Android API tells an app whether it is exempt from battery optimisation, and the manufacturer
+skins put the setting in different places. **Why:** a check that says "fine" when it does not know
+is worse than no check — on life-safety software it invites trust that is not earned. The screen
+says it cannot tell, opens the settings list, and names what to choose. **Revisit:** if we ever add
+a native module that can read `isIgnoringBatteryOptimizations`.
+
+## 2026-10-18 · The Alarm check screen re-sends the push token every run
+It is the only way to know the server really has this phone; there is no endpoint that reads the
+token back, and we do not want one (it would hand a token out). **Why:** a token that never reached
+the server is invisible otherwise — the phone looks healthy and simply never rings. The endpoint
+just overwrites a field, so repeating it is safe, and there is a test for that.
+
 ## 2026-10-18 · The home pin is set by moving the map, not by dragging a marker
 "Pin your home" keeps the pin fixed in the centre of the screen and moves the map under it.
 **Why:** a draggable marker needs a precise press-and-hold with one thumb, and on Android a custom
