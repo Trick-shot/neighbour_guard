@@ -147,10 +147,16 @@ export default function Home() {
                     )}
                 </Pressable>
                 {actionsOpen ? (
-                    <Pressable onPress={() => { setActionsOpen(false); router.push('/(tabs)/issues'); }} style={styles.action}>
-                        <Icon name="clipboard-list" size={22}/>
-                        <Text variant="caption2" color={c.text.secondary}>Report</Text>
-                    </Pressable>
+                    <>
+                        <Pressable onPress={() => { setActionsOpen(false); router.push('/(tabs)/issues'); }} style={styles.action}>
+                            <Icon name="clipboard-list" size={22}/>
+                            <Text variant="caption2" color={c.text.secondary}>Report</Text>
+                        </Pressable>
+                        <Pressable onPress={() => { setActionsOpen(false); router.push('/neighbours'); }} style={styles.action}>
+                            <Icon name="users" size={22}/>
+                            <Text variant="caption2" color={c.text.secondary}>Neighbours</Text>
+                        </Pressable>
+                    </>
                 ) : (
                     <Text variant="caption2" color={c.text.secondary}>Actions</Text>
                 )}

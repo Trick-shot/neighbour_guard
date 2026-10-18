@@ -2,7 +2,7 @@
 import {api, call} from './api';
 import {
     Alert, AlertType, Area, Attachment, AttachmentKind, ChatMessage, Conversation, EmergencyContact,
-    HouseholdPerson, Issue, IssueComment, IssueStatus, Me, MyResidence, NewResidence, ResponseState,
+    HouseholdPerson, Issue, IssueComment, IssueStatus, Me, MyResidence, Neighbour, NewResidence, ResponseState,
 } from './types';
 
 type Tokens = { access: string; refresh: string };
@@ -38,7 +38,10 @@ export const placesApi = {
     updateHousehold: (id: number, fields: Partial<Omit<HouseholdPerson, 'id'>>) =>
         call<HouseholdPerson>(api.patch(`/api/v2/places/household/${id}/`, fields)),
     removeFromHousehold: (id: number) => call(api.delete(`/api/v2/places/household/${id}/`)),
-    neighbours: () => call<{ user_id: number; full_name: string }[]>(api.get('/api/v2/places/neighbours/')),
+    neighbours: () => call<Neighbour[]>(api.get('/api/v2/places/neighbours/')),
+    // Two vouches from verified neighbours verify a home. 403 unless I am one of them.
+    vouch: (residenceId: number) =>
+        call<{ status: string; vouches: number }>(api.post(`/api/v2/places/residences/${residenceId}/vouch/`)),
 };
 
 export const profileApi = {
@@ -93,6 +96,8 @@ export const issuesApi = {
 
 export const chatApi = {
     conversations: () => call<Conversation[]>(api.get('/api/v2/chat/conversations/')),
+    // Opens the one-to-one chat with a neighbour, reusing it if it already exists.
+    direct: (user_id: number) => call<Conversation>(api.post('/api/v2/chat/conversations/', {user_id})),
     messages: (id: number, params?: { before?: number; after?: number }) =>
         call<ChatMessage[]>(api.get(`/api/v2/chat/conversations/${id}/messages/`, params)),
     ticket: () => call<{ ticket: string }>(api.post('/api/v2/chat/ticket/')),

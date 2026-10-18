@@ -33,7 +33,9 @@ export default function Messages() {
         <View style={[styles.screen, {backgroundColor: c.bg.surface, paddingTop: insets.top + 8}]}>
             <View style={styles.header}>
                 <Text variant="titleLarge" style={{flex: 1}}>Messages</Text>
-                <Icon name="search" size={24}/>
+                <Pressable accessibilityLabel="Neighbours" onPress={() => router.push('/neighbours')} hitSlop={8}>
+                    <Icon name="users" size={24}/>
+                </Pressable>
             </View>
             <View style={[styles.segment, {backgroundColor: c.bg.subtle}]}>
                 {(['all', 'groups'] as const).map((k) => (

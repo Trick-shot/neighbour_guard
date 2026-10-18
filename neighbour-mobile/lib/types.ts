@@ -68,6 +68,13 @@ export type NewResidence = {
 
 export type Area = { lat: number; lng: number; homes: number };
 
+export type Neighbour = {
+    user_id: number;
+    full_name: string;
+    /** `house_number` only when I am verified myself; otherwise the street alone. */
+    home: { id: number; house_number?: string; street: string; status: 'pending' | 'verified' };
+};
+
 export type IssueCategory = 'security' | 'lighting' | 'roads' | 'water' | 'waste' | 'other';
 export type IssueSeverity = 'low' | 'moderate' | 'high' | 'critical';
 export type IssueStatus = 'open' | 'in_progress' | 'resolved';
