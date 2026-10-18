@@ -7,10 +7,11 @@ slow screen.
 ## Read these first, every session
 
 1. `docs/PROGRESS.md` — what is done, what is next, and the latest handoff notes. **Start here.**
-2. `docs/reference/backend.md` and `docs/reference/frontend.md` — the agreed design. Do not invent
+2. `docs/ROADMAP.md` — the ordered backlog. Take the first unticked item.
+3. `docs/reference/backend.md` and `docs/reference/frontend.md` — the agreed design. Do not invent
    features beyond them. If something is unclear or looks wrong, stop and ask Erick.
-3. `docs/API-v2.md` — the v2 endpoints the mobile app uses.
-4. `docs/DECISIONS.md` — decisions already made, and why.
+4. `docs/API-v2.md` — the v2 endpoints the mobile app uses.
+5. `docs/DECISIONS.md` — decisions already made, and why.
 
 ## The shared log (how two Claudes stay in sync)
 
@@ -22,6 +23,26 @@ designed the Figma screens and wrote the references). They only share what is in
 - When you make a decision the references do not cover, add it to `docs/DECISIONS.md`.
 - If you change an endpoint, update `docs/API-v2.md` in the same commit.
 - Work on a branch, never directly on `main`. Current rebuild branch: `rebuild/v2`.
+
+## How every work session goes
+
+1. Read `docs/PROGRESS.md` (top entry) and `docs/ROADMAP.md`. Take the first unticked item.
+2. Say in one or two lines what you will do and which files you expect to touch.
+3. Build it in small commits on `rebuild/v2`. UI must match the Android Figma frame exactly
+   (file `EuAEWkdGnn8S6GhHpEu65j`); use `theme/` tokens and `components/ui/`, never raw hex.
+4. Test: backend `DJANGO_SETTINGS_MODULE=backend.settings_test python manage.py test`; app
+   `npx tsc --noEmit` (only the known old onboarding errors may remain). Add tests for new rules.
+5. Save the state in Markdown before you stop, every time:
+   - `docs/PROGRESS.md`: new entry at the top (date, "Claude Code", done, files, left, what Erick
+     must check on a phone). Update the status table.
+   - `docs/ROADMAP.md`: tick the item; add anything discovered under "Inbox".
+   - `docs/DECISIONS.md`: any decision the references did not cover.
+   - `docs/API-v2.md`: any endpoint change.
+6. Commit the docs with the code and push the branch.
+7. Explain to Erick, in plain words, what changed and **why**, and one question that checks he
+   understood the important part. He presents this project and must be able to explain it.
+
+If the session is cut short, step 5 still happens first.
 
 ## Layout
 
