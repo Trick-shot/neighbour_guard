@@ -5,19 +5,22 @@ repo. Keep it short: what changed, where, what is left, what Erick must check.
 
 ## Status at a glance
 
+Everything below is **written and tested on a laptop**. Nothing has run on a phone or a server yet.
+
 | Area | Backend | App |
 | --- | --- | --- |
-| Security holes 1–5 (v1 API) | Done, tested | Old app calls must be updated (see below) |
-| Neighbourhoods + residences (`places`) | Done, tested | Home map done |
-| SOS countdown (`alerts`) | Done, tested | Hold, countdown, live, neighbour alarm, on the way: done |
-| Chat with live alert cards (`chat`) | Done, tested (text only) | Messages list + chat with alert cards: done |
+| Security holes 1–5 (v1 API) | Done, tested | The app no longer calls `/api/main/` at all |
+| Neighbourhoods + residences (`places`) | Done, tested | Home map, household, home and address |
+| SOS countdown (`alerts`) | Done, tested | Hold, countdown, live, neighbour alarm, on the way |
+| Chat (`chat`) | Done, tested — text, alert cards, issue cards, media | Messages, chat, voice/photo/video/file |
 | Sign in with email code | Done, tested | Done |
-| Alarm reliability on the phone | Channel + push done | Alarm check screen done; linked from Home |
-| Onboarding v2 (stages, home pin on v2) | Done, tested (`POST places/me/`) | Location + Pin your home on v2; the other stages are still the old screens |
-| Issues v2 (visibility, follow, share) | Not started (after pitch) | Not started |
-| Chat media (voice, photo, video, file) | Not started (after pitch) | Not started |
-| Emergency contacts + SMS fallback inbound | Not started | Not started |
-| Security providers + M-Pesa | Not started (after pitch) | Not started |
+| Alarm reliability on the phone | Channel + push done | Alarm check screen, linked from Home and Profile |
+| Onboarding v2 (4 stages) | Done, tested | Account → Verify → Location → Safety, all v2 |
+| Profile v2 + sub-screens | Done, tested (household, `users/me`) | Profile, personal, home, household, PINs, contacts |
+| Issues v2 (visibility, follow, share) | Done, tested + v1 import | Issues tab (both scopes), detail, report |
+| Emergency contacts + SMS fallback | Done, tested | Contacts screen + the offline SMS send screen |
+| Neighbours + vouching | Endpoints already existed | Neighbours screen with vouching |
+| Security providers + mobile money | Done, tested — **no live gateway yet** | Providers list, plan and pool, payment polling |
 
 Demo path for 24 Oct: sign in → Home map → hold SOS → 10 s countdown → neighbour's phone rings →
 "I'm coming" → alert card in the group chat.
@@ -103,6 +106,64 @@ names the manufacturer auto-start lists, and why SMS fallback is on the roadmap.
 One line if there is only time for one: **the app never says it is fine when it does not know — it
 either shows you proof or shows you the gap.** (The battery-optimisation row is the example: it
 reports that it cannot tell, and opens the setting, instead of displaying a green tick.)
+
+---
+
+## 2026-10-19 — Claude Code — the rest of the roadmap: eight items
+
+Branch `rebuild/v2`. Erick asked for the whole roadmap. Six items cannot be done by me at all
+(two-phone test, rehearsal, deploy, the `signin.png` Figma export, retiring v1, the Apple
+entitlement — phones, a server, Figma, real-world evidence and Apple). **Every other item is
+built**, in roadmap order, each with its own commit, tests and docs.
+
+**149 tests pass. `npx tsc --noEmit` and `npx eslint` are both clean.**
+
+1. **Onboarding v2 in full** — Account → Verify → Location → Safety, 7 screens. The duress-PIN copy
+   is the most important text in the app, so it says plainly what it does. Phone verification is
+   skippable with the cost stated. The welcome carousel was rebuilt too: it is the first thing a
+   judge sees.
+2. **Profile v2** — profile, personal information, home and address, household, the two PINs,
+   emergency contacts. New backend: household CRUD, and `users/me` now returns my own phone
+   (read-only — it only reaches the profile through `verify-otp`). `home.tsx` shows the pin but
+   cannot move it, and says why.
+3. **Emergency contacts + SMS fallback webhook** — family texted when an alert goes *out*, never
+   during the countdown. `POST /api/v2/sms/inbound/` has three gates (shared secret, verified
+   number, ref) and an 8-character `sms_ref` so an SMS alert and the app's later retry are one
+   alert, not two. Writing the tests found two bugs in my first cut.
+4. **Issues v2** — new app, the whole visibility matrix enforced in querysets and permissions, not
+   the app. `?scope=others` ranks by *my neighbourhood's centre* so the list cannot leak where I
+   live. Plus `import_v1_issues`, which puts un-placeable issues in a staff-only neighbourhood
+   rather than guessing.
+5. **Chat media** — upload over HTTP, send over the socket. The file type is sniffed from the magic
+   bytes, never trusted from the header; a nightly task deletes abandoned uploads.
+6. **Neighbours and vouching** — the trust model, explained before the button.
+7. **Security providers, pooled plans, mobile money, guard dispatch** — the money rules are the
+   point: nobody charged until the pool fills, only a gateway callback marks a payment paid,
+   replays change nothing, activation happens once. **Not switched on**: Vodacom TZ credentials are
+   needed, and with none set the code says "not configured" rather than pretending.
+8. **System states** — the offline SMS send screen (which completes item 3), and one shared
+   empty/loading/error component.
+
+**Also, along the way**
+- The last v1 client code is gone: `api/` deleted entirely, along with `AppText`, `AppButton`,
+  `AppScreen`, `AppForm`, `ImageSlider`. **Nothing in the app calls `/api/main/` any more**, which
+  is the app half of "retire the v1 API".
+- Raw hex colours in the app: 106 → 32, and all 32 are white-on-brand or SVG fills.
+- New shared components the reference asked for and nobody had built: `ListRow`, `StageProgress`,
+  `IssueCard`, `StateView`, `ScreenHeader`, `MediaBubble`.
+
+**Erick must do these**
+- Unchanged and still the whole critical path: `prebuild --clean` on a phone, then the server.
+- Three new secrets before their features work: `SMS_INBOUND_SECRET`, `EXPO_PUBLIC_SOS_SHORTCODE`
+  (compiled into the app) and the `MPESA_*` set. All are in `docs/DEPLOY.md`.
+- `python manage.py import_v1_issues --dry-run` on the server before the real run.
+
+**Left undone / notes**
+- **None of this has been seen working on a phone.** 37 screens now exist and I have run exactly
+  none of them. Expect layout problems the type checker cannot see.
+- The providers feature has never spoken to a real payment gateway.
+- Issues are text-only: `IssueMedia` has a model but no upload endpoint.
+- A provider cannot accept a dispatch or give an ETA yet; only staff can, in the admin.
 
 ---
 

@@ -30,30 +30,43 @@ Pitch: DIC 2026, 24–25 Oct 2026 (Yeosu). Concept note due 20 Oct.
 
 ## Next — after the pitch
 
-- [ ] Onboarding v2 in full (stages: Account → Verify → Location → Safety; Figma page 01).
-- [ ] Profile v2 + sub-screens (Figma page 07), safety PIN and duress PIN setup.
-- [ ] Emergency contacts (backend model + SMS on SOS) and SMS fallback inbound webhook.
-- [ ] Issues v2: neighbourhood scope, visibility (`neighbourhood` / `public`), follow, support,
+All eight buildable items were done on 2026-10-19 (see PROGRESS). **None of it has run on a phone
+or a server**, so treat every one as "written and tested, not yet seen working".
+
+- [x] Onboarding v2 in full (stages: Account → Verify → Location → Safety; Figma page 01).
+- [x] Profile v2 + sub-screens (Figma page 07), safety PIN and duress PIN setup.
+- [x] Emergency contacts (backend model + SMS on SOS) and SMS fallback inbound webhook.
+- [x] Issues v2: neighbourhood scope, visibility (`neighbourhood` / `public`), follow, support,
       comment rule, share to a group (backend reference "Issues"; Figma page 06).
-- [ ] Chat media: attachments upload, voice notes, photo, video, documents (Figma page 05).
-- [ ] Neighbours & groups screens, vouching UI (Figma page 04).
-- [ ] Security providers, pooled street plans, M-Pesa, guard dispatch (Figma page 08).
-- [ ] System states: offline SMS send, empty, loading, error (Figma page 09).
+- [x] Chat media: attachments upload, voice notes, photo, video, documents (Figma page 05).
+- [x] Neighbours & groups screens, vouching UI (Figma page 04).
+- [x] Security providers, pooled street plans, M-Pesa, guard dispatch (Figma page 08).
+      *Needs Vodacom TZ credentials before it can be switched on — see DECISIONS.*
+- [x] System states: offline SMS send, empty, loading, error (Figma page 09).
 - [ ] Retire the v1 API (`main/`) once no installed app calls `/api/main/`.
+      *App side done: nothing in `neighbour-mobile` calls `/api/main/` any more. What is left is
+      Erick's call — check the server logs for old installs, then delete `main/`.*
 - [ ] iOS Critical Alerts entitlement approved and wired.
+      *Needs Apple. The server already sends `interruptionLevel: time-sensitive`; file the request.*
 
 ## Inbox
 
 (New ideas go here, unordered, until Erick prioritises them.)
 
-- `app/profile/updateResidenceLocation.tsx` still moves a home pin through the v1 API. v2 forbids
-  moving a pin (it changes who gets your alerts). Decide: drop the screen, or add a v2 "my pin is
-  wrong" path that needs a neighbour's vouch again.
-- `app/authentication/addPhoto.tsx` is now an orphan route — keep a profile photo in onboarding or
-  drop the screen.
-- Onboarding stage 4 ("Safety": safety PIN + duress PIN) is listed in StageProgress but has no
-  screen yet; the PIN is only reachable from the live alert screen.
 - Expo's `app-example/` scaffold folder is dead weight in the repo — delete it some time.
+- Profile photos: the v1 upload screen is gone and v2 has no replacement. Avatars are initials
+  everywhere. Decide whether a photo is worth an endpoint.
+- Profile skills and encrypted medical notes are still "to build" in the backend reference; no
+  roadmap item covers them yet.
+- `alerts/tests/test_alerts.py`: `CountdownExtrasTests` subclasses `AlertApiTests`, so every parent
+  test runs twice. Harmless, but it inflates the test count — split the shared `setUp` into a mixin.
+- `IssueMedia` has a model and a serializer but no upload endpoint: issues are text-only for now.
+- A `Dispatch` can only be moved on by staff in the admin. A provider-facing way to accept a
+  dispatch and give an ETA is the obvious next piece of that feature.
+- `providers/mpesa.py` needs its endpoint and field names confirmed against Vodacom TZ credentials.
+
+*(Resolved from this list on 19 Oct: the v1 pin-mover screen, the orphaned addPhoto route, and the
+missing onboarding Safety stage.)*
 - Profile v2 should also link the Alarm check screen (today only Home does, and only when a check
   is already failing).
 - `alerts/tests/test_alerts.py`: `CountdownExtrasTests` subclasses `AlertApiTests`, so every parent
