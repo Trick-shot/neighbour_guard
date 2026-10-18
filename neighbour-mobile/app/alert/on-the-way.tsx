@@ -96,7 +96,7 @@ export default function OnTheWay() {
                         </View>
                     </View>
                 )}
-                <Text variant="footnote" color={c.text.secondary}>Stay safe. Don't confront anyone armed — call 112 and wait with others.</Text>
+                <Text variant="footnote" color={c.text.secondary}>Stay safe. Don’t confront anyone armed — call 112 and wait with others.</Text>
                 <View style={styles.actions}>
                     <Button title="Message group" variant="outline" size="M" style={{flex: 1}} onPress={messageGroup}/>
                     <Button title="I've arrived" size="M" style={{flex: 1}} onPress={arrived} loading={busy} disabled={!live}/>

@@ -131,7 +131,7 @@ export default function NeighbourAlarm() {
                 <Button title="Call 112" variant="ghost" onPress={() => Linking.openURL('tel:112')}/>
             </View>
             <Text variant="subhead" color={c.text.onBrand} style={[styles.footer, {bottom: Math.max(insets.bottom, 16) + 20}]}>
-                <Text variant="subhead" color={c.text.onBrand} onPress={() => respond('cant')}>Can't help</Text>
+                <Text variant="subhead" color={c.text.onBrand} onPress={() => respond('cant')}>Can’t help</Text>
                 {'  ·  '}
                 <Text variant="subhead" color={c.text.onBrand} onPress={stopAlarm}>Mute alarm</Text>
             </Text>
