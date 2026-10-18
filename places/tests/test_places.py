@@ -130,3 +130,12 @@ class ImportV1Tests(TestCase):
         call_command('import_v1_residences', stdout=open('/dev/null', 'w'))
         self.assertEqual(Residence.objects.count(), 1)
         self.assertEqual(services.residence_of(u).house_number, '12')
+
+
+class SeedDemoTests(TestCase):
+    def test_seed_is_idempotent(self):
+        from django.core.management import call_command
+        call_command('seed_demo', stdout=open('/dev/null', 'w'))
+        call_command('seed_demo', stdout=open('/dev/null', 'w'))
+        self.assertEqual(Residence.objects.count(), 2)
+        self.assertEqual(Residence.objects.values('neighbourhood').distinct().count(), 1)
