@@ -38,6 +38,7 @@ export default function RootLayout() {
                             <Stack.Screen name="sos/hold" options={{presentation: 'transparentModal', animation: 'fade'}}/>
                             <Stack.Screen name="sos/countdown" options={{presentation: 'fullScreenModal', gestureEnabled: false, animation: 'fade'}}/>
                             <Stack.Screen name="sos/live" options={{gestureEnabled: false}}/>
+                            <Stack.Screen name="sos/sms-fallback" options={{presentation: 'fullScreenModal', gestureEnabled: false, animation: 'fade'}}/>
                             <Stack.Screen name="alert/[id]" options={{presentation: 'fullScreenModal', animation: 'fade'}}/>
                             <Stack.Screen name="alert/on-the-way" options={{gestureEnabled: false}}/>
                         </Stack>

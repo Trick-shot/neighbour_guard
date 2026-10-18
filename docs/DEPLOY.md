@@ -29,7 +29,10 @@ match the box.
    config, which is below the 50 MB the API allows for video — raise it if video matters.
 5. **The phone build bakes in its server URL.** `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_WS_URL` in
    `neighbour-mobile/.env` are compiled into the app. Point them at the deployed domain and rebuild
-   the app, or the phones will keep talking to a laptop.
+   the app, or the phones will keep talking to a laptop. `EXPO_PUBLIC_SOS_SHORTCODE` is compiled in
+   too, and must match the Africa's Talking number whose inbound callback points at
+   `/api/v2/sms/inbound/` — it is what the SMS fallback texts when there is no data, so it cannot
+   be fetched at the moment it is needed.
 6. **Redis holds the Celery queue.** Do not give it an eviction policy that drops keys
    (`maxmemory-policy noeviction`), or a queued SOS task can vanish. The beat sweeper is the
    backstop, not the plan.

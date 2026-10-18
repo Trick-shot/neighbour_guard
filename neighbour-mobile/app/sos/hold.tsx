@@ -55,7 +55,13 @@ export default function SosHold() {
             router.replace({pathname: '/sos/countdown', params: {id: String(alert.id)}});
         } catch (e: any) {
             setSending(false);
-            setError(e.message === 'No connection' ? 'No connection. Hold again to retry, or call 112.' : e.message);
+            if (e.message === 'No connection') {
+                // Never a dead end: the same alert can still go out as a text, carrying the ref
+                // that stops it becoming a second alert when data comes back.
+                router.replace({pathname: '/sos/sms-fallback', params: {clientId, type}});
+                return;
+            }
+            setError(e.message);
         }
     };
 

@@ -4,8 +4,8 @@ import {Pressable, RefreshControl, ScrollView, StyleSheet, View} from 'react-nat
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import Button from '@/components/ui/Button';
-import Icon from '@/components/ui/Icon';
 import IssueCard from '@/components/ui/IssueCard';
+import StateView from '@/components/ui/StateView';
 import Text from '@/components/ui/Text';
 import {issuesApi} from '@/lib/endpoints';
 import {Issue} from '@/lib/types';
@@ -73,22 +73,20 @@ export default function Issues() {
                                                             setRefreshing(false);
                                                         }}/>}>
                 {issues === null ? (
-                    <Text variant="subhead" color={c.text.muted}>Loading…</Text>
+                    <StateView kind="loading"/>
                 ) : error ? (
-                    <View style={styles.empty}>
-                        <Icon name="triangle-alert" size={28} color={c.icon.muted}/>
-                        <Text variant="subhead" color={c.text.secondary} style={styles.centre}>{error}</Text>
-                        <Button title="Try again" variant="outline" size="M" onPress={() => load(scope)}/>
-                    </View>
+                    <StateView kind="error" body={error} actionLabel="Try again" onAction={() => load(scope)}/>
                 ) : issues.length === 0 ? (
-                    <View style={styles.empty}>
-                        <Icon name="clipboard-list" size={28} color={c.icon.muted}/>
-                        <Text variant="subhead" color={c.text.secondary} style={styles.centre}>
-                            {scope === 'mine'
-                                ? 'Nothing reported on your street yet. A broken light or a dark corner is worth posting.'
-                                : 'Nothing public within 5 km of your area.'}
-                        </Text>
-                    </View>
+                    <StateView
+                        kind="empty"
+                        icon="clipboard-list"
+                        title={scope === 'mine' ? 'Nothing reported here yet' : 'Nothing nearby'}
+                        body={scope === 'mine'
+                            ? 'A broken light or a dark corner is worth posting — your neighbours see it.'
+                            : 'No public issues within 5 km of your area.'}
+                        actionLabel={scope === 'mine' ? 'Report something' : undefined}
+                        onAction={scope === 'mine' ? () => router.push('/(tabs)/issues/report') : undefined}
+                    />
                 ) : (
                     issues.map((issue) => (
                         <IssueCard key={issue.id} issue={issue} otherArea={scope === 'others'}
@@ -107,6 +105,4 @@ const styles = StyleSheet.create({
     segmented: {flexDirection: 'row', marginHorizontal: 16, padding: 3, borderRadius: radius.md, gap: 3},
     segment: {flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: radius.sm},
     list: {paddingHorizontal: 16, paddingTop: 12, gap: 12},
-    empty: {alignItems: 'center', gap: 12, paddingTop: 48, paddingHorizontal: 24},
-    centre: {textAlign: 'center'},
 });

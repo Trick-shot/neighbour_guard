@@ -62,7 +62,8 @@ Rename the `reports` tab to `issues`.
 - Remove the duplicate `expo-notifications` plugin entry and confirm `alarm.mp3` ships in the build.
 - Create the SOS at the **start** of the countdown (`POST alerts/` when the hold ends), with a
   `client_id` from `expo-crypto` `randomUUID()` reused on every retry.
-- No connection when the hold ends → "Send your alert by SMS" screen with the prefilled message.
+- No connection when the hold ends → `sos/sms-fallback`, which hands the SMS app a prefilled
+  `SOS <type> <ref>` for `EXPO_PUBLIC_SOS_SHORTCODE`. **Built.**
 - apisauce: on 401, refresh once with the stored refresh token, retry, log out only if that fails.
 - Socket: fresh ticket per connect; back-off 1, 2, 4 … 30 s; stop on unmount; after reconnect fetch
   `messages/?after=<last id>`.
