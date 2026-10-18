@@ -24,7 +24,9 @@ match the box.
    `index.html` is served from `staticfiles/`. Skip it and every page 500s.
 3. **Build the web app before `collectstatic`.** `web/dist/` is gitignored and is where the
    email-activation page comes from. No build, no activation page, and sign-up cannot complete.
-4. **nginx serves `/media/`.** Django only serves it when `DEBUG=True`.
+4. **nginx serves `/media/`.** Django only serves it when `DEBUG=True`. Chat attachments and issue
+   photos land there too, so watch the disk: `client_max_body_size` is 10m in the supplied nginx
+   config, which is below the 50 MB the API allows for video — raise it if video matters.
 5. **The phone build bakes in its server URL.** `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_WS_URL` in
    `neighbour-mobile/.env` are compiled into the app. Point them at the deployed domain and rebuild
    the app, or the phones will keep talking to a laptop.

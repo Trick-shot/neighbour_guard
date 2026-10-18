@@ -27,6 +27,8 @@ export default function Chat() {
     const [alerts, setAlerts] = useState<Record<number, Alert>>({});
     const [myId, setMyId] = useState<number | null>(null);
     const [draft, setDraft] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
     const messagesRef = useRef<ChatMessage[]>([]);
     messagesRef.current = messages;
 
@@ -62,14 +64,39 @@ export default function Chat() {
         lastMessageId: () => messagesRef.current.filter((m) => !m.pending).at(-1)?.id,
     });
 
+    /**
+     * Upload first, then send the message over the socket with the attachment's id. The optimistic
+     * bubble waits for the upload: showing a photo as sent before it has left the phone would be a
+     * lie, and in this app a lie about delivery is the worst kind.
+     */
+    const sendMedia = async (
+        file: {uri: string; name: string; mime: string},
+        kind: 'photo' | 'video' | 'voice' | 'file',
+        durationSeconds?: number,
+    ) => {
+        setUploading(true);
+        try {
+            const attachment = await chatApi.upload(file, kind, durationSeconds);
+            const client_id = newClientId();
+            if (!send({type: 'message', kind, attachment_id: attachment.id, client_id})) {
+                // No socket: the message list reloads from HTTP when the socket comes back.
+                setUploadError('No connection. It will send when you are back online.');
+            }
+        } catch (e: any) {
+            setUploadError(e.message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const onSend = () => {
         const body = draft.trim();
         if (!body) return;
         const client_id = newClientId();
         const optimistic: ChatMessage = {
             id: -Date.now(), conversation_id: conversationId, client_id, kind: 'text', body, sender_id: myId,
-            sender_name: 'You', alert_id: null, issue_id: null, created_at: new Date().toISOString(),
-            pending: true,
+            sender_name: 'You', alert_id: null, issue_id: null, attachment: null,
+            created_at: new Date().toISOString(), pending: true,
         };
         setMessages((l) => [...l, optimistic]);
         setDraft('');
@@ -115,11 +142,13 @@ export default function Chat() {
                     }
                     const prev = data[index + 1];
                     const showAvatar = !prev || prev.sender_id !== item.sender_id || prev.kind === 'alert';
-                    return <ChatBubble direction={mine ? 'out' : 'in'} body={item.body} sender={item.sender_name} time={time}
-                                       showAvatar={showAvatar} pending={item.pending}/>;
+                    return <ChatBubble direction={mine ? 'out' : 'in'} body={item.body} sender={item.sender_name}
+                                       time={time} showAvatar={showAvatar} pending={item.pending}
+                                       kind={item.kind} attachment={item.attachment}/>;
                 }}
             />
-            <Composer value={draft} onChange={setDraft} onSend={onSend} bottomInset={insets.bottom}/>
+            <Composer value={draft} onChange={setDraft} onSend={onSend} bottomInset={insets.bottom}
+                      onPickMedia={sendMedia} busy={uploading}/>
         </KeyboardAvoidingView>
     );
 }

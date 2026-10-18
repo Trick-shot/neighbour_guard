@@ -51,7 +51,7 @@ def get_or_create_direct(user, other) -> Conversation:
 
 
 def save_message(*, conversation_id, sender, kind=Message.Kind.TEXT, body='', client_id=None, alert=None,
-                 issue_id=None):
+                 issue_id=None, attachment=None):
     """Create a message, or return the existing one when the same client_id is retried."""
     if client_id:
         existing = Message.objects.filter(sender=sender, client_id=client_id).first()
@@ -61,12 +61,26 @@ def save_message(*, conversation_id, sender, kind=Message.Kind.TEXT, body='', cl
         with transaction.atomic():
             message = Message.objects.create(
                 conversation_id=conversation_id, sender=sender, kind=kind, body=body,
-                client_id=client_id, alert=alert, issue_id=issue_id,
+                client_id=client_id, alert=alert, issue_id=issue_id, attachment=attachment,
             )
     except IntegrityError:  # two retries raced past the check above
         return Message.objects.get(sender=sender, client_id=client_id), False
     Conversation.objects.filter(pk=conversation_id).update(updated_at=message.created_at)
     return message, True
+
+
+def attachment_event(message: Message) -> dict | None:
+    """What the phone needs to play or show a file. None for a plain text message."""
+    attachment = getattr(message, 'attachment', None)
+    if not attachment:
+        return None
+    return {
+        'id': attachment.pk,
+        'url': attachment.file.url,
+        'mime': attachment.mime,
+        'size': attachment.size,
+        'duration_s': attachment.duration_s,
+    }
 
 
 def message_event(message: Message) -> dict:
@@ -81,6 +95,7 @@ def message_event(message: Message) -> dict:
         'sender_name': message.sender.full_name if message.sender else None,
         'alert_id': message.alert_id,
         'issue_id': message.issue_id,
+        'attachment': attachment_event(message),
         'created_at': message.created_at.isoformat(),
     }
 

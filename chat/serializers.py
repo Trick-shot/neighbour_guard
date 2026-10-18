@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Conversation, Message
+from .models import Attachment, Conversation, Message
 
 
 class ConversationSerializer(serializers.ModelSerializer):
@@ -30,8 +30,22 @@ class ConversationSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source='sender.full_name', default=None, read_only=True)
+    attachment = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
         fields = ['id', 'conversation_id', 'client_id', 'kind', 'body', 'sender_id', 'sender_name', 'alert_id',
-                  'created_at']
+                  'issue_id', 'attachment', 'created_at']
+
+    def get_attachment(self, obj):
+        # The same shape the socket sends, so the phone has one code path for both.
+        from .services import attachment_event
+        return attachment_event(obj)
+
+
+class AttachmentSerializer(serializers.ModelSerializer):
+    url = serializers.FileField(source='file', read_only=True)
+
+    class Meta:
+        model = Attachment
+        fields = ['id', 'url', 'mime', 'size', 'duration_s']

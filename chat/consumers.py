@@ -8,12 +8,14 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from . import services
-from .models import Message, Participant
+from .models import Attachment, Message, Participant
 
 User = get_user_model()
 
 CLOSE_FORBIDDEN = 4403
 MAX_BODY = 4000
+# A message of one of these kinds carries a file instead of (or as well as) words.
+MEDIA_KINDS = {Message.Kind.VOICE, Message.Kind.PHOTO, Message.Kind.VIDEO, Message.Kind.FILE}
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -47,13 +49,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def _handle_message(self, data):
         body = (data.get('body') or '').strip()[:MAX_BODY]
-        if not body:
+        kind = data.get('kind') or Message.Kind.TEXT
+        attachment_id = data.get('attachment_id')
+        if kind not in MEDIA_KINDS and kind != Message.Kind.TEXT:
+            return
+        # Text needs words; media needs a file. Neither can be empty.
+        if kind == Message.Kind.TEXT and not body:
+            return
+        if kind in MEDIA_KINDS and not attachment_id:
             return
         try:
             client_id = uuid.UUID(str(data.get('client_id'))) if data.get('client_id') else None
         except ValueError:
             client_id = None
-        message, created = await self._save(body, client_id)
+        message, created = await self._save(body, client_id, kind, attachment_id)
+        if message is None:
+            # The attachment is not this user's, is already used, or is the wrong kind.
+            await self.send(text_data=json.dumps({'type': 'error', 'detail': 'That attachment cannot be used.'}))
+            return
         event = await database_sync_to_async(services.message_event)(message)
         if created:
             await self.channel_layer.group_send(self.group, {'type': 'chat.message', 'payload': event})
@@ -82,10 +95,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return User.objects.filter(pk=user_id, is_active=True).first() if user_id else None
 
     @database_sync_to_async
-    def _save(self, body, client_id):
+    def _save(self, body, client_id, kind=Message.Kind.TEXT, attachment_id=None):
+        attachment = None
+        if kind in MEDIA_KINDS:
+            # The attachment must be this user's own, unused, and of the kind they claim.
+            attachment = Attachment.objects.filter(pk=attachment_id, uploader=self.user, kind=kind,
+                                                   message__isnull=True).first()
+            if attachment is None:
+                return None, False
         return services.save_message(
-            conversation_id=self.conversation_id, sender=self.user, kind=Message.Kind.TEXT,
-            body=body, client_id=client_id,
+            conversation_id=self.conversation_id, sender=self.user, kind=kind,
+            body=body, client_id=client_id, attachment=attachment,
         )
 
     @database_sync_to_async

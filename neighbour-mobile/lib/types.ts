@@ -137,8 +137,19 @@ export type ChatMessage = {
     sender_name: string | null;
     alert_id: number | null;
     issue_id: number | null;
+    attachment: Attachment | null;
     created_at: string;
     pending?: boolean;
+};
+
+export type AttachmentKind = 'voice' | 'photo' | 'video' | 'file';
+
+export type Attachment = {
+    id: number;
+    url: string;
+    mime: string;
+    size: number;
+    duration_s: number | null;
 };
 
 export type Conversation = {

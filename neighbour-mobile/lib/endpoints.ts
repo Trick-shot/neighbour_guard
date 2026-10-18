@@ -1,8 +1,8 @@
 /** Typed calls to /api/v2 (see docs/API-v2.md). */
 import {api, call} from './api';
 import {
-    Alert, AlertType, Area, ChatMessage, Conversation, EmergencyContact, HouseholdPerson, Issue, IssueComment,
-    IssueStatus, Me, MyResidence, NewResidence, ResponseState,
+    Alert, AlertType, Area, Attachment, AttachmentKind, ChatMessage, Conversation, EmergencyContact,
+    HouseholdPerson, Issue, IssueComment, IssueStatus, Me, MyResidence, NewResidence, ResponseState,
 } from './types';
 
 type Tokens = { access: string; refresh: string };
@@ -96,4 +96,19 @@ export const chatApi = {
     messages: (id: number, params?: { before?: number; after?: number }) =>
         call<ChatMessage[]>(api.get(`/api/v2/chat/conversations/${id}/messages/`, params)),
     ticket: () => call<{ ticket: string }>(api.post('/api/v2/chat/ticket/')),
+    /**
+     * Upload first, send second: a socket frame is the wrong place for 50 MB of video, and an
+     * upload that fails half way should not lose the message. The server sniffs the real file type,
+     * so a wrong `mime` here changes nothing.
+     */
+    upload: (file: { uri: string; name: string; mime: string }, kind: AttachmentKind, durationSeconds?: number) => {
+        const form = new FormData();
+        // React Native's FormData takes this shape for a file; it is not a browser File.
+        form.append('file', {uri: file.uri, name: file.name, type: file.mime} as unknown as Blob);
+        form.append('kind', kind);
+        if (durationSeconds) form.append('duration_s', String(Math.round(durationSeconds)));
+        return call<Attachment>(api.post('/api/v2/chat/attachments/', form, {
+            headers: {'Content-Type': 'multipart/form-data'},
+        }));
+    },
 };

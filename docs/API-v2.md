@@ -126,12 +126,23 @@ reporter has no home go to an `unassigned` neighbourhood only staff can see.
 | POST | `chat/conversations/` | `user_id` | Direct conversation (reused if it exists) |
 | GET | `chat/conversations/<id>/messages/` | `?before=<id>` or `?after=<id>` | Up to 50 messages, oldest first. 404 if not a participant |
 | POST | `chat/ticket/` | | `{ticket, expires_in: 30}` one-time ticket for the socket |
+| POST | `chat/attachments/` | multipart `file`, `kind` (`voice/photo/video/file`), `duration_s?` | 201 `{id, url, mime, size, duration_s}` |
+
+Attachments are uploaded first and sent second: `{type: "message", kind, attachment_id, client_id}`
+over the socket. The socket only accepts an attachment that is the caller's own, unused, and of the
+kind they claim; anything else comes back as `{type: "error"}`.
+
+`mime` is **sniffed from the bytes**, never taken from the client's `Content-Type` — an executable
+labelled `image/jpeg` is refused. Limits: photo 10 MB (`jpeg/png/webp`), voice 10 MB and 5 minutes
+(`mp4/mpeg/aac/ogg/wav`), video 50 MB (`mp4/quicktime`), documents 20 MB (`pdf/txt/doc/docx`).
+A nightly task deletes any attachment that never reached a message after 24 h.
 
 Socket: `wss://<host>/ws/v2/chat/<conversation_id>/?ticket=<ticket>` (get a fresh ticket for every
 connect). Close code `4403` = not allowed.
 
 Send: `{type: "message", client_id, body}`, `{type: "read"}`, `{type: "typing"}`.
-Receive: `{type: "message", id, client_id, kind, body, sender_id, sender_name, alert_id, issue_id, created_at}`,
+Receive: `{type: "message", id, client_id, kind, body, sender_id, sender_name, alert_id, issue_id,
+attachment, created_at}` (`attachment` is `null` for text, else `{id, url, mime, size, duration_s}`),
 `{type: "read", user_id}`, `{type: "typing", user_id}`,
 `{type: "alert_update", alert_id, status, type, under_duress, responders: [{user_id, name, state, eta_min}]}`.
 

@@ -69,10 +69,10 @@ last_read_at)`, `Message(conversation, sender, client_id, kind, body, alert)`.
 - Messages are idempotent on `(sender, client_id)`.
 - Alert cards store only `alert_id`; live state arrives as `alert_update` events.
 
-**To build — media:** `POST /chat/attachments/` (multipart) → `{id, url, mime, size, duration_s}`,
-then send `{type: message, kind: voice|photo|video|file, attachment_id, client_id}` over the socket.
-Limits: images 10 MB, voice 5 min, video 50 MB, documents 20 MB; check the real file type on the
-server. A nightly task deletes attachments never used in a message after 24 h.
+**Built — media:** `POST /chat/attachments/` (multipart) → `{id, url, mime, size, duration_s}`, then
+`{type: message, kind: voice|photo|video|file, attachment_id, client_id}` over the socket. The type
+is sniffed from the bytes (`chat/files.py`), the limits are enforced there, and
+`chat.tasks.delete_unused_attachments` runs nightly.
 **Built — issue cards:** `kind: issue` with `issue_id`, posted by `POST /issues/<id>/share/`.
 
 ## Issues — Built

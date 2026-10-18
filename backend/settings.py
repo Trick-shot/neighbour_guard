@@ -216,6 +216,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'alerts.tasks.sweep_due_alerts',
         'schedule': 15.0,
     },
+    # Uploads that never reached a message would otherwise sit on disk for ever.
+    'delete-unused-attachments': {
+        'task': 'chat.tasks.delete_unused_attachments',
+        'schedule': 24 * 60 * 60.0,
+    },
 }
 
 # --- NeighbourGuard product settings ---------------------------------------

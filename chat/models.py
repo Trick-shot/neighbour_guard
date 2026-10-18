@@ -54,6 +54,8 @@ class Message(models.Model):
     # the issue's own visibility rules, so sharing cannot hand anyone a view they may not have.
     issue = models.ForeignKey('issues.Issue', null=True, blank=True, on_delete=models.SET_NULL,
                               related_name='messages')
+    attachment = models.OneToOneField('chat.Attachment', null=True, blank=True, on_delete=models.SET_NULL,
+                                      related_name='message')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -63,3 +65,34 @@ class Message(models.Model):
             # NULL client_ids never collide (MySQL and SQLite allow many NULLs in a unique index).
             models.UniqueConstraint(fields=['sender', 'client_id'], name='message_idempotency'),
         ]
+
+
+class Attachment(models.Model):
+    """An uploaded file, waiting to be attached to a message.
+
+    Uploaded first, used second: the socket sends `attachment_id` with the message. An attachment
+    that never reaches a message is deleted by a nightly task, so an abandoned upload does not sit
+    on disk forever.
+    """
+
+    class Kind(models.TextChoices):
+        VOICE = 'voice', 'Voice note'
+        PHOTO = 'photo', 'Photo'
+        VIDEO = 'video', 'Video'
+        FILE = 'file', 'Document'
+
+    uploader = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                 related_name='chat_attachments')
+    file = models.FileField(upload_to='chat/%Y/%m/')
+    kind = models.CharField(max_length=5, choices=Kind.choices)
+    # Sniffed from the bytes on upload, never taken from the client's Content-Type.
+    mime = models.CharField(max_length=100)
+    size = models.PositiveIntegerField()
+    duration_s = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.kind} from {self.uploader_id}'
