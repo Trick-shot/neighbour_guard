@@ -17,7 +17,7 @@ const VerifyEmail = () => {
     const [isLoading, setIsLoading] = useState(false)
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-    const {email} = useAuth();
+    const {email, login} = useAuth();
 
 
     useEffect(() => {
@@ -26,6 +26,9 @@ const VerifyEmail = () => {
                 const result = await authApi.login(email, password)
                 if (result.status === 200) {
                     if (intervalRef.current) clearInterval(intervalRef.current)
+                    // Keep the tokens: everything after this point talks to /api/v2, which reads the
+                    // signed-in user from the token and never from an email in the body.
+                    await login(result.data!.access, result.data!.refresh)
                     router.navigate({
                         pathname: '/authentication/enterPhoneNumber',
                     })

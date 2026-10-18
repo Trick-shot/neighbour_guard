@@ -1,9 +1,9 @@
-import {LocationType, ResidenceTypes} from "@/types/ResidenceTypes";
+import {LocationType} from "@/types/ResidenceTypes";
 
 import apiClient from "./client";
 
 const login = (email: string, password: string) =>
-    apiClient.post("/api/auth/jwt/create/", {
+    apiClient.post<{ access: string, refresh: string }>("/api/auth/jwt/create/", {
         email,
         password
     });
@@ -31,16 +31,8 @@ const verifyOtp = (phoneNumber: string, otp: string) =>
         otp
     });
 
-const registerHome = (email: string, values: any) =>
-    apiClient.post('/api/main/residences/', {
-        email,
-        residence_name: values.residenceName,
-        house_number: values.houseNumber,
-        location: null,
-        street_name: values.streetName,
-        district: values.district
-    });
-
+// v1, still used by app/profile/updateResidenceLocation.tsx until Profile v2 lands. Onboarding
+// now creates the home through POST /api/v2/places/me/ instead (see lib/endpoints.ts).
 const setLocation = (
     id: number,
     values: LocationType
@@ -70,7 +62,6 @@ export default {
     resendActivation,
     requestOtpCodes,
     verifyOtp,
-    registerHome,
     setLocation,
     profileUpdate,
     verifyToken,
