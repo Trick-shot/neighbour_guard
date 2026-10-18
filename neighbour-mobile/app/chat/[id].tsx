@@ -68,7 +68,8 @@ export default function Chat() {
         const client_id = newClientId();
         const optimistic: ChatMessage = {
             id: -Date.now(), conversation_id: conversationId, client_id, kind: 'text', body, sender_id: myId,
-            sender_name: 'You', alert_id: null, created_at: new Date().toISOString(), pending: true,
+            sender_name: 'You', alert_id: null, issue_id: null, created_at: new Date().toISOString(),
+            pending: true,
         };
         setMessages((l) => [...l, optimistic]);
         setDraft('');

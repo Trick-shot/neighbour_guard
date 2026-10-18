@@ -17,7 +17,7 @@ import Text from './Text';
 const TABS: Record<string, { label: string; icon: IconName }> = {
     index: {label: 'Home', icon: 'home'},
     message: {label: 'Messages', icon: 'message-circle'},
-    reports: {label: 'Issues', icon: 'clipboard-list'},
+    issues: {label: 'Issues', icon: 'clipboard-list'},
     profile: {label: 'Profile', icon: 'user'},
 };
 

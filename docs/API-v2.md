@@ -86,6 +86,38 @@ What the alert's `home` contains:
 Push payload the phone receives: `data = {kind: "sos", alert_id, type}`, Android `channelId: "sos"`,
 `sound: "alarm.mp3"`, iOS `interruptionLevel: "time-sensitive"`.
 
+## Issues
+
+| Method | Path | Body | Returns |
+| --- | --- | --- | --- |
+| GET | `issues/?scope=mine` | | Issues of my own neighbourhood (default) |
+| GET | `issues/?scope=others` | | `public` issues of other neighbourhoods, nearest to **my neighbourhood's centre** first, within 5 km |
+| POST | `issues/` | `title, description?, category?, severity?, visibility?, lat?, lng?` | 201. The neighbourhood comes from my home; 403 if I have none |
+| GET | `issues/<id>/` | | The issue. 404 if I may not know it exists |
+| PATCH | `issues/<id>/` | `status` | Only the status, and only for the reporter (or staff). Followers are pushed once |
+| POST/DELETE | `issues/<id>/support/` | | `{support_count, i_support}`. 403 unless my home is verified |
+| POST/DELETE | `issues/<id>/follow/` | | `{i_follow}`. 403 unless my home is verified |
+| GET | `issues/<id>/comments/` | | Comments. Readable by anyone who can see the issue |
+| POST | `issues/<id>/comments/` | `body` | 201. **403 unless I am a verified resident of the issue's own area** |
+| POST | `issues/<id>/share/` | | 201 `{conversation_id, message_id}` — an issue card in my neighbourhood group. 403 unless I am a verified resident of the issue's area |
+
+Categories: `security, lighting, roads, water, waste, other`. Severity: `low, moderate, high,
+critical`. Status: `open, in_progress, resolved`. Visibility: `neighbourhood, public`.
+
+Who sees and does what:
+
+| Who | Sees | Support / follow | Comment | Share |
+| --- | --- | --- | --- | --- |
+| Verified resident of the issue's area | All of its issues | Yes | Yes | Yes |
+| Verified resident of another area | `public` issues only | Yes | No | No |
+| Unverified member | Own area's issues, **without the reporter's name** | No | No | No |
+| No home at all | `public` issues only | No | No | No |
+
+The list queryset already excludes what the caller may not see, so an issue they are not allowed to
+know about cannot appear in a list, a count or a 403 message. `python manage.py import_v1_issues`
+copies `main.Issue` across, taking the neighbourhood from the reporter's residence; issues whose
+reporter has no home go to an `unassigned` neighbourhood only staff can see.
+
 ## Chat
 
 | Method | Path | Body | Returns |
@@ -99,7 +131,7 @@ Socket: `wss://<host>/ws/v2/chat/<conversation_id>/?ticket=<ticket>` (get a fres
 connect). Close code `4403` = not allowed.
 
 Send: `{type: "message", client_id, body}`, `{type: "read"}`, `{type: "typing"}`.
-Receive: `{type: "message", id, client_id, kind, body, sender_id, sender_name, alert_id, created_at}`,
+Receive: `{type: "message", id, client_id, kind, body, sender_id, sender_name, alert_id, issue_id, created_at}`,
 `{type: "read", user_id}`, `{type: "typing", user_id}`,
 `{type: "alert_update", alert_id, status, type, under_duress, responders: [{user_id, name, state, eta_min}]}`.
 

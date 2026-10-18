@@ -50,7 +50,8 @@ def get_or_create_direct(user, other) -> Conversation:
     return conversation
 
 
-def save_message(*, conversation_id, sender, kind=Message.Kind.TEXT, body='', client_id=None, alert=None):
+def save_message(*, conversation_id, sender, kind=Message.Kind.TEXT, body='', client_id=None, alert=None,
+                 issue_id=None):
     """Create a message, or return the existing one when the same client_id is retried."""
     if client_id:
         existing = Message.objects.filter(sender=sender, client_id=client_id).first()
@@ -60,7 +61,7 @@ def save_message(*, conversation_id, sender, kind=Message.Kind.TEXT, body='', cl
         with transaction.atomic():
             message = Message.objects.create(
                 conversation_id=conversation_id, sender=sender, kind=kind, body=body,
-                client_id=client_id, alert=alert,
+                client_id=client_id, alert=alert, issue_id=issue_id,
             )
     except IntegrityError:  # two retries raced past the check above
         return Message.objects.get(sender=sender, client_id=client_id), False
@@ -79,6 +80,7 @@ def message_event(message: Message) -> dict:
         'sender_id': message.sender_id,
         'sender_name': message.sender.full_name if message.sender else None,
         'alert_id': message.alert_id,
+        'issue_id': message.issue_id,
         'created_at': message.created_at.isoformat(),
     }
 
@@ -99,6 +101,22 @@ def post_alert_card(alert):
     )
     if created:
         broadcast(conversation.id, 'chat.message', message_event(message))
+    return message
+
+
+def post_issue_card(user, issue):
+    """Put an issue card in the sharer's own neighbourhood group.
+
+    The card stores only the issue id, like an alert card: whoever opens it is then subject to the
+    issue's own visibility rules, so sharing can never hand someone a view they may not have.
+    """
+    home_group = neighbourhood_group(issue.neighbourhood)
+    message, created = save_message(
+        conversation_id=home_group.id, sender=user, kind=Message.Kind.ISSUE,
+        body=issue.title, issue_id=issue.pk,
+    )
+    if created:
+        broadcast(home_group.id, 'chat.message', message_event(message))
     return message
 
 

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'places.apps.PlacesConfig',
     'alerts.apps.AlertsConfig',
     'chat.apps.ChatConfig',
+    'issues.apps.IssuesConfig',
 ]
 
 ASGI_APPLICATION = 'backend.asgi.application'

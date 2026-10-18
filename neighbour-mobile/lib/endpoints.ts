@@ -1,8 +1,8 @@
 /** Typed calls to /api/v2 (see docs/API-v2.md). */
 import {api, call} from './api';
 import {
-    Alert, AlertType, Area, ChatMessage, Conversation, EmergencyContact, HouseholdPerson, Me, MyResidence,
-    NewResidence, ResponseState,
+    Alert, AlertType, Area, ChatMessage, Conversation, EmergencyContact, HouseholdPerson, Issue, IssueComment,
+    IssueStatus, Me, MyResidence, NewResidence, ResponseState,
 } from './types';
 
 type Tokens = { access: string; refresh: string };
@@ -68,6 +68,27 @@ export const alertsApi = {
     setPins: (pin: string, duress_pin: string) =>
         call<{ is_set: boolean }>(api.put('/api/v2/alerts/safety-pin/', {pin, duress_pin})),
     savePushToken: (token: string) => call(api.post('/api/v2/alerts/push-token/', {token})),
+};
+
+export const issuesApi = {
+    list: (scope: 'mine' | 'others' = 'mine') => call<Issue[]>(api.get('/api/v2/issues/', {scope})),
+    get: (id: number) => call<Issue>(api.get(`/api/v2/issues/${id}/`)),
+    report: (issue: {
+        title: string; description?: string; category?: string; severity?: string;
+        visibility?: string; lat?: number; lng?: number;
+    }) => call<Issue>(api.post('/api/v2/issues/', issue)),
+    setStatus: (id: number, status: IssueStatus) => call<Issue>(api.patch(`/api/v2/issues/${id}/`, {status})),
+    support: (id: number, on: boolean) =>
+        call<{ support_count: number; i_support: boolean }>(
+            on ? api.post(`/api/v2/issues/${id}/support/`) : api.delete(`/api/v2/issues/${id}/support/`)),
+    follow: (id: number, on: boolean) =>
+        call<{ i_follow: boolean }>(
+            on ? api.post(`/api/v2/issues/${id}/follow/`) : api.delete(`/api/v2/issues/${id}/follow/`)),
+    comments: (id: number) => call<IssueComment[]>(api.get(`/api/v2/issues/${id}/comments/`)),
+    comment: (id: number, body: string) =>
+        call<IssueComment>(api.post(`/api/v2/issues/${id}/comments/`, {body})),
+    share: (id: number) =>
+        call<{ conversation_id: number; message_id: number }>(api.post(`/api/v2/issues/${id}/share/`)),
 };
 
 export const chatApi = {

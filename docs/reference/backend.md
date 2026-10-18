@@ -34,8 +34,9 @@ needs_help)`, `Vouch(residence, voucher)`.
   (house number + street), `ResidencePublicSerializer` (street), `ResidenceResponderSerializer`
   (exact pin, directions, household — live alerts only).
 
-**To build:** household CRUD endpoints, emergency contacts (`accounts`: name, relation, phone, max 5,
-texted on SOS), skills and encrypted medical notes on the profile.
+**Built since:** household CRUD endpoints; emergency contacts (`core.EmergencyContact`: name,
+relation, phone, max 5, texted on SOS).
+**To build:** skills and encrypted medical notes on the profile.
 
 ## SOS countdown — Built
 
@@ -53,9 +54,10 @@ anyone. SMS-channel alerts are created and sent at once (no countdown).
 5. Resolve: sender only. With a SafetyPin set, the real PIN resolves; the duress PIN keeps the alert
    live with `under_duress`, and the sender's view shows `resolved`.
 
-**To build:** SMS to emergency contacts on send; `POST /api/v2/sms/inbound/` (Africa's Talking
-webhook; sender number must match a verified profile; the message's `ref` is the alert `client_id`
-short code, so a later app retry returns the same alert); provider dispatch.
+**Built since:** SMS to emergency contacts on send (only on the first fan-out, never during the
+countdown); `POST /api/v2/sms/inbound/` with a shared secret, a verified-number check and `sms_ref`
+adoption.
+**To build:** provider dispatch.
 
 ## Chat — Built (text + alert cards)
 
@@ -71,9 +73,9 @@ last_read_at)`, `Message(conversation, sender, client_id, kind, body, alert)`.
 then send `{type: message, kind: voice|photo|video|file, attachment_id, client_id}` over the socket.
 Limits: images 10 MB, voice 5 min, video 50 MB, documents 20 MB; check the real file type on the
 server. A nightly task deletes attachments never used in a message after 24 h.
-**To build — issue cards:** `kind: issue` with `issue_id`, posted by `POST /issues/<id>/share/`.
+**Built — issue cards:** `kind: issue` with `issue_id`, posted by `POST /issues/<id>/share/`.
 
-## Issues — To build (after the pitch)
+## Issues — Built
 
 New `issues` app replacing `main.Issue`:
 `Issue(neighbourhood (set by server), created_by, title, description, category, severity, status

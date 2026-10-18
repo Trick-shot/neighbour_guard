@@ -147,7 +147,7 @@ export default function Home() {
                     )}
                 </Pressable>
                 {actionsOpen ? (
-                    <Pressable onPress={() => { setActionsOpen(false); router.push('/(tabs)/reports'); }} style={styles.action}>
+                    <Pressable onPress={() => { setActionsOpen(false); router.push('/(tabs)/issues'); }} style={styles.action}>
                         <Icon name="clipboard-list" size={22}/>
                         <Text variant="caption2" color={c.text.secondary}>Report</Text>
                     </Pressable>

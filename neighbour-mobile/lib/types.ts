@@ -68,6 +68,43 @@ export type NewResidence = {
 
 export type Area = { lat: number; lng: number; homes: number };
 
+export type IssueCategory = 'security' | 'lighting' | 'roads' | 'water' | 'waste' | 'other';
+export type IssueSeverity = 'low' | 'moderate' | 'high' | 'critical';
+export type IssueStatus = 'open' | 'in_progress' | 'resolved';
+export type IssueVisibility = 'neighbourhood' | 'public';
+
+export type Issue = {
+    id: number;
+    title: string;
+    description: string;
+    category: IssueCategory;
+    severity: IssueSeverity;
+    status: IssueStatus;
+    visibility: IssueVisibility;
+    lat: number | null;
+    lng: number | null;
+    created_at: string;
+    updated_at: string;
+    created_by: number;
+    /** null for an unverified viewer: they have not been vouched for, so they get no names. */
+    reporter_name: string | null;
+    neighbourhood: number;
+    neighbourhood_name: string;
+    support_count: number;
+    comment_count: number;
+    i_support: boolean;
+    i_follow: boolean;
+    media: { id: number; image: string }[];
+};
+
+export type IssueComment = {
+    id: number;
+    body: string;
+    author_id: number;
+    author_name: string;
+    created_at: string;
+};
+
 export type Me = {
     id: number;
     email: string;
@@ -99,6 +136,7 @@ export type ChatMessage = {
     sender_id: number | null;
     sender_name: string | null;
     alert_id: number | null;
+    issue_id: number | null;
     created_at: string;
     pending?: boolean;
 };

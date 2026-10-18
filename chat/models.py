@@ -50,6 +50,10 @@ class Message(models.Model):
     kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.TEXT)
     body = models.TextField(blank=True)
     alert = models.ForeignKey('alerts.Alert', null=True, blank=True, on_delete=models.SET_NULL, related_name='messages')
+    # Like the alert card, an issue card stores only the link: whoever opens it is then subject to
+    # the issue's own visibility rules, so sharing cannot hand anyone a view they may not have.
+    issue = models.ForeignKey('issues.Issue', null=True, blank=True, on_delete=models.SET_NULL,
+                              related_name='messages')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
