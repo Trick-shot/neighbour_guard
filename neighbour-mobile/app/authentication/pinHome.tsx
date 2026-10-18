@@ -83,10 +83,10 @@ export default function PinHome() {
                 lat: pin.latitude,
                 lng: pin.longitude,
             });
-            router.replace('/(tabs)');
+            router.replace('/authentication/safety');
         } catch (e: any) {
-            // 409: this account already has a home. Nothing to add, so go on to the map.
-            if (e.status === 409) router.replace('/(tabs)');
+            // 409: this account already has a home. Nothing to add, so carry on.
+            if (e.status === 409) router.replace('/authentication/safety');
             else setFailed(e.message);
         } finally {
             setBusy(false);

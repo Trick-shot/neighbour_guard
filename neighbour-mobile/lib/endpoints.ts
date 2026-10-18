@@ -2,10 +2,22 @@
 import {api, call} from './api';
 import {Alert, AlertType, Area, ChatMessage, Conversation, MyResidence, NewResidence, ResponseState} from './types';
 
+type Tokens = { access: string; refresh: string };
+
 export const authApi = {
     requestEmailCode: (email: string) => call(api.post('/api/auth/email-code/', {email})),
     verifyEmailCode: (email: string, code: string) =>
-        call<{ access: string; refresh: string }>(api.post('/api/auth/email-code/verify/', {email, code})),
+        call<Tokens>(api.post('/api/auth/email-code/verify/', {email, code})),
+    // Sign-up. Djoser emails an activation link; the account cannot sign in until it is clicked.
+    signUp: (full_name: string, email: string, password: string) =>
+        call(api.post('/api/auth/users/', {full_name, email, password, re_password: password})),
+    resendActivation: (email: string) => call(api.post('/api/auth/users/resend_activation/', {email})),
+    // Used to find out whether the activation link has been clicked yet: it only succeeds after.
+    signIn: (email: string, password: string) =>
+        call<Tokens>(api.post('/api/auth/jwt/create/', {email, password})),
+    // Both need the JWT: the server takes the number from the OTP record, never from the body.
+    requestPhoneCode: (phone_number: string) => call(api.post('/api/auth/send-otp/', {phone_number})),
+    verifyPhoneCode: (otp: string) => call(api.post('/api/auth/verify-otp/', {otp})),
 };
 
 export const placesApi = {
@@ -30,6 +42,8 @@ export const alertsApi = {
         call<Alert>(api.post(`/api/v2/alerts/${id}/respond/`, {state, eta_min})),
     resolve: (id: number, pin?: string) => call<Alert>(api.post(`/api/v2/alerts/${id}/resolve/`, {pin})),
     pinStatus: () => call<{ is_set: boolean }>(api.get('/api/v2/alerts/safety-pin/')),
+    setPins: (pin: string, duress_pin: string) =>
+        call<{ is_set: boolean }>(api.put('/api/v2/alerts/safety-pin/', {pin, duress_pin})),
     savePushToken: (token: string) => call(api.post('/api/v2/alerts/push-token/', {token})),
 };
 
