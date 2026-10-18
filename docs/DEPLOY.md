@@ -94,6 +94,9 @@ sudo -u neighbour venv/bin/python manage.py createsuperuser
 sudo -u neighbour venv/bin/python manage.py import_v1_residences --dry-run
 sudo -u neighbour venv/bin/python manage.py import_v1_residences
 
+# 5b. The two demo accounts, with inboxes you can actually open on the day.
+sudo -u neighbour venv/bin/python manage.py seed_demo you@gmail.com juma@gmail.com
+
 # 6. Web app, then static files (in this order)
 cd web && sudo -u neighbour npm ci && sudo -u neighbour npm run build && cd ..
 sudo -u neighbour venv/bin/python manage.py collectstatic --noinput

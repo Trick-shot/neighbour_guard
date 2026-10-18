@@ -22,6 +22,12 @@ repo. Keep it short: what changed, where, what is left, what Erick must check.
 Demo path for 24 Oct: sign in → Home map → hold SOS → 10 s countdown → neighbour's phone rings →
 "I'm coming" → alert card in the group chat.
 
+**On the day: sign both phones in before you go on stage.** Signing in needs a code emailed to the
+account, so doing it live puts the venue's wifi and your inbox inside the demo. An access token
+lasts a day and the refresh token 30 days, so signing in that morning is enough, and the demo then
+starts at the Home map. Seed the accounts with addresses you can actually open:
+`python manage.py seed_demo you@gmail.com juma@gmail.com`.
+
 ## Two-phone test of the demo path
 
 Run this whole table on **two real Android phones** (A = sender, B = neighbour), both pointed at the
@@ -97,6 +103,47 @@ names the manufacturer auto-start lists, and why SMS fallback is on the roadmap.
 One line if there is only time for one: **the app never says it is fine when it does not know — it
 either shows you proof or shows you the gap.** (The battery-optimisation row is the example: it
 reports that it cannot tell, and opens the setting, instead of displaying a green tick.)
+
+---
+
+## 2026-10-18 — Claude Code — the demo path, proved end to end on the server side
+
+Branch `rebuild/v2`. No roadmap item: the four left in "Now" all need Erick, a phone or the server.
+This is the largest thing that could still be checked without them.
+
+**Done**
+- `backend/test_demo_path.py` (new): **one test that walks the whole 24 Oct demo over HTTP**, across
+  `core` → `places` → `alerts` → `chat`, with real JWTs in the header rather than
+  `force_authenticate`. Sign in with an emailed code (read out of the outbox, as a user reads their
+  inbox) → both pin homes 100 m apart → register a push token → the Home map shows approximate
+  areas only → hold SOS (`recipients` says 1) → retry with the same `client_id` gives the same
+  alert → change the type → send now → **assert the Expo payload** → the neighbour now sees the
+  exact address and directions → "I'm coming" with an ETA → the sender sees him and a phone number
+  to call → the alert card is in the neighbourhood group → a socket ticket is issued → someone 5 km
+  away saw none of it → "I'm safe" with the real PIN resolves it.
+- Only the HTTP call to Expo is mocked, at that boundary on purpose, so the real payload is built
+  and asserted: `channelId: "sos"` and `sound: "alarm.mp3"` are the contract the phone's
+  notification channel depends on, and nothing else was checking that they still match.
+- It passed first run — the apps do fit together. Then checked it is actually load-bearing by
+  breaking things on purpose: renaming the push channel and shrinking `SOS_RADIUS_M` each make it
+  fail with a readable message.
+- `seed_demo` now takes real email addresses (`seed_demo you@gmail.com juma@gmail.com`) and
+  reactivates an inactive account. **Why it mattered:** the seeded accounts were `@test.tz`, and
+  signing in needs an emailed code — so on the deployed server the demo accounts could not have
+  signed in at all. Two tests cover the new argument. **82 tests pass.**
+- "On the day" note above the test table: sign both phones in before going on stage, so the venue
+  wifi and an inbox are not inside the demo.
+
+**Erick must do these**
+- Unchanged, and still the whole critical path: `prebuild --clean` on a phone, then the server.
+- When seeding the deployed demo, use two inboxes you can open on the day.
+
+**Left undone / notes**
+- This proves the **server** side of the demo. Nothing here says a locked phone rings; only the
+  two-phone table can.
+- The WebSocket itself is still only covered by the consumer tests in `chat/tests.py`; the new test
+  checks that a ticket is issued, not that a socket carries a message through nginx. Step 3 of the
+  DEPLOY verification list covers that by hand.
 
 ---
 
