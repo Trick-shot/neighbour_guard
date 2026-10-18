@@ -71,6 +71,33 @@ generated folders, but if you ever hand-edited anything native in them, save it 
 | 17 | A: turn on flight mode, then hold SOS | "No connection. Hold again to retry, or call 112." The SMS fallback screen itself is **not built yet** | |
 | 18 | B: with the app **fully closed**, A sends an SOS | B still rings (this is the one most likely to fail) | |
 
+## Pitch notes — "how do you know the alerts actually arrive?"
+
+The question a judge will ask, and the answer the code earns. The move: **replace an inspection you
+cannot do with an observation you can.** Android has no API that says "I am about to hold your
+alarms back", so instead of guessing, the app makes the phone ring for real and you listen.
+
+Answer it in this order.
+
+1. **"The server knows this phone."** The Alarm check screen re-sends the Expo push token to the
+   live server on every run and shows whether the server took it. One link, verified directly.
+2. **"The phone will make noise when told to."** The test alarm fires on the real `sos` channel
+   from a locked, pocketed phone. Hearing it proves the permission, the channel importance, the
+   alarm sound, the Do Not Disturb bypass and the OS's willingness to wake the phone — all at once,
+   by outcome, with nothing inferred.
+3. **"And we test the whole chain on two phones."** Steps 11 and 18 above. The test alarm is local
+   to the phone, so only a real SOS from the other handset proves the
+   server → Celery → Expo → Google → phone path.
+
+Then say what it does **not** prove, because this is the part that earns trust: it is evidence for
+*that phone, on that day*. Another handset with another battery saver can behave differently. That
+is exactly why the Alarm check is a screen you can re-run rather than a one-time setup step, why it
+names the manufacturer auto-start lists, and why SMS fallback is on the roadmap.
+
+One line if there is only time for one: **the app never says it is fine when it does not know — it
+either shows you proof or shows you the gap.** (The battery-optimisation row is the example: it
+reports that it cannot tell, and opens the setting, instead of displaying a green tick.)
+
 ---
 
 ## 2026-10-18 — Claude Code — Maps key from env, and the Alarm check screen
@@ -107,6 +134,8 @@ app would tell you. `npx expo prebuild --clean` is now step 3 of the build instr
   safe (the Alarm check screen re-sends it on every run). **76 tests pass.**
 - `npx eslint` now reports 0 errors (two bare apostrophes in the alert screens fixed). 29 warnings
   remain, all unused variables in old v1 screens.
+- "Pitch notes" above the log: how to answer "how do you know the alerts arrive?" — what each piece
+  of evidence proves, in what order to say it, and what it deliberately does not prove.
 
 **Erick must do these**
 - The build sequence above, on both phones, **including `prebuild --clean`**.
