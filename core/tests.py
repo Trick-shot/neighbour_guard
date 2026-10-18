@@ -102,3 +102,34 @@ class EmailCodeTests(APITestCase):
             self.client.post('/api/auth/email-code/verify/', {'email': 'a@x.tz', 'code': '000000'})
         r = self.client.post('/api/auth/email-code/verify/', {'email': 'a@x.tz', 'code': code})
         self.assertEqual(r.status_code, 400)
+
+
+class MeTests(APITestCase):
+    """`/api/auth/users/me/` is how Profile v2 reads and renames the signed-in person."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email='a@x.tz', password='pw-12345!', full_name='Asha')
+
+    def test_me_shows_my_own_phone_and_whether_it_is_verified(self):
+        Profile.objects.update_or_create(user=self.user,
+                                         defaults={'phone_number': '+255754000111', 'is_phone_verified': True})
+        self.client.force_authenticate(self.user)
+        r = self.client.get('/api/auth/users/me/')
+        self.assertEqual(r.data['phone_number'], '+255754000111')
+        self.assertTrue(r.data['is_phone_verified'])
+
+    def test_the_phone_cannot_be_set_by_patching_me(self):
+        # The number only reaches the profile through verify-otp, after proving you hold it.
+        Profile.objects.update_or_create(user=self.user,
+                                         defaults={'phone_number': '', 'is_phone_verified': False})
+        self.client.force_authenticate(self.user)
+        r = self.client.patch('/api/auth/users/me/',
+                              {'full_name': 'Asha M', 'phone_number': '+255700000000', 'is_phone_verified': True})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['full_name'], 'Asha M')
+        profile = Profile.objects.get(user=self.user)
+        self.assertEqual(profile.phone_number, '')
+        self.assertFalse(profile.is_phone_verified)
+
+    def test_me_needs_a_login(self):
+        self.assertEqual(self.client.get('/api/auth/users/me/').status_code, 401)

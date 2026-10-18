@@ -52,7 +52,8 @@ class ResidencePublicSerializer(serializers.ModelSerializer):
 class HouseholdPersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = HouseholdPerson
-        fields = ['name', 'age_group', 'needs_help']
+        fields = ['id', 'name', 'age_group', 'needs_help']
+        read_only_fields = ['id']
 
 
 class ResidenceResponderSerializer(serializers.ModelSerializer):

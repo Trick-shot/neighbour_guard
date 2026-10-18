@@ -17,6 +17,10 @@ cancel, already sent).
 | GET | `places/areas/` | | `{neighbourhood, areas: [{lat, lng, homes}]}` — grid cells, never exact homes |
 | GET | `places/neighbours/` | | `[{user_id, full_name, home}]`; `home` has `house_number` only if I am verified |
 | POST | `places/residences/<id>/vouch/` | | `{status, vouches}`. 403 unless I am a verified neighbour in the same area |
+| GET | `places/household/` | | The people in my own home: `[{id, name, age_group, needs_help}]` |
+| POST | `places/household/` | `name, age_group?, needs_help?` | 201 the person. Max 12 per home. The home comes from my membership, never the body |
+| PATCH | `places/household/<id>/` | `name?, age_group?, needs_help?` | The person. 404 for another home's household |
+| DELETE | `places/household/<id>/` | | 204. 404 for another home's household |
 
 ## Alerts (SOS)
 
@@ -79,3 +83,5 @@ home. A sent SOS posts a `kind: "alert"` message there.
 | POST | `/api/auth/jwt/refresh/` | `{refresh}` → `{access}` |
 | POST | `/api/auth/send-otp/` | **Logged in.** `{phone_number}`. Max 3 per 10 min |
 | POST | `/api/auth/verify-otp/` | **Logged in.** `{otp}`. Sets the profile phone from the OTP record |
+| GET | `/api/auth/users/me/` | **Logged in.** Me: `id, email, full_name, phone_number, is_phone_verified` |
+| PATCH | `/api/auth/users/me/` | **Logged in.** `full_name` only. Email and phone are read-only here: the phone reaches the profile through `verify-otp` and nowhere else |

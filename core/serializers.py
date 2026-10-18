@@ -11,8 +11,31 @@ class UserCreateSerializer(BaseUserCreateSerializer):
 
 
 class UserSerializer(BaseUserSerializer):
+    """`/api/auth/users/me/` — what the signed-in user may see and change about themselves.
+
+    The phone is read-only here on purpose: it only reaches the profile through
+    `POST /api/auth/verify-otp/`, after the user proves they hold the number.
+    """
+    phone_number = serializers.SerializerMethodField()
+    is_phone_verified = serializers.SerializerMethodField()
+
     class Meta(BaseUserSerializer.Meta):
-        fields = ["id", "email", "full_name", "is_admin", "is_superuser", "is_active", "is_staff"]
+        fields = ["id", "email", "full_name", "phone_number", "is_phone_verified",
+                  "is_admin", "is_superuser", "is_active", "is_staff"]
+        read_only_fields = ["email", "phone_number", "is_phone_verified",
+                            "is_admin", "is_superuser", "is_active", "is_staff"]
+
+    def _profile(self, obj):
+        from main.models import Profile
+        return Profile.objects.filter(user=obj).first()
+
+    def get_phone_number(self, obj):
+        profile = self._profile(obj)
+        return profile.phone_number if profile else None
+
+    def get_is_phone_verified(self, obj):
+        profile = self._profile(obj)
+        return bool(profile and profile.is_phone_verified)
 
 
 class TokenObtainPairSerializer(BaseTokenObtainPairSerializer):

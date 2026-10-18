@@ -1,6 +1,9 @@
 /** Typed calls to /api/v2 (see docs/API-v2.md). */
 import {api, call} from './api';
-import {Alert, AlertType, Area, ChatMessage, Conversation, MyResidence, NewResidence, ResponseState} from './types';
+import {
+    Alert, AlertType, Area, ChatMessage, Conversation, HouseholdPerson, Me, MyResidence, NewResidence,
+    ResponseState,
+} from './types';
 
 type Tokens = { access: string; refresh: string };
 
@@ -28,7 +31,20 @@ export const placesApi = {
     update: (fields: { house_number?: string; street?: string; directions?: string }) =>
         call<MyResidence>(api.patch('/api/v2/places/me/', fields)),
     areas: () => call<{ neighbourhood: string; areas: Area[] }>(api.get('/api/v2/places/areas/')),
+    // The people in my home. Responders to my own live alert see this list; nobody else does.
+    household: () => call<HouseholdPerson[]>(api.get('/api/v2/places/household/')),
+    addToHousehold: (person: Omit<HouseholdPerson, 'id'>) =>
+        call<HouseholdPerson>(api.post('/api/v2/places/household/', person)),
+    updateHousehold: (id: number, fields: Partial<Omit<HouseholdPerson, 'id'>>) =>
+        call<HouseholdPerson>(api.patch(`/api/v2/places/household/${id}/`, fields)),
+    removeFromHousehold: (id: number) => call(api.delete(`/api/v2/places/household/${id}/`)),
     neighbours: () => call<{ user_id: number; full_name: string }[]>(api.get('/api/v2/places/neighbours/')),
+};
+
+export const profileApi = {
+    me: () => call<Me>(api.get('/api/auth/users/me/')),
+    // Only the name is writable: the phone reaches the profile through verify-otp and nowhere else.
+    rename: (full_name: string) => call<Me>(api.patch('/api/auth/users/me/', {full_name})),
 };
 
 export const alertsApi = {

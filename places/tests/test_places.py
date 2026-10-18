@@ -117,6 +117,45 @@ class PlacesApiTests(APITestCase):
         self.assertNotEqual(r.lat, 0)
         self.assertEqual(r.street, 'Hekima St')
 
+    def test_household_is_added_to_my_own_home_only(self):
+        mine, theirs = user('a@x.tz'), user('b@x.tz')
+        my_home = home(mine)
+        their_home = home(theirs, house='2', north=100)
+        self.client.force_authenticate(mine)
+        # Even when the body names someone else's residence, it lands on the caller's own home.
+        r = self.client.post('/api/v2/places/household/',
+                             {'name': 'Neema', 'age_group': 'child', 'needs_help': True,
+                              'residence': their_home.pk})
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(my_home.household.count(), 1)
+        self.assertEqual(their_home.household.count(), 0)
+
+    def test_cannot_touch_another_homes_household(self):
+        mine, theirs = user('a@x.tz'), user('b@x.tz')
+        home(mine)
+        their_home = home(theirs, house='2', north=100)
+        person = their_home.household.create(name='Juma')
+        self.client.force_authenticate(mine)
+        self.assertEqual(self.client.get('/api/v2/places/household/').data, [])
+        self.assertEqual(self.client.patch(f'/api/v2/places/household/{person.pk}/', {'name': 'X'}).status_code, 404)
+        self.assertEqual(self.client.delete(f'/api/v2/places/household/{person.pk}/').status_code, 404)
+        person.refresh_from_db()
+        self.assertEqual(person.name, 'Juma')
+
+    def test_household_needs_a_login_and_a_home(self):
+        self.assertEqual(self.client.post('/api/v2/places/household/', {'name': 'X'}).status_code, 401)
+        homeless = user('nohome@x.tz')
+        self.client.force_authenticate(homeless)
+        self.assertEqual(self.client.get('/api/v2/places/household/').status_code, 404)
+
+    def test_household_is_capped(self):
+        u = user('a@x.tz')
+        home(u)
+        self.client.force_authenticate(u)
+        for i in range(12):
+            self.assertEqual(self.client.post('/api/v2/places/household/', {'name': f'P{i}'}).status_code, 201)
+        self.assertEqual(self.client.post('/api/v2/places/household/', {'name': 'one too many'}).status_code, 400)
+
     def test_areas_never_contain_exact_coordinates(self):
         u = user('a@x.tz')
         r = home(u)

@@ -68,6 +68,21 @@ export type NewResidence = {
 
 export type Area = { lat: number; lng: number; homes: number };
 
+export type Me = {
+    id: number;
+    email: string;
+    full_name: string;
+    phone_number: string | null;
+    is_phone_verified: boolean;
+};
+
+export type HouseholdPerson = {
+    id: number;
+    name: string;
+    age_group: 'child' | 'adult' | 'elderly';
+    needs_help: boolean;
+};
+
 export type ChatMessage = {
     id: number;
     conversation_id: number;

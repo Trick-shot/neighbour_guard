@@ -1,212 +1,107 @@
-import authApi from "@/api/auth";
-import AppScreen from "@/components/AppScreen";
-import AppText from "@/components/AppText";
-import LoadingScreen from "@/components/LoadingScreen";
-import {ProfileType} from "@/types/ProfileType";
-import {ApiResponse} from "apisauce";
-import * as ImagePicker from "expo-image-picker";
-import {useRouter, useFocusEffect} from "expo-router";
-import {useEffect, useRef, useState, useCallback} from "react";
-import {Alert, Pressable, StyleSheet, TouchableOpacity, View} from "react-native";
-import {Image} from 'expo-image';
-import LogoIcon from "@/assets/icons/logo.svg"
-import Right from "@/assets/icons/right.svg"
-import UserProfile from "@/assets/icons/UserProfile.svg"
-import Logout from "@/assets/icons/Logout.svg"
-import * as SecureStore from 'expo-secure-store';
-import profileApi from "@/api/profile";
+import {router, useFocusEffect} from 'expo-router';
+import {useCallback, useState} from 'react';
+import {ScrollView, StyleSheet, View} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
+import Avatar from '@/components/ui/Avatar';
+import Icon from '@/components/ui/Icon';
+import ListRow from '@/components/ui/ListRow';
+import Text from '@/components/ui/Text';
+import {useAuth} from '@/context/AuthContext';
+import {alertsApi, placesApi, profileApi} from '@/lib/endpoints';
+import {Me, MyResidence} from '@/lib/types';
+import {radius, shadow, useColors} from '@/theme';
 
-const Profile = () => {
-    const router = useRouter()
+/** Figma page "Android · 07" / "Profile". Everything about me, and the things that keep me safe. */
+export default function Profile() {
+    const c = useColors();
+    const insets = useSafeAreaInsets();
+    const {logout} = useAuth();
+    const [me, setMe] = useState<Me | null>(null);
+    const [home, setHome] = useState<MyResidence | null>(null);
+    const [pinsSet, setPinsSet] = useState<boolean | null>(null);
+    const [household, setHousehold] = useState<number | null>(null);
 
-    const [profileData, setProfileData] = useState<ProfileType | null>(null)
+    const load = useCallback(async () => {
+        setMe(await profileApi.me().catch(() => null));
+        const myHome = await placesApi.me().catch(() => null);
+        setHome(myHome);
+        setPinsSet((await alertsApi.pinStatus().catch(() => null))?.is_set ?? null);
+        setHousehold(myHome ? (await placesApi.household().catch(() => []))?.length ?? null : null);
+    }, []);
 
-    const handleLogout = async () => {
-        try {
-            await SecureStore.deleteItemAsync('access')
-            await SecureStore.deleteItemAsync('refresh')
+    useFocusEffect(useCallback(() => { load(); }, [load]));
 
-            const check = await SecureStore.getItemAsync('access')
-            console.log('Token check:', check) // should be null
-
-            router.replace('/authentication/login')
-        } catch (e) {
-            console.error('Error:', e)
-        }
-    }
-
-    const getUserProfile = async () => {
-        try {
-            const res: ApiResponse<any> = await profileApi.userProfile()
-            setProfileData(res.data)
-        } catch (e) {
-
-        }
-    }
-
-    useFocusEffect(
-        useCallback(() => {
-            getUserProfile()
-        }, [])
-    )
-
-    // if (!profileData) return <LoadingScreen/>
+    const verified = home?.status === 'verified';
 
     return (
-        <AppScreen screenStyle={styles.screen}>
-            <View style={{
-                alignItems: "center",
-            }}>
-                <Image
-                    style={{
-                        width: 100,
-                        height: 100,
-                        borderRadius: 50,
-                    }}
-                    source={profileData?.profile_pic}
-                    contentFit="cover"
-                    transition={1000}
-                />
-                <View style={{
-                    alignItems: "center",
-                    gap: 5,
-                    marginTop: 16
-                }}>
-                    <AppText styles={{
-                        fontSize: 16,
-                        fontWeight: "bold"
-                    }}>{profileData?.user?.full_name}</AppText>
-                    <AppText styles={{
-                        fontSize: 12
-                    }}>{profileData?.user?.email}</AppText>
+        <ScrollView style={{backgroundColor: c.bg.page}}
+                    contentContainerStyle={[styles.content, {paddingTop: insets.top + 16, paddingBottom: 120}]}
+                    showsVerticalScrollIndicator={false}>
+            <View style={styles.header}>
+                <Avatar name={me?.full_name ?? ''} size={72}/>
+                <View style={styles.headerText}>
+                    <Text variant="title2">{me?.full_name ?? ' '}</Text>
+                    <Text variant="subhead" color={c.text.secondary}>{me?.email ?? ' '}</Text>
+                    {home && (
+                        <View style={[styles.badge, {backgroundColor: verified ? c.feedback.successBg : c.feedback.warningBg}]}>
+                            <Icon name={verified ? 'shield-check' : 'clock'} size={14}
+                                  color={verified ? c.feedback.success : c.feedback.warning}/>
+                            <Text variant="caption1" color={verified ? c.feedback.success : c.feedback.warning}>
+                                {verified
+                                    ? `Verified in ${home.neighbourhood.name}`
+                                    : `${home.vouches} of ${home.vouches_needed} vouches`}
+                            </Text>
+                        </View>
+                    )}
                 </View>
             </View>
-            <View style={{
-                marginTop: 48
 
-            }}>
-                <View style={{
-                    justifyContent: "center"
-                }}>
-                    <AppText styles={{
-                        fontSize: 16,
-                        fontWeight: "bold",
-                    }}>Residence Information</AppText>
-                    <TouchableOpacity onPress={() => router.push("/profile/residenceInformation")}
-                                      style={{
-                                          padding: 20,
-                                          backgroundColor: "rgba(233,233,233,0.2)",
-                                          borderRadius: 20,
-                                          flexDirection: "row",
-                                          alignItems: "center",
-                                          justifyContent: "space-between",
-                                          marginTop: 16
-
-                                      }}>
-                        <View style={{
-                            gap: 20,
-                            flexDirection: "row",
-                            alignItems: "center"
-                        }}>
-                            <LogoIcon/>
-                            <View>
-                                <AppText styles={{
-                                    fontSize: 16
-                                }}>Residence Information</AppText>
-                                <AppText styles={{
-                                    fontSize: 10
-                                }}>Residence Information</AppText>
-                            </View>
-                        </View>
-                        <Right/>
-                    </TouchableOpacity>
-                </View>
-                <View style={{
-                    justifyContent: "center",
-                    marginTop: 48
-                }}>
-                    <AppText styles={{
-                        fontSize: 16,
-                        fontWeight: "bold",
-                    }}>General</AppText>
-                    <TouchableOpacity onPress={() => router.navigate({
-                        pathname: "/profile/personalInformation",
-                        params: {profileData: JSON.stringify(profileData)}
-                    })} style={{
-                        padding: 20,
-                        backgroundColor: "rgba(233,233,233,0.2)",
-                        borderRadius: 20,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginTop: 16
-
-                    }}>
-                        <View style={{
-                            gap: 20,
-                            flexDirection: "row",
-                            alignItems: "center"
-                        }}>
-                            <UserProfile/>
-                            <View>
-                                <AppText styles={{
-                                    fontSize: 16
-                                }}>Personal Information</AppText>
-                                <AppText styles={{
-                                    fontSize: 10
-                                }}>Manage your account details</AppText>
-                            </View>
-                        </View>
-                        <Right/>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleLogout} style={{
-                        padding: 20,
-                        backgroundColor: "rgba(233,233,233,0.2)",
-                        borderRadius: 20,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginTop: 16
-
-                    }}>
-                        <View style={{
-                            gap: 20,
-                            flexDirection: "row",
-                            alignItems: "center"
-                        }}>
-                            <Logout/>
-                            <View>
-                                <AppText styles={{
-                                    fontSize: 16
-                                }}>Log out</AppText>
-                                <AppText styles={{
-                                    fontSize: 10
-                                }}>Log out from the app</AppText>
-                            </View>
-                        </View>
-                        <Right/>
-                    </TouchableOpacity>
-                </View>
+            <Text variant="label" color={c.text.muted} style={styles.heading}>You</Text>
+            <View style={[styles.card, shadow.bubble]}>
+                <ListRow first title="Personal information" icon="user"
+                         value={me?.full_name} onPress={() => router.push('/profile/personal')}/>
+                <ListRow last title="Phone number" icon="phone"
+                         value={me?.is_phone_verified ? me.phone_number ?? undefined : 'Not verified'}
+                         onPress={() => router.push(me?.is_phone_verified ? '/profile/personal' : '/authentication/phone')}/>
             </View>
-        </AppScreen>
-    )
+
+            <Text variant="label" color={c.text.muted} style={styles.heading}>Your home</Text>
+            <View style={[styles.card, shadow.bubble]}>
+                <ListRow first title="Home and address" icon="home"
+                         value={home ? `${home.house_number} ${home.street}` : 'Not set'}
+                         onPress={() => router.push(home ? '/profile/home' : '/authentication/location')}/>
+                <ListRow last title="Who lives here" icon="users"
+                         subtitle="Only shown to neighbours responding to your alert"
+                         value={household === null ? undefined : `${household}`}
+                         onPress={() => router.push('/profile/household')}/>
+            </View>
+
+            <Text variant="label" color={c.text.muted} style={styles.heading}>Safety</Text>
+            <View style={[styles.card, shadow.bubble]}>
+                <ListRow first title="Safety and duress PINs" icon="lock"
+                         value={pinsSet === null ? undefined : pinsSet ? 'Set' : 'Not set'}
+                         onPress={() => router.push('/profile/pins')}/>
+                <ListRow last title="Alarm check" icon="siren"
+                         subtitle="Can a neighbour’s SOS reach this phone?"
+                         onPress={() => router.push('/system/alarm-check')}/>
+            </View>
+
+            <View style={[styles.card, shadow.bubble, styles.signOut]}>
+                <ListRow first last danger chevron={false} title="Sign out" icon="log-out"
+                         onPress={async () => { await logout(); router.replace('/authentication/login'); }}/>
+            </View>
+        </ScrollView>
+    );
 }
 
-
 const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        paddingVertical: 24
-    },
-    formInput: {
-        width: "100%",
-        height: 59,
-        borderColor: "#D9D9D9",
-        borderStyle: "solid",
-        borderWidth: 1,
-        paddingLeft: 18,
-        borderRadius: 15
-    }
+    content: {paddingHorizontal: 16, gap: 8},
+    header: {flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12},
+    headerText: {flex: 1, gap: 4},
+    badge: {flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 2,
+        paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill},
+    heading: {marginTop: 12, marginLeft: 4},
+    card: {borderRadius: radius.lg},
+    signOut: {marginTop: 24},
 });
-export default Profile;

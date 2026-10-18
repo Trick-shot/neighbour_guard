@@ -1,68 +1,35 @@
-import {ApiResponse} from "apisauce";
-import * as SplashScreen from "expo-splash-screen";
-import * as SecureStore from 'expo-secure-store';
-import {router} from "expo-router";
-import {useEffect, useState} from "react";
-import {useAuth} from "@/context/AuthContext";
-import authApi from "@/api/auth";
-import LoadingScreen from "@/components/LoadingScreen";
+import {router} from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import {useEffect} from 'react';
 
+import authStorage from '@/auth/storage';
+import LoadingScreen from '@/components/LoadingScreen';
+import {useAuth} from '@/context/AuthContext';
+
+/**
+ * Where the app decides whether you are signed in.
+ *
+ * It does not verify the token here. `lib/api` refreshes once on any 401 and signs you out only if
+ * the refresh itself fails, so a stale access token sorts itself out on the first real request —
+ * and the map opens immediately instead of waiting on the network at launch.
+ */
 export default function Index() {
-    const [loading, setLoading] = useState(false)
-    const {
-        login,
-        isAuthenticated,
-        isReady,
-    } = useAuth();
-    console.log(isAuthenticated)
-
-    useEffect(() => {
-        checkUser()
-    }, [])
+    const {isAuthenticated, isReady, login} = useAuth();
 
     useEffect(() => {
         if (!isReady) return;
-        if (isAuthenticated) {
-            router.replace("/(tabs)");
-        } else {
-            router.replace(
-                "/authentication/onboarding"
-            );
-        }
-    }, [isAuthenticated, isReady]);
-
-    const checkUser = async () => {
-        try {
-            const access = await SecureStore.getItemAsync('access')
-            const refresh = await SecureStore.getItemAsync('refresh')
-
-            if (!access || !refresh) return;
-
-            try {
-                await authApi.verifyToken(access)
-                await login(access, refresh)
-                router.replace('/(tabs)')
-            } catch {
-                try {
-                    const res: ApiResponse<any> = await authApi.refreshToken(refresh)
-                    await login(res.data.access, refresh)
-                    router.replace('/(tabs)')
-                } catch {
-                    await SecureStore.deleteItemAsync('access')
-                    await SecureStore.deleteItemAsync('refresh')
-                }
+        (async () => {
+            const access = await authStorage.getToken();
+            const refresh = await authStorage.getRefreshToken();
+            if (access && refresh) {
+                if (!isAuthenticated) await login(access, refresh);
+                router.replace('/(tabs)');
+            } else {
+                router.replace('/authentication/onboarding');
             }
-        } catch (error) {
-            console.error("Failed to load user:", error);
-        } finally {
-            setLoading(false);
-            await SplashScreen.hideAsync();
-        }
-    };
+            await SplashScreen.hideAsync().catch(() => undefined);
+        })();
+    }, [isReady, isAuthenticated, login]);
 
-    if (loading) {
-        return <LoadingScreen/>;
-    }
-
-    return null;
+    return <LoadingScreen/>;
 }

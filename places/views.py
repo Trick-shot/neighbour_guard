@@ -5,9 +5,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import services
-from .models import Residence, ResidenceMember
+from .models import HouseholdPerson, Residence, ResidenceMember
 from .serializers import (
-    MyResidenceSerializer, ResidenceCreateSerializer, ResidenceNeighbourSerializer, ResidencePublicSerializer,
+    HouseholdPersonSerializer, MyResidenceSerializer, ResidenceCreateSerializer, ResidenceNeighbourSerializer,
+    ResidencePublicSerializer,
 )
 
 User = get_user_model()
@@ -91,3 +92,61 @@ class VouchView(APIView):
         except PermissionError as e:
             return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
         return Response({'status': residence.status, 'vouches': residence.vouches.count()})
+
+
+class HouseholdView(APIView):
+    """GET / POST /api/v2/places/household/ — the people in the caller's own home.
+
+    Responders to a live alert from this home see this list; nobody else ever does (see
+    ResidenceResponderSerializer). It is written here so a responder knows there is a child or
+    someone who cannot move by themselves before they arrive.
+    """
+
+    MAX_PEOPLE = 12  # a household, not a directory
+
+    def get(self, request):
+        residence = services.residence_of(request.user)
+        if not residence:
+            return Response({'detail': 'Add your home first.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(HouseholdPersonSerializer(residence.household.order_by('id'), many=True).data)
+
+    def post(self, request):
+        residence = services.residence_of(request.user)
+        if not residence:
+            return Response({'detail': 'Add your home first.'}, status=status.HTTP_404_NOT_FOUND)
+        if residence.household.count() >= self.MAX_PEOPLE:
+            return Response({'detail': f'A home can list {self.MAX_PEOPLE} people.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        serializer = HouseholdPersonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        # The residence comes from the caller's membership, never from the request body.
+        serializer.save(residence=residence)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class HouseholdMemberView(APIView):
+    """PATCH / DELETE /api/v2/places/household/<id>/ — one person in the caller's own home."""
+
+    def _get(self, request, pk):
+        residence = services.residence_of(request.user)
+        if not residence:
+            return None
+        # Scoped to the caller's residence, so another home's household is a 404, not a 403:
+        # you may not know it exists.
+        return HouseholdPerson.objects.filter(pk=pk, residence=residence).first()
+
+    def patch(self, request, pk):
+        person = self._get(request, pk)
+        if not person:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = HouseholdPersonSerializer(person, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, pk):
+        person = self._get(request, pk)
+        if not person:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        person.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
