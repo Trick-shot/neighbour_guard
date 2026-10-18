@@ -166,3 +166,18 @@ class SeedDemoTests(TestCase):
         call_command('seed_demo', stdout=open('/dev/null', 'w'))
         self.assertEqual(Residence.objects.count(), 2)
         self.assertEqual(Residence.objects.values('neighbourhood').distinct().count(), 1)
+
+    def test_seed_accepts_real_emails_for_a_deployed_demo(self):
+        # On a server the sign-in code is emailed, so the demo accounts need reachable addresses.
+        from django.contrib.auth import get_user_model
+        from django.core.management import call_command
+        call_command('seed_demo', 'a@real.tz', 'b@real.tz', stdout=open('/dev/null', 'w'))
+        emails = set(get_user_model().objects.values_list('email', flat=True))
+        self.assertEqual(emails, {'a@real.tz', 'b@real.tz'})
+        self.assertEqual(Residence.objects.values('neighbourhood').distinct().count(), 1)
+
+    def test_seed_refuses_one_email(self):
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+        with self.assertRaises(CommandError):
+            call_command('seed_demo', 'only@one.tz', stdout=open('/dev/null', 'w'))
