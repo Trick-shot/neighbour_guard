@@ -11,7 +11,7 @@ cancel, already sent).
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
-| GET | `places/me/` | | My home, incl. my own `lat`/`lng`, `status` (`pending`/`verified`), `vouches`, `neighbourhood` |
+| GET | `places/me/` | | My home, incl. my own `lat`/`lng`, `house_number`, `street`, `district`, `directions`, `status` (`pending`/`verified`), `verified_at`, `vouches`, `vouches_needed`, `neighbourhood` |
 | POST | `places/me/` | `house_number, street, lat, lng, district?, directions?` | 201 my home. 409 if I already have one |
 | PATCH | `places/me/` | `house_number?, street?, directions?` | My home. The pin cannot move here |
 | GET | `places/areas/` | | `{neighbourhood, areas: [{lat, lng, homes}]}` — grid cells, never exact homes |

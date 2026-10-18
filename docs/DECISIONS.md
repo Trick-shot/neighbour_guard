@@ -2,6 +2,24 @@
 
 Each entry: the decision, why, and what would make us revisit it. Newest first.
 
+## 2026-10-18 · The home pin is set by moving the map, not by dragging a marker
+"Pin your home" keeps the pin fixed in the centre of the screen and moves the map under it.
+**Why:** a draggable marker needs a precise press-and-hold with one thumb, and on Android a custom
+marker view can swallow the drag and silently leave the pin where it was — and a pin in the wrong
+place sends your alerts to the wrong street. Moving the map always registers. **Revisit:** if the
+Figma frame turns out to show a dragged marker, match the frame.
+
+## 2026-10-18 · Onboarding asks for location at stage 3, not on the Home map
+The permission is requested on its own screen with the reason, immediately before the pin screen.
+**Why:** the one-sentence reason is what gets the permission granted, and the pin is the first thing
+that actually needs it. A refusal is recoverable (Settings + retry) instead of dead-ending.
+
+## 2026-10-18 · A missing home is shown on the Home map, not forced
+If `GET places/me/` returns 404 the Home map shows a "Pin your home" card instead of redirecting.
+**Why:** v1 users imported without a pin, and anyone who backs out of onboarding, must be able to
+reach the map and fix it later; a forced redirect with no way out is how people get stuck. The
+server still refuses an SOS from someone with no home, so nothing is weakened by letting them look.
+
 ## 2026-10-18 · Rebuild alongside v1, not in place
 v2 lives in new apps (`places`, `alerts`, `chat`) under `/api/v2/`. The v1 API (`main`) stays,
 security-patched, until the new app ships. **Why:** the old app keeps working during the rebuild,
