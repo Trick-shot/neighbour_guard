@@ -1,38 +1,39 @@
 import * as SecureStore from 'expo-secure-store';
-import {jwtDecode} from "jwt-decode";
+import {jwtDecode} from 'jwt-decode';
 
-const accessKey = "access";
-const refreshKey = "refresh";
+// Tokens live only in SecureStore (Keychain / Keystore), never AsyncStorage.
+const accessKey = 'access';
+const refreshKey = 'refresh';
 
 const storeToken = async (access: string, refresh: string) => {
-    try {
-        await SecureStore.setItemAsync(accessKey, access);
-        await SecureStore.setItemAsync(refreshKey, refresh);
-    } catch (error) {
-        console.log("Error storing the auth token", error);
-    }
-}
+    await SecureStore.setItemAsync(accessKey, access);
+    await SecureStore.setItemAsync(refreshKey, refresh);
+};
 
 const getToken = async () => {
     try {
-        return await SecureStore.getItemAsync(accessKey);  // ← reads 'access'
-    } catch (error) {
-        console.log("Error getting the auth token", error);
+        return await SecureStore.getItemAsync(accessKey);
+    } catch {
+        return null;
     }
-}
+};
+
+const getRefreshToken = async () => {
+    try {
+        return await SecureStore.getItemAsync(refreshKey);
+    } catch {
+        return null;
+    }
+};
 
 const getUser = async () => {
     const token = await getToken();
-    return token ? jwtDecode(token) : null;
-}
+    return token ? jwtDecode<{ user_id: number; email: string; full_name: string }>(token) : null;
+};
 
 const removeToken = async () => {
-    try {
-        await SecureStore.deleteItemAsync(accessKey);
-        await SecureStore.deleteItemAsync(refreshKey);
-    } catch (error) {
-        console.log("Error removing the auth token", error);
-    }
-}
+    await SecureStore.deleteItemAsync(accessKey);
+    await SecureStore.deleteItemAsync(refreshKey);
+};
 
-export default {getToken, storeToken, getUser, removeToken}
+export default {getToken, getRefreshToken, storeToken, getUser, removeToken};

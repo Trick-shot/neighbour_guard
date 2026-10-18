@@ -23,7 +23,9 @@
     "android": {
       "permissions": [
         "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "POST_NOTIFICATIONS",
+        "ACCESS_NOTIFICATION_POLICY"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#0088FF",
@@ -43,17 +45,10 @@
       [
         "expo-notifications",
         {
+          "color": "#0088FF",
           "sounds": [
             "./assets/sounds/alarm.mp3"
-          ]
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icons/notification-icon.png",
-          "color": "#1CED7F",
-          "sounds": [],
+          ],
           "mode": "production"
         }
       ],
@@ -97,8 +92,7 @@
             "image": "./assets/icons/ios-dark.png"
           }
         }
-      ],
-      "expo-secure-store"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

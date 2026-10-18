@@ -1,209 +1,79 @@
-import apiClient from "@/api/client";
-import {ApiResponse} from "apisauce";
-import {Formik} from "formik";
-import {useRouter} from "expo-router";
-import {useState, useEffect} from "react";
-import {View, StyleSheet, TextInput, TouchableOpacity} from "react-native";
-import {Checkbox} from 'expo-checkbox';
-import * as Yup from "yup";
-import colors from '@/utils/config';
-import authApi from "@/api/auth"
-import {useAuth} from "@/context/AuthContext";
-import AppButton from "@/components/AppButton";
-import AppScreen from "@/components/AppScreen";
-import AppText from "@/components/AppText";
-import LoadingScreen from "@/components/LoadingScreen";
+import {Image} from 'expo-image';
+import {router} from 'expo-router';
+import {useState} from 'react';
+import {KeyboardAvoidingView, Platform, Pressable, StyleSheet, View} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-const validationSchema = Yup.object().shape({
-    email: Yup.string().email().required(),
-    password: Yup.string().required().min(4),
-});
+import Button from '@/components/ui/Button';
+import Icon from '@/components/ui/Icon';
+import Text from '@/components/ui/Text';
+import TextField from '@/components/ui/TextField';
+import {authApi} from '@/lib/endpoints';
+import {useColors} from '@/theme';
 
+/** Figma "Sign in — email" (1631:1402). */
+const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
-const Login = () => {
-    const [isChecked, setChecked] = useState(false)
-    const router = useRouter()
-    const [loading, setLoading] = useState(false)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const {login} = useAuth()
-    const baseURL = process.env.EXPO_PUBLIC_API_URL;
+export default function SignInEmail() {
+    const c = useColors();
+    const insets = useSafeAreaInsets();
+    const [email, setEmail] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
 
-
-    useEffect(() => {
-        if (errorMessage) {
-            const timer = setTimeout(() => {
-                setErrorMessage(null)
-            }, 3000)
-
-            return () => clearTimeout(timer)
-        }
-    }, [errorMessage])
-
-    const onSubmit = async ({email, password}: { email: string, password: string }) => {
+    const send = async () => {
+        if (!isEmail(email)) return setError('Enter the email you signed up with.');
+        setBusy(true);
+        setError(null);
         try {
-            setLoading(true)
-            setErrorMessage(null)
-
-            const res: ApiResponse<any> = await authApi.login(email, password)
-            if (!res.ok) {
-                setErrorMessage('Invalid email or password')
-                return
-            }
-            await login(res.data.access, res.data.refresh)
-            router.replace('/(tabs)')
-
-
+            await authApi.requestEmailCode(email.trim().toLowerCase());
+            router.push({pathname: '/authentication/code', params: {email: email.trim().toLowerCase()}});
         } catch (e: any) {
-            const detail = e?.response?.data?.detail
-            console.log(detail)
-            setErrorMessage('Invalid email or password')
+            setError(e.message);
         } finally {
-            setLoading(false)
+            setBusy(false);
         }
-    }
+    };
 
     return (
-        <AppScreen screenStyle={style.screenStyle}>
-            {loading && <LoadingScreen/>}
-
-            <Formik initialValues={{
-                email: "",
-                password: "",
-            }} onSubmit={onSubmit}
-                    validationSchema={validationSchema}>
-                {({handleSubmit, handleChange, errors, values, handleBlur, touched}) => (
-                    <>
-                        <AppText styles={{
-                            width: "100%",
-                            textAlign: "center",
-                            fontSize: 24
-                        }}>Welcome Back</AppText>
-                        <View style={{
-                            gap: 31,
-                            marginTop: 50
-                        }}>
-                            <View>
-                                <TextInput
-                                    style={style.formInput}
-                                    placeholder="Email"
-                                    placeholderTextColor={colors.black}
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                    value={values.email}
-                                    onChangeText={handleChange('email')}
-                                    onBlur={handleBlur('email')}
-                                />
-                                <View style={{
-                                    top: 8
-                                }}>
-                                    {
-                                        errors.email && touched.email &&
-                                        <AppText styles={style.errorMessage}>{errors.email}</AppText>
-                                    }
-                                </View>
-                            </View>
-                            <View>
-                                <TextInput
-                                    style={style.formInput}
-                                    placeholder="Password"
-                                    placeholderTextColor={colors.black}
-                                    secureTextEntry
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                    value={values.password}
-                                    onChangeText={handleChange('password')}
-                                    onBlur={handleBlur('password')}
-                                />
-                                <View style={{
-                                    top: 8
-                                }}>
-                                    {
-                                        errors.password && touched.password &&
-                                        <AppText styles={style.errorMessage}>{errors.password}</AppText>
-                                    }
-                                </View>
-                            </View>
-                        </View>
-                        <AppText styles={{
-                            width: "100%",
-                            textAlign: "center",
-                            fontSize: 12,
-                            color: "red", top: 50,
-                        }}>{errorMessage}</AppText>
-                        <View style={{marginTop: 95, flexDirection: "row", justifyContent: "space-between"}}>
-                            <View style={{
-                                flexDirection: "row",
-                                gap: 8
-                            }}>
-                                <AppText styles={{
-                                    fontSize: 14
-                                }}>Remember Me</AppText>
-                                <Checkbox color={isChecked ? colors.primary : undefined} value={isChecked}
-                                          onValueChange={setChecked}
-                                          style={{
-                                              width: 20,
-                                              height: 17,
-                                              borderWidth: 0.1,
-                                              backgroundColor: "#D9D9D9",
-                                              borderRadius: 5,
-
-                                          }}/>
-                            </View>
-                            <TouchableOpacity>
-                                <AppText styles={{
-                                    fontSize: 14,
-                                    color: colors.primary
-                                }}>Forgot Password ?</AppText>
-                            </TouchableOpacity>
-                        </View>
-                        <AppButton onPress={handleSubmit}
-                                   buttonStyles={{
-                                       backgroundColor: colors.primary,
-                                       marginTop: 59,
-                                   }}>Login</AppButton>
-
-                        <View style={{
-                            justifyContent: "center",
-                            flexDirection: "row",
-                            gap: 5,
-                            marginTop: "60%"
-                        }}>
-                            <AppText styles={{
-                                fontSize: 14
-                            }}>Don&#39;t have an account?</AppText>
-                            <TouchableOpacity onPress={() => router.navigate('/authentication/register')}>
-                                <AppText styles={{
-                                    fontSize: 14,
-                                    color: colors.primary
-                                }}>Register</AppText>
-                            </TouchableOpacity>
-                        </View>
-                    </>
-                )}</Formik>
-        </AppScreen>
-    )
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                              style={[styles.screen, {backgroundColor: c.bg.surface, paddingTop: insets.top}]}>
+            <Pressable accessibilityLabel="Back" onPress={() => router.canGoBack() && router.back()} style={styles.back}>
+                <Icon name="chevron-left" size={24}/>
+            </Pressable>
+            <View style={styles.content}>
+                <View style={[styles.hero, {backgroundColor: c.bg.brandSubtle}]}>
+                    <Image source={require('@/assets/illustrations/signin.png')} style={styles.heroImage} contentFit="contain"/>
+                </View>
+                <View style={styles.heading}>
+                    <Text variant="title1">Welcome back</Text>
+                    <Text variant="body" color={c.text.secondary}>Enter the email you signed up with and we’ll send you a code.</Text>
+                </View>
+                <TextField
+                    label="Email"
+                    value={email}
+                    onChangeText={(v) => { setEmail(v); setError(null); }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    textContentType="emailAddress"
+                    returnKeyType="send"
+                    onSubmitEditing={send}
+                    error={error}
+                />
+                <Text variant="subhead" color={c.text.brand}>Can’t access your email?</Text>
+            </View>
+            <Button title="Send code" onPress={send} loading={busy} style={[styles.cta, {marginBottom: Math.max(insets.bottom, 16)}]}/>
+        </KeyboardAvoidingView>
+    );
 }
 
-const style = StyleSheet.create({
-    screenStyle: {
-        flex: 1,
-        backgroundColor: "#fff"
-    },
-    formInput: {
-        width: "100%",
-        height: 63,
-        borderColor: "#D9D9D9",
-        borderStyle: "solid",
-        borderWidth: 1,
-        paddingLeft: 18,
-        borderRadius: 15
-    },
-    errorMessage: {
-        fontSize: 9,
-        color: "red",
-        position: "absolute"
-    }
-})
-
-export default Login;
+const styles = StyleSheet.create({
+    screen: {flex: 1},
+    back: {marginLeft: 12, marginTop: 10, width: 24, height: 24},
+    content: {flex: 1, paddingHorizontal: 16, paddingTop: 12, gap: 20},
+    hero: {height: 190, borderRadius: 24, alignItems: 'center', justifyContent: 'center', overflow: 'hidden'},
+    heroImage: {width: 190, height: 190},
+    heading: {gap: 8},
+    cta: {marginHorizontal: 29.5},
+});

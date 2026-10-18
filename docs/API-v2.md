@@ -25,6 +25,7 @@ cancel, already sent).
 | POST | `alerts/` | `client_id (uuid made on the phone), type, message?` | 201 pending alert with `seconds_left`; repeat `client_id` → 200 same alert |
 | GET | `alerts/` | | Live alerts around me |
 | GET | `alerts/<id>/` | | Alert. 404 if I am not the sender or a neighbour |
+| POST | `alerts/<id>/type/` | `type` | Changes the type during the countdown. 409 once sent |
 | POST | `alerts/<id>/cancel/` | | Cancelled alert. 409 if already sent |
 | POST | `alerts/<id>/send-now/` | | Sent alert |
 | POST | `alerts/<id>/respond/` | `state (seen/coming/arrived/cant), eta_min?` | Alert with `responses` |
@@ -41,6 +42,8 @@ What the alert's `home` contains:
   household[]`, plus `sender_phone` if verified.
 - Neighbours before it is sent or after it ends: `house_number, street, status` only.
 - The sender never sees `under_duress`, and sees `resolved` after a duress PIN.
+- The sender's view also has `recipients`: how many neighbours the alert reaches (shown in the countdown).
+- `responses[].phone` is the responder's verified phone, only while the alert is live and only for people who may see it exactly.
 
 Push payload the phone receives: `data = {kind: "sos", alert_id, type}`, Android `channelId: "sos"`,
 `sound: "alarm.mp3"`, iOS `interruptionLevel: "time-sensitive"`.
@@ -70,6 +73,8 @@ home. A sent SOS posts a `kind: "alert"` message there.
 | Method | Path | Notes |
 | --- | --- | --- |
 | POST | `/api/auth/users/` | Sign up (email, full_name, password). Sends the activation email |
+| POST | `/api/auth/email-code/` | `{email}` — emails a 6-digit sign-in code. Always 200 (does not reveal accounts). 10 per 10 min per IP |
+| POST | `/api/auth/email-code/verify/` | `{email, code}` → `{access, refresh}`. 5 wrong tries kill the code |
 | POST | `/api/auth/jwt/create/` | `{email, password}` → `{access, refresh}` |
 | POST | `/api/auth/jwt/refresh/` | `{refresh}` → `{access}` |
 | POST | `/api/auth/send-otp/` | **Logged in.** `{phone_number}`. Max 3 per 10 min |

@@ -1,109 +1,130 @@
-import AppText from "@/components/AppText";
-import MessageBubble from "@/components/chat/MessageBubble";
-import ChatInput from "@/components/chat/ChatInput";
-import LoadingScreen from "@/components/LoadingScreen";
-import chatApi from "@/api/chat";
-import profileApi from "@/api/profile";
-import {useWebSocket} from "@/hooks/useWebSocket";
-import {useLocalSearchParams, useRouter} from "expo-router";
-import {useEffect, useRef, useState} from "react";
-import {FlatList, TouchableOpacity, View} from "react-native";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import {router, useLocalSearchParams} from 'expo-router';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {FlatList, KeyboardAvoidingView, Platform, StyleSheet, View} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-const ChatRoom = () => {
-    const {id, name} = useLocalSearchParams();
-    const router = useRouter();
+import authStorage from '@/auth/storage';
+import AlertCardBubble from '@/components/chat2/AlertCardBubble';
+import ChatBubble from '@/components/chat2/ChatBubble';
+import ChatHeader from '@/components/chat2/ChatHeader';
+import Composer from '@/components/chat2/Composer';
+import Text from '@/components/ui/Text';
+import {clockTime} from '@/features/time';
+import {alertsApi, chatApi} from '@/lib/endpoints';
+import {useChatSocket} from '@/lib/socket';
+import {Alert, ChatMessage, Conversation} from '@/lib/types';
+import {newClientId} from '@/lib/uuid';
+import {useColors} from '@/theme';
+
+/** Figma "Messages — group chat" (1620:794): live chat with alert cards. */
+export default function Chat() {
+    const c = useColors();
     const insets = useSafeAreaInsets();
-    const flatListRef = useRef<FlatList>(null);
-
-    const [pastMessages, setPastMessages] = useState<any[]>([]);
-    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-    const [loading, setLoading] = useState(true);
-
+    const {id} = useLocalSearchParams<{ id: string }>();
     const conversationId = Number(id);
-    const {
-        messages: liveMessages,
-        isConnected,
-        onlineUsers,
-        sendMessage,
-        sendReadReceipt
-    } = useWebSocket(conversationId);
+    const [convo, setConvo] = useState<Conversation | null>(null);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [alerts, setAlerts] = useState<Record<number, Alert>>({});
+    const [myId, setMyId] = useState<number | null>(null);
+    const [draft, setDraft] = useState('');
+    const messagesRef = useRef<ChatMessage[]>([]);
+    messagesRef.current = messages;
 
-    useEffect(() => {
-        loadInitialData();
+    const loadAlert = useCallback((alertId: number) => {
+        alertsApi.get(alertId).then((a) => setAlerts((m) => ({...m, [a.id]: a}))).catch(() => undefined);
     }, []);
 
-    useEffect(() => {
-        if (liveMessages.length > 0) {
-            flatListRef.current?.scrollToEnd({animated: true});
-            sendReadReceipt();
-        }
-    }, [liveMessages]);
+    const add = useCallback((m: ChatMessage) => {
+        setMessages((list) => {
+            const i = list.findIndex((x) => x.id === m.id || (m.client_id && x.client_id === m.client_id));
+            if (i >= 0) {
+                const next = [...list];
+                next[i] = m;
+                return next;
+            }
+            return [...list, m];
+        });
+        if (m.alert_id) loadAlert(m.alert_id);
+    }, [loadAlert]);
 
-    const loadInitialData = async () => {
-        try {
-            const [messagesRes, profileRes] = await Promise.all([
-                chatApi.getMessages(conversationId),
-                profileApi.userProfile()
-            ]);
-            setPastMessages(messagesRes.data ?? []);
-            setCurrentUserId(profileRes.data?.user?.id ?? null);
-        } catch (e) {
-            console.log('Error loading chat:', e);
-        } finally {
-            setLoading(false);
+    useEffect(() => {
+        authStorage.getUser().then((u) => setMyId(u?.user_id ?? null));
+        chatApi.conversations().then((all) => setConvo(all.find((x) => x.id === conversationId) ?? null)).catch(() => undefined);
+        chatApi.messages(conversationId).then((list) => {
+            setMessages(list);
+            new Set(list.map((m) => m.alert_id).filter(Boolean) as number[]).forEach(loadAlert);
+        }).catch(() => undefined);
+    }, [conversationId, loadAlert]);
+
+    const {send} = useChatSocket(conversationId, {
+        onMessage: add,
+        onAlertUpdate: (u) => loadAlert(u.alert_id),
+        lastMessageId: () => messagesRef.current.filter((m) => !m.pending).at(-1)?.id,
+    });
+
+    const onSend = () => {
+        const body = draft.trim();
+        if (!body) return;
+        const client_id = newClientId();
+        const optimistic: ChatMessage = {
+            id: -Date.now(), conversation_id: conversationId, client_id, kind: 'text', body, sender_id: myId,
+            sender_name: 'You', alert_id: null, created_at: new Date().toISOString(), pending: true,
+        };
+        setMessages((l) => [...l, optimistic]);
+        setDraft('');
+        if (!send({type: 'message', client_id, body})) {
+            // Not connected: the socket hook reconnects; the user can resend. Keep it marked as pending.
         }
     };
 
-    const allMessages = [
-        ...pastMessages,
-        ...liveMessages.filter(lm => !pastMessages.find((pm: any) => pm.id === lm.message_id))
-    ];
-
-    if (loading) return <LoadingScreen/>;
+    const data = useMemo(() => [...messages].reverse(), [messages]);
+    const title = convo?.name || convo?.participants.filter((p) => p.id !== myId).map((p) => p.full_name).join(', ') || 'Chat';
+    const status = convo?.kind === 'group' ? `${convo.participants.length} members` : undefined;
 
     return (
-        <View style={{flex: 1, backgroundColor: '#1a1a2e', paddingTop: insets.top}}>
-            {/* Header */}
-            <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                padding: 16,
-                borderBottomWidth: 1,
-                borderBottomColor: 'rgba(233,233,233,0.1)',
-                gap: 12,
-            }}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <MaterialIcons name="arrow-back" size={24} color="white"/>
-                </TouchableOpacity>
-                <View style={{flex: 1}}>
-                    <AppText styles={{fontSize: 16, fontWeight: 'bold'}}>{name ?? 'Chat'}</AppText>
-                    <AppText styles={{fontSize: 12, color: isConnected ? '#1CED7F' : 'grey'}}>
-                        {isConnected ? 'Connected' : 'Connecting...'}
-                    </AppText>
-                </View>
-            </View>
-
-            {/* Messages */}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.screen, {backgroundColor: c.bg.surface, paddingTop: insets.top}]}>
+            <ChatHeader title={title} status={status} onBack={() => router.back()} onMore={() => undefined}/>
             <FlatList
-                ref={flatListRef}
-                data={allMessages}
-                keyExtractor={(item, index) => (item.id ?? item.message_id ?? index).toString()}
-                renderItem={({item}) => (
-                    <MessageBubble
-                        message={item}
-                        isOwn={(item.sender_id ?? item.sender) === currentUserId}
-                    />
-                )}
-                contentContainerStyle={{paddingVertical: 16}}
-                onLayout={() => flatListRef.current?.scrollToEnd({animated: false})}
+                inverted
+                data={data}
+                keyExtractor={(m) => String(m.client_id ?? m.id)}
+                contentContainerStyle={styles.thread}
+                ListFooterComponent={
+                    <View style={[styles.today, {backgroundColor: c.bg.subtle}]}>
+                        <Text variant="caption2" color={c.text.muted}>Today</Text>
+                    </View>
+                }
+                renderItem={({item, index}) => {
+                    const mine = item.sender_id === myId;
+                    const time = clockTime(item.created_at);
+                    if (item.kind === 'alert') {
+                        const a = item.alert_id ? alerts[item.alert_id] ?? null : null;
+                        return (
+                            <AlertCardBubble
+                                alert={a} sender={item.sender_name} time={time} body={item.body} mine={mine}
+                                canRespond={!mine && !a?.responses.some((r) => r.responder_id === myId && r.state !== 'seen')}
+                                onOpen={() => a && router.push(mine ? {pathname: '/sos/live', params: {id: String(a.id)}} : `/alert/${a.id}`)}
+                                onComing={async () => {
+                                    if (!a) return;
+                                    await alertsApi.respond(a.id, 'coming').catch(() => undefined);
+                                    router.push({pathname: '/alert/on-the-way', params: {id: String(a.id)}});
+                                }}
+                            />
+                        );
+                    }
+                    const prev = data[index + 1];
+                    const showAvatar = !prev || prev.sender_id !== item.sender_id || prev.kind === 'alert';
+                    return <ChatBubble direction={mine ? 'out' : 'in'} body={item.body} sender={item.sender_name} time={time}
+                                       showAvatar={showAvatar} pending={item.pending}/>;
+                }}
             />
-
-            {/* Input */}
-            <ChatInput onSend={sendMessage}/>
-        </View>
+            <Composer value={draft} onChange={setDraft} onSend={onSend} bottomInset={insets.bottom}/>
+        </KeyboardAvoidingView>
     );
-};
+}
 
-export default ChatRoom;
+const styles = StyleSheet.create({
+    screen: {flex: 1},
+    thread: {paddingHorizontal: 16, paddingTop: 16, gap: 16},
+    today: {alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, marginBottom: 0},
+});
