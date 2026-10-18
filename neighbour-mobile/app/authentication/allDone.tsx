@@ -38,7 +38,7 @@ const AllDone = () => {
                     loop={false}
                     style={{width: 100, height: 100}}
                     onAnimationFinish={() => setTimeout(() => {
-                        router.navigate("/authentication/homeRegistration")
+                        router.navigate("/authentication/location")
                     }, 2000)}
                 />
                 <View style={{

@@ -102,6 +102,20 @@ export default function Home() {
             <View style={[styles.top, {top: insets.top + 6}]}>
                 <StatusCompact {...status} badge={alerts.length}
                                onPress={() => nearest ? router.push(`/alert/${nearest.id}`) : undefined}/>
+                {/* No home means no neighbourhood, so an SOS would reach nobody. Say so and offer the fix. */}
+                {noHome && (
+                    <Pressable
+                        accessibilityRole="button"
+                        onPress={() => router.push('/authentication/location')}
+                        style={[styles.noHome, shadow.control, {backgroundColor: c.bg.surface}]}>
+                        <Icon name="map-pin" size={22} color={c.icon.brand}/>
+                        <View style={styles.noHomeText}>
+                            <Text variant="label">Pin your home</Text>
+                            <Text variant="footnote" color={c.text.secondary}>Until you do, an alert reaches nobody.</Text>
+                        </View>
+                        <Icon name="chevron-right" size={20} color={c.icon.muted}/>
+                    </Pressable>
+                )}
             </View>
 
             <View style={[styles.rail, shadow.control, {top: insets.top + 82, backgroundColor: c.bg.surface}]}>
@@ -138,7 +152,9 @@ export default function Home() {
 
 const styles = StyleSheet.create({
     screen: {flex: 1},
-    top: {position: 'absolute', left: 16, right: 16},
+    top: {position: 'absolute', left: 16, right: 16, gap: 8},
+    noHome: {flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16},
+    noHomeText: {flex: 1},
     rail: {position: 'absolute', left: 16, alignItems: 'center', gap: 4, paddingTop: 10, paddingBottom: 12, paddingHorizontal: 10, borderRadius: 999},
     expand: {width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center'},
     badge: {position: 'absolute', left: 32, top: -4, width: 18, height: 18, borderRadius: 9, borderWidth: 2, backgroundColor: '#e52e2e', alignItems: 'center', justifyContent: 'center'},

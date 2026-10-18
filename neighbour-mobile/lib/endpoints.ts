@@ -1,6 +1,6 @@
 /** Typed calls to /api/v2 (see docs/API-v2.md). */
 import {api, call} from './api';
-import {Alert, AlertType, Area, ChatMessage, Conversation, MyResidence, ResponseState} from './types';
+import {Alert, AlertType, Area, ChatMessage, Conversation, MyResidence, NewResidence, ResponseState} from './types';
 
 export const authApi = {
     requestEmailCode: (email: string) => call(api.post('/api/auth/email-code/', {email})),
@@ -10,6 +10,11 @@ export const authApi = {
 
 export const placesApi = {
     me: () => call<MyResidence>(api.get('/api/v2/places/me/')),
+    // The server reads who you are from the token; the body carries the home only.
+    create: (home: NewResidence) => call<MyResidence>(api.post('/api/v2/places/me/', home)),
+    // Only the text fields. Moving the pin would change who gets your alerts, so the server refuses it.
+    update: (fields: { house_number?: string; street?: string; directions?: string }) =>
+        call<MyResidence>(api.patch('/api/v2/places/me/', fields)),
     areas: () => call<{ neighbourhood: string; areas: Area[] }>(api.get('/api/v2/places/areas/')),
     neighbours: () => call<{ user_id: number; full_name: string }[]>(api.get('/api/v2/places/neighbours/')),
 };

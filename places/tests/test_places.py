@@ -81,6 +81,33 @@ class PlacesApiTests(APITestCase):
         self.assertEqual(r.status_code, 201)
         self.assertEqual(self.client.get('/api/v2/places/me/').data['house_number'], '109')
 
+    def test_creating_a_home_needs_a_login(self):
+        lat, lng = offset()
+        r = self.client.post('/api/v2/places/me/', {'house_number': '109', 'street': 'Masaki St', 'lat': lat, 'lng': lng})
+        self.assertEqual(r.status_code, 401)
+        self.assertFalse(Residence.objects.exists())
+
+    def test_the_home_belongs_to_the_caller_not_to_an_email_in_the_body(self):
+        caller, victim = user('caller@x.tz'), user('victim@x.tz')
+        self.client.force_authenticate(caller)
+        lat, lng = offset()
+        r = self.client.post('/api/v2/places/me/', {
+            'house_number': '109', 'street': 'Masaki St', 'lat': lat, 'lng': lng,
+            'email': 'victim@x.tz', 'user': victim.pk, 'user_id': victim.pk,
+        })
+        self.assertEqual(r.status_code, 201)
+        self.assertIsNone(services.residence_of(victim))
+        self.assertEqual(services.residence_of(caller).house_number, '109')
+
+    def test_a_second_home_is_refused_with_409(self):
+        u = user('a@x.tz')
+        home(u)
+        self.client.force_authenticate(u)
+        lat, lng = offset(meters_north=50)
+        r = self.client.post('/api/v2/places/me/', {'house_number': '7', 'street': 'Other St', 'lat': lat, 'lng': lng})
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(Residence.objects.count(), 1)
+
     def test_cannot_move_the_pin_with_patch(self):
         u = user('a@x.tz')
         r = home(u)

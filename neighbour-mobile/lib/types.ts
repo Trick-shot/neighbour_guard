@@ -45,10 +45,25 @@ export type MyResidence = {
     id: number;
     house_number: string;
     street: string;
+    district: string;
+    directions: string;
     lat: number;
     lng: number;
     status: 'pending' | 'verified';
+    verified_at: string | null;
+    vouches: number;
+    vouches_needed: number;
     neighbourhood: { id: number; name: string; slug: string; radius_m: number };
+};
+
+/** The body of POST /api/v2/places/me/. The pin is sent once, here, and cannot move later. */
+export type NewResidence = {
+    house_number: string;
+    street: string;
+    lat: number;
+    lng: number;
+    district?: string;
+    directions?: string;
 };
 
 export type Area = { lat: number; lng: number; homes: number };
