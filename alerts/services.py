@@ -71,6 +71,21 @@ def cancel_alert(alert: Alert, user) -> Alert:
     return alert
 
 
+def change_type(alert: Alert, user, new_type: str) -> Alert:
+    """During the countdown the sender can still change what is happening."""
+    _require_sender(alert, user)
+    changed = Alert.objects.filter(pk=alert.pk, status=Alert.Status.PENDING).update(type=new_type)
+    alert.refresh_from_db()
+    if not changed:
+        raise AlertError('The alert was already sent.', 'conflict')
+    return alert
+
+
+def recipients_count(alert: Alert) -> int:
+    """How many neighbours this alert reaches at its current radius (shown during the countdown)."""
+    return users_near(alert.residence, alert.radius_m).count()
+
+
 def send_now(alert: Alert, user) -> Alert:
     _require_sender(alert, user)
     claim_and_send(alert.pk)

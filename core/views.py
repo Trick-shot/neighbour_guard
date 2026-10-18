@@ -138,3 +138,77 @@ class PhoneNumberVerifyOTP(APIView):
         profile.save(update_fields=['phone_number', 'is_phone_verified'])
 
         return Response({'message': 'Phone number verified', 'phone_number': profile.phone_number}, status=status.HTTP_200_OK)
+
+
+# --- Passwordless sign-in with an email code (Figma: Sign in — email / code) -------------
+
+EMAIL_CODE_TTL = 600  # 10 minutes
+EMAIL_CODE_MAX_ATTEMPTS = 5
+
+
+class EmailCodeThrottle(MinuteWindowThrottle):
+    """Anonymous users have no user id, so throttle by IP."""
+    scope = 'email_code'
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {'scope': self.scope, 'ident': self.get_ident(request)}
+
+
+def _email_code_key(email: str) -> str:
+    return f'email-code:{email.strip().lower()}'
+
+
+class EmailCodeRequestView(APIView):
+    """POST {email} — email a 6-digit sign-in code. Always answers 200, so it cannot be used to
+    find out which emails have accounts."""
+    permission_classes = [AllowAny]
+    throttle_classes = [EmailCodeThrottle]
+
+    def post(self, request):
+        from django.contrib.auth import get_user_model
+        from django.core.cache import cache
+        from django.core.mail import send_mail
+
+        email = (request.data.get('email') or '').strip().lower()
+        user = get_user_model().objects.filter(email__iexact=email, is_active=True).first() if email else None
+        if user:
+            code = f'{secrets.randbelow(1_000_000):06d}'
+            cache.set(_email_code_key(email), {'hash': hash_otp(code), 'attempts': 0}, EMAIL_CODE_TTL)
+            try:
+                send_mail('Your NeighbourGuard sign-in code',
+                          f'Your code is {code}. It expires in 10 minutes. If you did not ask for it, ignore this email.',
+                          settings.DEFAULT_FROM_EMAIL, [user.email])
+            except Exception:
+                logger.exception('Sign-in code email failed for user %s', user.pk)
+        return Response({'message': 'If that email has an account, a code is on its way.'})
+
+
+class EmailCodeVerifyView(APIView):
+    """POST {email, code} → {access, refresh}."""
+    permission_classes = [AllowAny]
+    throttle_classes = [EmailCodeThrottle]
+
+    def post(self, request):
+        from django.contrib.auth import get_user_model
+        from django.core.cache import cache
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        email = (request.data.get('email') or '').strip().lower()
+        code = str(request.data.get('code') or '')
+        key = _email_code_key(email)
+        entry = cache.get(key)
+        if not entry:
+            return Response({'error': 'Code expired. Request a new one.'}, status=status.HTTP_400_BAD_REQUEST)
+        if entry['attempts'] >= EMAIL_CODE_MAX_ATTEMPTS:
+            cache.delete(key)
+            return Response({'error': 'Too many attempts. Request a new code.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not hmac.compare_digest(entry['hash'], hash_otp(code)):
+            entry['attempts'] += 1
+            cache.set(key, entry, EMAIL_CODE_TTL)
+            return Response({'error': 'That code is not right.'}, status=status.HTTP_400_BAD_REQUEST)
+        cache.delete(key)
+        user = get_user_model().objects.filter(email__iexact=email, is_active=True).first()
+        if not user:
+            return Response({'error': 'Account not found.'}, status=status.HTTP_400_BAD_REQUEST)
+        refresh = RefreshToken.for_user(user)
+        return Response({'access': str(refresh.access_token), 'refresh': str(refresh)})

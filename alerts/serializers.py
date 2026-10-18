@@ -11,6 +11,10 @@ class AlertCreateSerializer(serializers.Serializer):
     message = serializers.CharField(max_length=500, required=False, allow_blank=True, default='')
 
 
+class ChangeTypeSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(choices=Alert.Type.choices)
+
+
 class RespondSerializer(serializers.Serializer):
     state = serializers.ChoiceField(choices=AlertResponse.State.choices)
     eta_min = serializers.IntegerField(min_value=0, max_value=120, required=False, allow_null=True)
@@ -32,10 +36,18 @@ class SafetyPinSerializer(serializers.Serializer):
 
 class ResponseSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='responder.full_name', read_only=True)
+    phone = serializers.SerializerMethodField()
 
     class Meta:
         model = AlertResponse
-        fields = ['responder_id', 'name', 'state', 'eta_min', 'updated_at']
+        fields = ['responder_id', 'name', 'state', 'eta_min', 'phone', 'updated_at']
+
+    def get_phone(self, obj):
+        # Phone numbers are shared only during a live alert, and only with people who may see it exactly.
+        if not (obj.alert.is_live and self.context.get('can_see_exact')):
+            return None
+        profile = getattr(obj.responder, 'profile', None)
+        return profile.phone_number if profile and profile.is_phone_verified else None
 
 
 class AlertSerializer(serializers.ModelSerializer):
@@ -47,7 +59,7 @@ class AlertSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source='sender.full_name', read_only=True)
     home = serializers.SerializerMethodField()
     sender_phone = serializers.SerializerMethodField()
-    responses = ResponseSerializer(many=True, read_only=True)
+    responses = serializers.SerializerMethodField()
     seconds_left = serializers.SerializerMethodField()
 
     class Meta:
@@ -70,6 +82,10 @@ class AlertSerializer(serializers.ModelSerializer):
         profile = getattr(obj.sender, 'profile', None)
         return profile.phone_number if profile and profile.is_phone_verified else None
 
+    def get_responses(self, obj):
+        qs = obj.responses.select_related('responder__profile')
+        return ResponseSerializer(qs, many=True, context=self.context).data
+
     def get_seconds_left(self, obj):
         if obj.status != Alert.Status.PENDING:
             return 0
@@ -81,7 +97,10 @@ class AlertSenderSerializer(AlertSerializer):
     """What the sender's own phone sees. Hides the duress flag and shows 'resolved' under duress."""
 
     def to_representation(self, obj):
+        from .services import recipients_count
+
         data = super().to_representation(obj)
+        data['recipients'] = recipients_count(obj)
         data.pop('under_duress', None)
         if obj.under_duress:
             data['status'] = Alert.Status.RESOLVED

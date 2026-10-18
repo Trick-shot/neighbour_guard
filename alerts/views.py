@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from . import services
 from .models import Alert, SafetyPin
 from .serializers import (
-    AlertCreateSerializer, AlertSenderSerializer, AlertSerializer, RespondSerializer, ResolveSerializer,
+    AlertCreateSerializer, AlertSenderSerializer, ChangeTypeSerializer, AlertSerializer, RespondSerializer, ResolveSerializer,
     SafetyPinSerializer,
 )
 
@@ -65,6 +65,18 @@ class CancelView(APIView):
         alert = visible_alert(request, pk)
         try:
             alert = services.cancel_alert(alert, request.user)
+        except services.AlertError as e:
+            return error(e)
+        return Response(render(alert, request))
+
+
+class ChangeTypeView(APIView):
+    def post(self, request, pk):
+        alert = visible_alert(request, pk)
+        data = ChangeTypeSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        try:
+            alert = services.change_type(alert, request.user, data.validated_data['type'])
         except services.AlertError as e:
             return error(e)
         return Response(render(alert, request))

@@ -71,3 +71,34 @@ class OTPTests(APITestCase):
         self.client.force_authenticate(other)
         r = self.client.post('/api/auth/verify-otp/', {'otp': '123456'})
         self.assertEqual(r.status_code, 404)
+
+
+class EmailCodeTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(email='a@x.tz', password='pw-12345!', full_name='Asha')
+
+    def _code_from_mail(self):
+        from django.core import mail
+        import re
+        return re.search(r'(\d{6})', mail.outbox[-1].body).group(1)
+
+    def test_sign_in_with_an_emailed_code(self):
+        self.assertEqual(self.client.post('/api/auth/email-code/', {'email': 'A@x.tz'}).status_code, 200)
+        r = self.client.post('/api/auth/email-code/verify/', {'email': 'a@x.tz', 'code': self._code_from_mail()})
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('access', r.data)
+
+    def test_unknown_email_looks_the_same_and_sends_nothing(self):
+        from django.core import mail
+        r = self.client.post('/api/auth/email-code/', {'email': 'nobody@x.tz'})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_code_works_once_and_wrong_codes_are_limited(self):
+        self.client.post('/api/auth/email-code/', {'email': 'a@x.tz'})
+        code = self._code_from_mail()
+        for _ in range(5):
+            self.client.post('/api/auth/email-code/verify/', {'email': 'a@x.tz', 'code': '000000'})
+        r = self.client.post('/api/auth/email-code/verify/', {'email': 'a@x.tz', 'code': code})
+        self.assertEqual(r.status_code, 400)

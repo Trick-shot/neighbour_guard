@@ -140,6 +140,7 @@ REST_FRAMEWORK = {
         # SMS costs money and can be abused: keep these tight.
         'otp_send': '3/10min',
         'otp_verify': '10/10min',
+        'email_code': '10/10min',
     },
 }
 

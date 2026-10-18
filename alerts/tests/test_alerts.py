@@ -224,3 +224,27 @@ class AlertApiTests(APITestCase):
         self.client.force_authenticate(self.sender)
         self.assertEqual(self.client.post('/api/v2/alerts/push-token/', {'token': 'hello'}).status_code, 400)
         self.assertEqual(self.client.post('/api/v2/alerts/push-token/', {'token': 'ExponentPushToken[x]'}).status_code, 200)
+
+
+class CountdownExtrasTests(AlertApiTests):
+    def test_type_can_change_only_during_the_countdown(self):
+        data = self.start()
+        r = self.client.post(f"/api/v2/alerts/{data['id']}/type/", {'type': 'medical'})
+        self.assertEqual(r.data['type'], 'medical')
+        self.assertEqual(r.data['recipients'], 1)
+        with mock.patch('alerts.push.send', return_value=0):
+            self.client.post(f"/api/v2/alerts/{data['id']}/send-now/")
+        self.assertEqual(self.client.post(f"/api/v2/alerts/{data['id']}/type/", {'type': 'fire'}).status_code, 409)
+
+    def test_responder_phone_is_shared_only_while_live(self):
+        from main.models import Profile
+        Profile.objects.filter(user=self.neighbour).update(phone_number='+255700000002', is_phone_verified=True)
+        data = self.start()
+        with mock.patch('alerts.push.send', return_value=0):
+            self.client.post(f"/api/v2/alerts/{data['id']}/send-now/")
+        self.client.force_authenticate(self.neighbour)
+        self.client.post(f"/api/v2/alerts/{data['id']}/respond/", {'state': 'coming'})
+        self.client.force_authenticate(self.sender)
+        self.assertEqual(self.client.get(f"/api/v2/alerts/{data['id']}/").data['responses'][0]['phone'], '+255700000002')
+        self.client.post(f"/api/v2/alerts/{data['id']}/resolve/")
+        self.assertIsNone(self.client.get(f"/api/v2/alerts/{data['id']}/").data['responses'][0]['phone'])
