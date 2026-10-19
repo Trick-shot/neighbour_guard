@@ -10,7 +10,9 @@ import Icon from '@/components/ui/Icon';
 import {AlertPin, MePin} from '@/components/ui/MapPin';
 import StatusCompact from '@/components/ui/StatusCompact';
 import Text from '@/components/ui/Text';
+import MapUnavailable from '@/components/ui/MapUnavailable';
 import {alertsApi, placesApi} from '@/lib/endpoints';
+import {hasMapsKey} from '@/lib/maps';
 import {alarmsAreAtRisk} from '@/lib/notifications';
 import {Alert, Area, MyResidence} from '@/lib/types';
 import {shadow, useColors} from '@/theme';
@@ -67,7 +69,7 @@ export default function Home() {
 
     return (
         <View style={[styles.screen, {backgroundColor: c.bg.subtle}]}>
-            <MapView
+            {!hasMapsKey ? <MapUnavailable/> : <MapView
                 ref={map}
                 style={StyleSheet.absoluteFill}
                 provider={PROVIDER_GOOGLE}
@@ -101,7 +103,7 @@ export default function Home() {
                         <AlertPin/>
                     </Marker>
                 ))}
-            </MapView>
+            </MapView>}
 
             <View style={[styles.top, {top: insets.top + 6}]}>
                 <StatusCompact {...status} badge={alerts.length}

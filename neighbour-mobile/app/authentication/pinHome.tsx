@@ -12,7 +12,9 @@ import {MePin} from '@/components/ui/MapPin';
 import StageProgress from '@/components/ui/StageProgress';
 import Text from '@/components/ui/Text';
 import TextField from '@/components/ui/TextField';
+import MapUnavailable from '@/components/ui/MapUnavailable';
 import {placesApi} from '@/lib/endpoints';
+import {hasMapsKey} from '@/lib/maps';
 import {radius, shadow, useColors} from '@/theme';
 
 /**
@@ -96,7 +98,7 @@ export default function PinHome() {
     return (
         <View style={[styles.screen, {backgroundColor: c.bg.surface}]}>
             <View style={styles.mapWrap}>
-                <MapView
+                {!hasMapsKey ? <MapUnavailable/> : <MapView
                     ref={map}
                     style={StyleSheet.absoluteFill}
                     provider={PROVIDER_GOOGLE}
@@ -107,7 +109,7 @@ export default function PinHome() {
                     showsCompass={false}
                     toolbarEnabled={false}
                     onRegionChangeComplete={(r) => setPin({latitude: r.latitude, longitude: r.longitude})}
-                />
+                />}
                 {/* The pin never moves on screen; the map does. Pointer events pass through to the map. */}
                 <View pointerEvents="none" style={styles.pinLayer}>
                     <View style={styles.pinOffset}>

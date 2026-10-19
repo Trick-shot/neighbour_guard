@@ -10,7 +10,9 @@ import {MePin} from '@/components/ui/MapPin';
 import ScreenHeader from '@/components/ui/ScreenHeader';
 import Text from '@/components/ui/Text';
 import TextField from '@/components/ui/TextField';
+import MapUnavailable from '@/components/ui/MapUnavailable';
 import {placesApi} from '@/lib/endpoints';
+import {hasMapsKey} from '@/lib/maps';
 import {MyResidence} from '@/lib/types';
 import {radius, useColors} from '@/theme';
 
@@ -70,7 +72,7 @@ export default function HomeAndAddress() {
                                      showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
                 {home && (
                     <View style={styles.mapWrap}>
-                        <MapView
+                        {!hasMapsKey ? <MapUnavailable compact/> : <MapView
                             style={StyleSheet.absoluteFill}
                             provider={PROVIDER_GOOGLE}
                             mapType="hybrid"
@@ -81,7 +83,7 @@ export default function HomeAndAddress() {
                             rotateEnabled={false}
                             pitchEnabled={false}
                             toolbarEnabled={false}
-                        />
+                        />}
                         <View pointerEvents="none" style={styles.pinLayer}>
                             <View style={styles.pinOffset}><MePin/></View>
                         </View>

@@ -16,11 +16,14 @@ module.exports = ({config}) => {
     const android = process.env.GOOGLE_MAPS_ANDROID_KEY;
     const ios = process.env.GOOGLE_MAPS_IOS_KEY;
 
-    // A missing key does not fail the build. It fails the map, silently, and only on a device — so
-    // say it here, where whoever is building can still see it.
+    // A missing key does not fail the build, and it does not merely blank the map: a Google MapView
+    // without one throws IllegalStateException on a native thread and KILLS THE APP. The screens
+    // now fall back to a placeholder (lib/maps.ts) rather than crash, but the map is the demo, so
+    // say it loudly here where whoever is building can still see it.
     if (!android) {
         console.warn(
-            '\n[neighbour-mobile] GOOGLE_MAPS_ANDROID_KEY is not set: the Android map will render blank.\n' +
+            '\n[neighbour-mobile] GOOGLE_MAPS_ANDROID_KEY is not set.\n' +
+            '  Every map falls back to a placeholder: no Home map, no pin-your-home step.\n' +
             '  Add it to .env (see .env.example), then `npx expo prebuild --clean`.\n',
         );
     }
