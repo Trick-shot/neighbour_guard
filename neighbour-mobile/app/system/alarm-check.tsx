@@ -6,7 +6,10 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Button from '@/components/ui/Button';
 import Icon, {IconName} from '@/components/ui/Icon';
 import Text from '@/components/ui/Text';
-import {AlarmCheck, CheckState, runAlarmChecks, sendTestAlarm} from '@/lib/notifications';
+// `type` matters: without it Babel sees a value binding called AlarmCheck beside the component
+// of the same name and refuses to parse the file, which fails the whole bundle, not just this
+// screen. TypeScript alone does not catch it — the two live in different declaration spaces.
+import {type AlarmCheck, type CheckState, runAlarmChecks, sendTestAlarm} from '@/lib/notifications';
 import {radius, shadow, useColors} from '@/theme';
 
 /**

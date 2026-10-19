@@ -122,6 +122,58 @@ reports that it cannot tell, and opens the setting, instead of displaying a gree
 
 ---
 
+## 2026-10-19 — Claude Code — first run on an emulator, and the bug it found
+
+Erick asked to see the app. It now **builds, installs and runs on an Android emulator** — the first
+time any of this has been seen rather than type-checked.
+
+**The bug that mattered**
+`app/system/alarm-check.tsx` imported the *type* `AlarmCheck` and declared a *component* of the same
+name. TypeScript merges those into separate declaration spaces, so `tsc --noEmit` was clean. Babel
+does not: it saw two value bindings with one name and refused to parse the file, which fails the
+**whole bundle**. So the app did not start at all — a red screen on launch, not one broken screen.
+`tsc` and `eslint` both passed on it, which is precisely why running the thing matters.
+
+Fixed by marking the import `type`. A scan of every screen for the same pattern (a default export
+whose name is also imported) found no others.
+
+**Everything else found by doing this**
+- **Java 25 cannot build the app.** `Unsupported class file major version 69`, and it was the only
+  JDK here — so the app could not have been built on this machine at all. JDK 17 installed keg-only.
+- **`prebuild --clean` was needed and proved its point.** The regenerated manifest has
+  `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `ACCESS_NOTIFICATION_POLICY` and `RECORD_AUDIO`;
+  the old `android/` had none. On that build the app could not ask for notification permission.
+- **Erick's `runserver` from 16 Oct is still running on `127.0.0.1:8000` and serving stale code** —
+  it 403s every API POST while a freshly started server on the same code returns 200. Restart it.
+  (I wrongly blamed my own CSRF middleware for that 403 before checking what was listening; a clean
+  A/B under daphne showed the middleware is innocent, and the change I made on that false premise
+  was reverted.)
+- **`EXPO_PUBLIC_API_URL` pointed at `192.168.1.16`**, which is not this machine's address any more.
+- **Expo Go is not a shortcut:** `react-native-keyboard-controller` is not bundled in it.
+- `expo-av` warns it is deprecated and due for removal in SDK 54 — which is the SDK we are on. It
+  still works, but the voice note recorder and player will need `expo-audio` / `expo-video`.
+
+**Seen working**
+Welcome carousel (photos, dots, copy, both CTAs) and the Sign in screen, both rendering correctly.
+The API error path is right too: with the backend unreachable the field shows "No connection" from
+`lib/api.ts` rather than hanging or crashing.
+
+**Not seen, and why**
+Everything behind sign-in. The emulator could not reach the host's API port (it reaches Metro on
+8081 but not the API on 8011 or a proxy on 8012; the Mac's firewall is on and the Python process is
+very likely blocked). That is a local networking quirk, not an app fault — a real phone on the same
+wifi, or the deployed server, does not go through that path. **So the 30-odd authenticated screens
+are still unseen.**
+
+**Also worth knowing**
+- The Mac is at **97% disk** (15 GB free of 460 GB), and the emulator's own disk was 94% full —
+  the install only fit after uninstalling Expo Go from it (with Erick's say-so).
+- The status bar disappears on light screens: white icons on a white background. Small, visible,
+  not yet fixed.
+- `assets/illustrations/signin.png` is still the empty placeholder, exactly as the roadmap says.
+
+---
+
 ## 2026-10-19 — Claude Code — the rest of the roadmap: eight items
 
 Branch `rebuild/v2`. Erick asked for the whole roadmap. Six items cannot be done by me at all

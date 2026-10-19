@@ -54,6 +54,11 @@ or a server**, so treat every one as "written and tested, not yet seen working".
 (New ideas go here, unordered, until Erick prioritises them.)
 
 - Expo's `app-example/` scaffold folder is dead weight in the repo — delete it some time.
+- The status bar vanishes on light screens (white icons on white). Needs a `StatusBar` style that
+  follows the screen, or `dark-content` as the default.
+- `expo-av` is deprecated and due for removal in SDK 54 (the SDK we are on). The voice note
+  recorder and player need moving to `expo-audio` / `expo-video`.
+- Nothing behind sign-in has ever been seen running. 30-odd screens are still type-checked only.
 - Profile photos: the v1 upload screen is gone and v2 has no replacement. Avatars are initials
   everywhere. Decide whether a photo is worth an endpoint.
 - Profile skills and encrypted medical notes are still "to build" in the backend reference; no
