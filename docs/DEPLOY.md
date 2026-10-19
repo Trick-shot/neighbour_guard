@@ -12,6 +12,13 @@ worker dying mid-countdown. Ready-made unit files are in `deploy/`.
 Paths below assume `/srv/neighbourguard`, user `neighbour`, virtualenv at `venv/`. Change them to
 match the box.
 
+## Building the phone app
+
+See the build block at the top of `docs/PROGRESS.md`. Two prerequisites that cost an afternoon each
+if missed: **JDK 17** (Java 25 fails with `Unsupported class file major version 69`, and Gradle does
+not support it yet), and **`npx expo prebuild --clean`** before `run:android`, because `run:android`
+reuses whatever is already in `android/` without re-reading the config.
+
 ## Things that bite, read these first
 
 1. **`SECRET_KEY` must be a fresh 50+ character random value on the server.** SimpleJWT signs every
