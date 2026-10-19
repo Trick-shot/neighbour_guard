@@ -14,6 +14,11 @@ Pitch: DIC 2026, 24–25 Oct 2026 (Yeosu). Concept note due 20 Oct.
       `1631:1422` (Sign in illustration, 3x PNG).
 - [x] Google Maps Android key via `app.config.js` reading an env var (never committed).
       *(2026-10-18. Put the key in `.env` — see `.env.example` — then `npx expo prebuild --clean`.)*
+- [ ] **Put a real `GOOGLE_MAPS_ANDROID_KEY` in `.env` and rebuild — demo blocker.** Without it a
+      Google MapView throws `IllegalStateException: API key not found` on a native thread and
+      **kills the app**. Proved on the emulator 20 Oct. The screens now fall back to a placeholder
+      instead of crashing, but with no key there is no Home map and no pin-your-home step, which is
+      most of the demo.
 - [x] Onboarding v2, minimum for the demo: after sign-up, a "Pin your home" screen that calls
       `POST /api/v2/places/me/` (Figma page "Android · 01", frames "Onboarding — location" and
       "Onboarding — pin home"). Remove the old v1 residence calls from onboarding.

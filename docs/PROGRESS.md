@@ -122,6 +122,43 @@ reports that it cannot tell, and opens the setting, instead of displaying a gree
 
 ---
 
+## 2026-10-20 — Claude Code — onboarding seen running, and a crash that stops the demo
+
+Cleared the app's data so onboarding would show, and walked it on the emulator.
+
+**All four onboarding stages render correctly** — the first time any of them has been seen:
+welcome carousel → Account (step 1 of 4) → Verify email → Your phone number (step 2) → Turn on
+location (step 3) → Pin your home (step 3) → Two PINs (step 4). Progress bars, copy, helper text
+and the duress-PIN warning all come out as written.
+
+**The crash that matters**
+`Pin your home` killed the app outright. From logcat:
+
+    FATAL EXCEPTION: androidmapsapi-ula-1
+    java.lang.IllegalStateException: API key not found.
+
+A Google `MapView` with no `GOOGLE_MAPS_ANDROID_KEY` does **not** render blank — it throws on a
+native thread and the process dies. That hits `authentication/pinHome`, `profile/home` and, worst,
+`(tabs)/index`, the Home map the whole demo is built around. The warning in `app.config.js` said
+"the Android map will render blank", which was wrong and reassuring in exactly the wrong direction.
+
+Fixed so a missing key degrades instead of crashing: `lib/maps.ts` reads what the build actually
+has, and the three map screens fall back to a `MapUnavailable` placeholder. **This is containment,
+not a fix** — with no key there is still no map. The roadmap item is reopened as a blocker.
+
+**Still half-proved**
+- The emulator cannot reach the host's API, so nothing past a form submit has been exercised. Taps
+  also fail to move focus between fields, so the stages were reached by deep link
+  (`mobile://authentication/<stage>`) — which works, and is a handy way to inspect any screen.
+- `-no-snapshot-save` on the emulator discards the app install between runs; drop that flag to keep
+  it. Expo Go and Google Maps were uninstalled again to make room (emulator disk is 95% full).
+
+**Small things seen**
+- The welcome carousel opened on slide 3 of 3 on a fresh launch, despite `initialPage={0}`.
+- The `MePin` and the "move the map" hint still draw over the map placeholder.
+
+---
+
 ## 2026-10-19 — Claude Code — first run on an emulator, and the bug it found
 
 Erick asked to see the app. It now **builds, installs and runs on an Android emulator** — the first
