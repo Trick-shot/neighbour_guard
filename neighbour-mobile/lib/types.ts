@@ -68,6 +68,13 @@ export type MyResidence = {
     vouches_needed: number;
     neighbourhood: { id: number; name: string; slug: string; radius_m: number };
     gate_photo_url: string | null;
+    vouchers?: { name: string; at: string }[];
+};
+
+export type NeighbourProfile = {
+    user_id: number; full_name: string; photo_url: string | null; neighbourhood: string;
+    home: { id: number; house_number?: string; street: string; status: 'pending' | 'verified' };
+    vouched_by: string[]; vouches_needed: number; i_vouched: boolean; skills: string[];
 };
 
 /** The body of POST /api/v2/places/me/. The pin is sent once, here, and cannot move later. */
@@ -125,6 +132,9 @@ export type PaymentStatus = {
 export type Neighbour = {
     user_id: number;
     full_name: string;
+    photo_url?: string | null;
+    vouches?: number;
+    i_vouched?: boolean;
     /** `house_number` only when I am verified myself; otherwise the street alone. */
     home: { id: number; house_number?: string; street: string; status: 'pending' | 'verified' };
 };
@@ -219,7 +229,7 @@ export type Conversation = {
     kind: 'direct' | 'group';
     name: string;
     participants: { id: number; full_name: string }[];
-    last_message: { kind: string; body: string; created_at: string } | null;
+    last_message: { kind: string; body: string; created_at: string; sender_id?: number | null; sender_name?: string | null } | null;
     unread: number;
     updated_at: string;
 };

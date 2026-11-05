@@ -32,11 +32,12 @@ class MyResidenceSerializer(serializers.ModelSerializer):
     vouches = serializers.IntegerField(source='vouches.count', read_only=True)
     vouches_needed = serializers.SerializerMethodField()
     gate_photo_url = serializers.SerializerMethodField()
+    vouchers = serializers.SerializerMethodField()
 
     class Meta:
         model = Residence
         fields = ['id', 'house_number', 'street', 'district', 'directions', 'lat', 'lng', 'status',
-                  'verified_at', 'neighbourhood', 'vouches', 'vouches_needed', 'gate_photo_url']
+                  'verified_at', 'neighbourhood', 'vouches', 'vouches_needed', 'gate_photo_url', 'vouchers']
         read_only_fields = ['status', 'verified_at']
 
     def get_vouches_needed(self, obj):
@@ -44,6 +45,10 @@ class MyResidenceSerializer(serializers.ModelSerializer):
 
     def get_gate_photo_url(self, obj):
         return gate_photo_url(obj, self.context.get('request'))
+
+    def get_vouchers(self, obj):
+        # Who confirmed my own home ("Almost there", 1633:2184). Mine to see.
+        return [{'name': v.voucher.full_name, 'at': v.created_at} for v in obj.vouches.select_related('voucher')]
 
 
 class ResidenceNeighbourSerializer(serializers.ModelSerializer):

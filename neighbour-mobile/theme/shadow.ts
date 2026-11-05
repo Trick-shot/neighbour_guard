@@ -4,6 +4,8 @@ import {Platform, ViewStyle} from 'react-native';
 const make = (y: number, blur: number, opacity: number, elevation: number, color = '#0d1426'): ViewStyle =>
     Platform.select({
         ios: {shadowColor: color, shadowOffset: {width: 0, height: y}, shadowOpacity: opacity, shadowRadius: blur / 2},
+        // The browser preview draws the iOS shadow so screens can be compared with the frames.
+        web: {shadowColor: color, shadowOffset: {width: 0, height: y}, shadowOpacity: opacity, shadowRadius: blur / 2},
         default: {elevation, shadowColor: color},
     }) as ViewStyle;
 

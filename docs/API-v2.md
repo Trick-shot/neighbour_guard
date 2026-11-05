@@ -11,7 +11,8 @@ cancel, already sent).
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
-| GET | `places/me/` | | My home, incl. my own `lat`/`lng`, `house_number`, `street`, `district`, `directions`, `status` (`pending`/`verified`), `verified_at`, `vouches`, `vouches_needed`, `neighbourhood`, `gate_photo_url` |
+| GET | `places/neighbours/<user_id>/` | | One neighbour, same neighbourhood only (else 404): `{full_name, photo_url, home, vouched_by[], i_vouched, skills[]}`. Never household, phone or pin |
+| GET | `places/me/` | | My home, incl. my own `lat`/`lng`, `house_number`, `street`, `district`, `directions`, `status` (`pending`/`verified`), `verified_at`, `vouches`, `vouches_needed`, `neighbourhood`, `gate_photo_url`, `vouchers[{name, at}]` |
 | POST | `places/me/` | `house_number, street, lat, lng, district?, directions?` | 201 my home. 409 if I already have one |
 | PATCH | `places/me/` | `house_number?, street?, directions?` | My home. The pin cannot move here |
 | POST | `places/me/gate-photo/` | multipart `photo` (JPEG/PNG/WebP, 5 MB) | My home with `gate_photo_url`. 404 without a home. Shown to live-alert responders only |

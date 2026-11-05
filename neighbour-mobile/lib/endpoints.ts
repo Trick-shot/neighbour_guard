@@ -2,7 +2,7 @@
 import {api, call} from './api';
 import {
     Alert, AlertType, Area, Attachment, AttachmentKind, ChatMessage, Conversation, EmergencyContact,
-    HouseholdPerson, Issue, IssueComment, IssueStatus, Me, MyResidence, MySubscription, Neighbour,
+    HouseholdPerson, Issue, NeighbourProfile, IssueComment, IssueStatus, Me, MyResidence, MySubscription, Neighbour,
     NewResidence, PaymentStatus, ResponseState, SecurityProvider,
 } from './types';
 
@@ -50,6 +50,8 @@ export const placesApi = {
         call<HouseholdPerson>(api.patch(`/api/v2/places/household/${id}/`, fields)),
     removeFromHousehold: (id: number) => call(api.delete(`/api/v2/places/household/${id}/`)),
     neighbours: () => call<Neighbour[]>(api.get('/api/v2/places/neighbours/')),
+    // Same neighbourhood only. Never household, phone or pin: those are for live-alert responders.
+    neighbour: (userId: number) => call<NeighbourProfile>(api.get(`/api/v2/places/neighbours/${userId}/`)),
     // Two vouches from verified neighbours verify a home. 403 unless I am one of them.
     vouch: (residenceId: number) =>
         call<{ status: string; vouches: number }>(api.post(`/api/v2/places/residences/${residenceId}/vouch/`)),

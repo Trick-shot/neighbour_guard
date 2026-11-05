@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import services
-from .models import HouseholdPerson, Residence, ResidenceMember
+from .models import HouseholdPerson, Residence, ResidenceMember, Vouch
 from .serializers import (
     HouseholdPersonSerializer, MyResidenceSerializer, ResidenceCreateSerializer, ResidenceNeighbourSerializer,
     ResidencePublicSerializer,
@@ -106,10 +106,48 @@ class NeighboursView(APIView):
             .select_related('user', 'residence')
             .order_by('-residence__status', 'residence__street', 'residence__house_number')
         )
+        mine = set(Vouch.objects.filter(voucher=request.user).values_list('residence_id', flat=True))
         return Response([
-            {'user_id': m.user_id, 'full_name': m.user.full_name, 'home': home_serializer(m.residence).data}
+            {'user_id': m.user_id, 'full_name': m.user.full_name, 'photo_url': _photo_url(m.user, request),
+             'home': home_serializer(m.residence).data,
+             'vouches': m.residence.vouches.count(), 'i_vouched': m.residence_id in mine}
             for m in members
         ])
+
+
+def _photo_url(user, request):
+    from main.models import Profile
+    profile = Profile.objects.filter(user=user).only('profile_pic').first()
+    if not (profile and profile.profile_pic):
+        return None
+    return request.build_absolute_uri(profile.profile_pic.url)
+
+
+class NeighbourDetailView(APIView):
+    """GET /api/v2/places/neighbours/<user_id>/ — one neighbour's profile (Figma "Neighbour profile").
+
+    Same neighbourhood only (404 otherwise, so it does not confirm that anyone else exists). The
+    house number follows the same rule as the list. Never the household, the phone or the pin:
+    those are for responders to a live alert only.
+    """
+
+    def get(self, request, user_id):
+        from core.models import SafetyProfile
+        mine = services.residence_of(request.user)
+        member = (ResidenceMember.objects.select_related('user', 'residence')
+                  .filter(user_id=user_id, residence__neighbourhood=getattr(mine, 'neighbourhood', None)).first())
+        if not mine or not member or member.user_id == request.user.id:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        home_serializer = ResidenceNeighbourSerializer if mine.is_verified else ResidencePublicSerializer
+        vouchers = [v.voucher.full_name for v in member.residence.vouches.select_related('voucher')]
+        sp = SafetyProfile.objects.filter(user=member.user).first()
+        return Response({
+            'user_id': member.user_id, 'full_name': member.user.full_name, 'photo_url': _photo_url(member.user, request),
+            'home': home_serializer(member.residence).data, 'neighbourhood': mine.neighbourhood.name,
+            'vouched_by': vouchers, 'vouches_needed': Residence.VOUCHES_NEEDED,
+            'i_vouched': member.residence.vouches.filter(voucher=request.user).exists(),
+            'skills': sp.skills if sp else [],
+        })
 
 
 class VouchView(APIView):

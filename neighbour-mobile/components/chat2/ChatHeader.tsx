@@ -5,9 +5,9 @@ import Text from '@/components/ui/Text';
 import {shadow, useColors} from '@/theme';
 
 /** Figma "Chat header" (1709:543): round back, name + status, round call / more. */
-type Props = { title: string; status?: string; onBack: () => void; onCall?: () => void; onMore?: () => void };
+type Props = { title: string; status?: string; statusTone?: 'danger'; onBack: () => void; onCall?: () => void; onMore?: () => void; onTitle?: () => void };
 
-export default function ChatHeader({title, status, onBack, onCall, onMore}: Props) {
+export default function ChatHeader({title, status, statusTone, onBack, onCall, onMore, onTitle}: Props) {
     const c = useColors();
     const round = (icon: 'chevron-left' | 'phone' | 'more-horizontal', onPress: () => void, label: string) => (
         <Pressable accessibilityLabel={label} onPress={onPress} style={[styles.round, shadow.bubble, {backgroundColor: c.bg.surface}]}>
@@ -17,10 +17,10 @@ export default function ChatHeader({title, status, onBack, onCall, onMore}: Prop
     return (
         <View style={styles.row}>
             {round('chevron-left', onBack, 'Back')}
-            <View style={styles.text}>
+            <Pressable onPress={onTitle} disabled={!onTitle} style={styles.text}>
                 <Text variant="title3" numberOfLines={1}>{title}</Text>
-                {!!status && <Text variant="subhead" color={c.text.secondary} numberOfLines={1}>{status}</Text>}
-            </View>
+                {!!status && <Text variant="subhead" color={statusTone === 'danger' ? c.text.danger : c.text.secondary} numberOfLines={1}>{status}</Text>}
+            </Pressable>
             {onCall && round('phone', onCall, 'Call')}
             {onMore && round('more-horizontal', onMore, 'More')}
         </View>

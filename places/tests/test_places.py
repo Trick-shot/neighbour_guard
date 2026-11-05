@@ -253,3 +253,30 @@ class GatePhotoTests(APITestCase):
     def test_not_an_image_is_refused(self):
         home(self.me)
         self.assertEqual(self._upload(b'#!/bin/sh\nrm -rf /').status_code, 400)
+
+
+
+class NeighbourDetailTests(APITestCase):
+    def setUp(self):
+        self.me = user('nd-me@x.tz', 'Erick')
+        home(self.me, house='109', verified=True)
+        self.ritha = user('nd-r@x.tz', 'Ritha')
+        self.ritha_home = home(self.ritha, house='110', north=60, verified=False)
+        self.client.force_authenticate(self.me)
+
+    def test_a_neighbour_profile_never_carries_household_phone_or_pin(self):
+        r = self.client.get(f'/api/v2/places/neighbours/{self.ritha.id}/')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['home']['house_number'], '110')
+        for secret in ('household', 'phone', 'lat', 'lng', 'directions'):
+            self.assertNotIn(secret, str(r.data.keys()) + str(r.data['home'].keys()))
+
+    def test_someone_in_another_neighbourhood_is_not_found(self):
+        far = user('nd-far@x.tz')
+        home(far, house='1', north=9000, verified=True)
+        self.assertEqual(self.client.get(f'/api/v2/places/neighbours/{far.id}/').status_code, 404)
+
+    def test_an_unverified_viewer_sees_the_street_only(self):
+        self.client.force_authenticate(self.ritha)
+        r = self.client.get(f'/api/v2/places/neighbours/{self.me.id}/')
+        self.assertNotIn('house_number', r.data['home'])

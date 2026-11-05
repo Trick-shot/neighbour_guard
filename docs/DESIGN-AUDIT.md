@@ -78,3 +78,28 @@ Bug found on the way: the Issues tab was missing from the tab bar on every phone
 | Lock screen — critical alert | 1632:1882 | OS notification with "I’m coming" / "View map" buttons | match on Android; iOS rings on silent only with Apple's Critical Alerts entitlement |
 | Witness — report what I see | 1632:2008 | `witness` (Home → Actions → Report) | match |
 | Witness — alert sent | 1632:2102 | `witness/sent` | honest variant: "homes alerted" instead of "people alerted · already responding" |
+
+## 04 · Neighbours & groups
+
+| Frame | Node | Route | Status |
+| --- | --- | --- | --- |
+| Neighbours list | 1633:1899 | `neighbours` | match (search, Verified / Pending, "waiting for your vouch") |
+| Neighbour profile | 1633:2001 | `neighbours/[id]` | honest variant: no household (responder-only), "Report or block" left out (no server side) |
+| Vouch request | 1633:2103 | `components/neighbours/VouchSheet` | match |
+| Pending verification | 1633:2184 | `neighbours/pending` | match (real vouchers) |
+| Group page | 1633:2248 | `group/[id]` (tap the group chat's title) | match |
+| Group members | 1633:2381 | `group/members` | honest variant: no "Admin" badges (groups have no admins yet) |
+
+## 05 · Messages
+
+| Frame | Node | Route | Status |
+| --- | --- | --- | --- |
+| Messages | 1620:671 | `(tabs)/message` | match ("Juma: …" previews; search opens New message) |
+| Group chat | 1620:794 | `chat/[id]` | match |
+| Direct chat | 1633:2488 | `chat/[id]` | match (header shows the neighbour's house) |
+| New message | 1633:2536 | `messages/new` | match (no distances: the app never shows how far a neighbour lives) |
+| Direct chat, media | 1715:390 | `chat/[id]` | match (voice, photo, file bubbles) |
+| Recording a voice note | 1715:639 | Composer, hold the mic | match |
+| Attach | 1715:791 | Composer "+" sheet | match minus "Contact" (needs a contacts permission we do not ask for) |
+| Group discusses an issue | 1716:11667 | issue cards in `chat/[id]` | see page 06 |
+| Alert — arrived, incident chat | 1632:1945 | `chat/[id]` while an alert is live | match (banner + quick replies) |

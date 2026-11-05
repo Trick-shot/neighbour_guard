@@ -16,8 +16,11 @@ class ConversationSerializer(serializers.ModelSerializer):
         return [{'id': p.user_id, 'full_name': p.user.full_name} for p in obj.participants.select_related('user')]
 
     def get_last_message(self, obj):
-        m = obj.messages.order_by('-created_at', '-id').first()
-        return {'kind': m.kind, 'body': m.body[:120], 'created_at': m.created_at} if m else None
+        m = obj.messages.select_related('sender').order_by('-created_at', '-id').first()
+        if not m:
+            return None
+        return {'kind': m.kind, 'body': m.body[:120], 'created_at': m.created_at, 'sender_id': m.sender_id,
+                'sender_name': m.sender.full_name if m.sender else None}
 
     def get_unread(self, obj):
         me = self.context['request'].user
