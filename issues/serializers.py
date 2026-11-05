@@ -29,6 +29,7 @@ class IssueCreateSerializer(serializers.ModelSerializer):
 class IssueSerializer(serializers.ModelSerializer):
     """What a member of the issue's own area sees."""
     reporter_name = serializers.CharField(source='created_by.full_name', read_only=True)
+    street = serializers.SerializerMethodField()
     neighbourhood_name = serializers.CharField(source='neighbourhood.name', read_only=True)
     support_count = serializers.IntegerField(read_only=True, default=0)
     comment_count = serializers.IntegerField(read_only=True, default=0)
@@ -41,7 +42,12 @@ class IssueSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'description', 'category', 'severity', 'status', 'visibility',
                   'lat', 'lng', 'created_at', 'updated_at', 'reporter_name', 'created_by',
                   'neighbourhood', 'neighbourhood_name', 'support_count', 'comment_count',
-                  'i_support', 'i_follow', 'media']
+                  'i_support', 'i_follow', 'media', 'street']
+
+    def get_street(self, obj):
+        # Street level only, like the neighbour list: never a house number from here.
+        member = obj.created_by.residence_membership if hasattr(obj.created_by, 'residence_membership') else None
+        return member.residence.street if member else ''
 
 
 class IssueStreetSerializer(IssueSerializer):

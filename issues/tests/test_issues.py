@@ -32,6 +32,36 @@ class IssuesApiTests(APITestCase):
             neighbourhood=self.resident_home.neighbourhood, created_by=self.resident,
             title='Burst water main on Masaki St', visibility=Issue.Visibility.PUBLIC)
 
+    # --- photos and sharing ---------------------------------------------------
+    PNG = b'\x89PNG\r\n\x1a\n' + b'\x00' * 64
+
+    def _photo(self, issue):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return self.client.post(f'/api/v2/issues/{issue.id}/media/',
+                                {'photo': SimpleUploadedFile('i.png', self.PNG, content_type='image/png')}, format='multipart')
+
+    def test_only_the_reporter_adds_photos(self):
+        self.client.force_authenticate(self.resident)
+        self.assertEqual(self._photo(self.private).status_code, 201)
+        self.client.force_authenticate(self.neighbour)
+        self.assertEqual(self._photo(self.private).status_code, 403)
+        self.client.force_authenticate(self.outsider)
+        self.assertEqual(self._photo(self.private).status_code, 404)
+
+    def test_sharing_with_a_note_posts_the_note_then_the_card(self):
+        from chat.models import Message
+        self.client.force_authenticate(self.neighbour)
+        r = self.client.post(f'/api/v2/issues/{self.public.id}/share/', {'message': 'Can we sort this out together?'})
+        self.assertEqual(r.status_code, 201)
+        kinds = list(Message.objects.filter(conversation_id=r.data['conversation_id']).order_by('id').values_list('kind', flat=True))
+        self.assertEqual(kinds[-2:], ['text', 'issue'])
+
+    def test_the_street_is_shown_never_the_house(self):
+        self.client.force_authenticate(self.neighbour)
+        row = self.client.get(f'/api/v2/issues/{self.public.id}/').data
+        self.assertEqual(row['street'], 'Masaki St')
+        self.assertNotIn('109', str(row))
+
     # --- seeing -------------------------------------------------------------
     def test_a_verified_resident_sees_both_of_their_areas_issues(self):
         self.client.force_authenticate(self.neighbour)

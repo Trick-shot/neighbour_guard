@@ -139,8 +139,14 @@ export const issuesApi = {
     comments: (id: number) => call<IssueComment[]>(api.get(`/api/v2/issues/${id}/comments/`)),
     comment: (id: number, body: string) =>
         call<IssueComment>(api.post(`/api/v2/issues/${id}/comments/`, {body})),
-    share: (id: number) =>
-        call<{ conversation_id: number; message_id: number }>(api.post(`/api/v2/issues/${id}/share/`)),
+    share: (id: number, message?: string) =>
+        call<{ conversation_id: number; message_id: number }>(api.post(`/api/v2/issues/${id}/share/`, message ? {message} : {})),
+    // The reporter only, up to 4. The server sniffs the bytes.
+    addPhoto: (id: number, uri: string) => {
+        const form = new FormData();
+        form.append('photo', {uri, name: 'issue.jpg', type: 'image/jpeg'} as unknown as Blob);
+        return call<{ id: number; image: string }>(api.post(`/api/v2/issues/${id}/media/`, form, {headers: {'Content-Type': 'multipart/form-data'}}));
+    },
 };
 
 export const providersApi = {

@@ -8,5 +8,6 @@ urlpatterns = [
     path('<int:pk>/support/', views.IssueSupportView.as_view(), name='issue-support'),
     path('<int:pk>/follow/', views.IssueFollowView.as_view(), name='issue-follow'),
     path('<int:pk>/comments/', views.IssueCommentsView.as_view(), name='issue-comments'),
+    path('<int:pk>/media/', views.IssueMediaView.as_view(), name='issue-media'),
     path('<int:pk>/share/', views.IssueShareView.as_view(), name='issue-share'),
 ]

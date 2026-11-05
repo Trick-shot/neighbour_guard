@@ -1,90 +1,92 @@
+import {Image} from 'expo-image';
 import {Pressable, StyleSheet, View} from 'react-native';
 
-import Icon, {IconName} from '@/components/ui/Icon';
-import Text from '@/components/ui/Text';
-import {Issue, IssueCategory, IssueSeverity, IssueStatus} from '@/lib/types';
-import {Colors, radius, shadow, useColors} from '@/theme';
+import {Issue, IssueCategory, IssueSeverity, IssueStatus, MyResidence} from '@/lib/types';
+import {Colors, useColors} from '@/theme';
 
-/** Figma "Issue card". Mine (my own area) and other-area variants differ only in what is shown. */
-export const CATEGORY_META: Record<IssueCategory, { label: string; icon: IconName }> = {
-    security: {label: 'Security', icon: 'shield-check'},
-    lighting: {label: 'Street lighting', icon: 'eye'},
-    roads: {label: 'Roads and drainage', icon: 'navigation'},
-    water: {label: 'Water', icon: 'triangle-alert'},
-    waste: {label: 'Waste', icon: 'clipboard-list'},
-    other: {label: 'Other', icon: 'clipboard-list'},
+import Icon, {IconName} from './Icon';
+import Text from './Text';
+
+/** Figma "Issue card" (Issues list): 72 px photo, severity badge + category, title, support / comments / where. */
+export const CATEGORY_META: Record<IssueCategory, { label: string; short: string; icon: IconName }> = {
+    waste: {label: 'Waste', short: 'Waste', icon: 'clipboard-list'},
+    lighting: {label: 'Street lighting', short: 'Lighting', icon: 'eye'},
+    roads: {label: 'Roads and drainage', short: 'Roads', icon: 'navigation'},
+    water: {label: 'Water', short: 'Water', icon: 'triangle-alert'},
+    noise: {label: 'Noise', short: 'Noise', icon: 'volume-x'},
+    security: {label: 'Security', short: 'Security', icon: 'shield-check'},
+    other: {label: 'Other', short: 'Other', icon: 'more-horizontal'},
+};
+export const SEVERITY_LABEL: Record<IssueSeverity, string> = {low: 'Low', moderate: 'Moderate', high: 'High', critical: 'Critical'};
+export const STATUS_LABEL: Record<IssueStatus, string> = {open: 'Open', in_progress: 'Being dealt with', resolved: 'Resolved'};
+export const severityColor = (c: Colors, s: IssueSeverity) => ({
+    low: {bg: c.feedback.successBg, fg: c.feedback.success},
+    moderate: {bg: c.feedback.warningBg, fg: c.feedback.warning},
+    high: {bg: c.feedback.errorBg, fg: c.feedback.error},
+    critical: {bg: c.feedback.errorBg, fg: c.feedback.error},
+}[s]);
+
+export const agoText = (iso: string) => {
+    const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (m < 60) return `${Math.max(1, m)} min ago`;
+    if (m < 60 * 24) return `${Math.round(m / 60)} h ago`;
+    if (m < 60 * 48) return 'Yesterday';
+    return `${Math.round(m / 1440)} days ago`;
 };
 
-export const SEVERITY_LABEL: Record<IssueSeverity, string> = {
-    low: 'Low', moderate: 'Moderate', high: 'High', critical: 'Critical',
+export const kmFrom = (home: MyResidence | null | undefined, issue: Issue) => {
+    if (!home || issue.lat == null || issue.lng == null) return null;
+    const rad = Math.PI / 180, dLat = (issue.lat - home.lat) * rad, dLng = (issue.lng - home.lng) * rad;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(home.lat * rad) * Math.cos(issue.lat * rad) * Math.sin(dLng / 2) ** 2;
+    return 2 * 6371 * Math.asin(Math.sqrt(h));
 };
 
-export const STATUS_LABEL: Record<IssueStatus, string> = {
-    open: 'Open', in_progress: 'Being dealt with', resolved: 'Resolved',
-};
-
-export const severityColor = (c: Colors, severity: IssueSeverity) =>
-    severity === 'critical' || severity === 'high' ? c.feedback.error
-        : severity === 'moderate' ? c.feedback.warning : c.text.muted;
-
-const when = (iso: string) => {
-    const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-    if (days <= 0) return 'today';
-    if (days === 1) return 'yesterday';
-    if (days < 7) return `${days} days ago`;
-    return `${Math.floor(days / 7)} weeks ago`;
-};
-
-export default function IssueCard({issue, otherArea, onPress}: {
-    issue: Issue; otherArea?: boolean; onPress?: () => void;
-}) {
+export function SeverityBadge({severity}: { severity: IssueSeverity }) {
     const c = useColors();
-    const meta = CATEGORY_META[issue.category] ?? CATEGORY_META.other;
-    const resolved = issue.status === 'resolved';
+    const t = severityColor(c, severity);
     return (
-        <Pressable accessibilityRole="button" onPress={onPress}
-                   style={({pressed}) => [styles.card, shadow.bubble, {
-                       backgroundColor: pressed ? c.bg.subtle : c.bg.surface,
-                   }]}>
-            <View style={styles.top}>
-                <View style={[styles.icon, {backgroundColor: c.bg.subtle}]}>
-                    <Icon name={meta.icon} size={20} color={resolved ? c.icon.muted : c.icon.default}/>
-                </View>
-                <View style={styles.flex}>
-                    <Text variant="bodyEmphasis" numberOfLines={2}
-                          color={resolved ? c.text.secondary : c.text.primary}>{issue.title}</Text>
-                    <Text variant="footnote" color={c.text.muted}>
-                        {[meta.label, otherArea ? issue.neighbourhood_name : issue.reporter_name, when(issue.created_at)]
-                            .filter(Boolean).join(' · ')}
-                    </Text>
-                </View>
-            </View>
+        <View style={[styles.badge, {backgroundColor: t.bg}]}>
+            <Text variant="caption2" color={t.fg}>{SEVERITY_LABEL[severity].toUpperCase()}</Text>
+        </View>
+    );
+}
 
-            {!!issue.description && (
-                <Text variant="subhead" color={c.text.secondary} numberOfLines={2}>{issue.description}</Text>
+export default function IssueCard({issue, otherArea, home, onPress}: { issue: Issue; otherArea?: boolean; home?: MyResidence | null; onPress?: () => void }) {
+    const c = useColors();
+    const km = kmFrom(home, issue);
+    const where = otherArea
+        ? [issue.neighbourhood_name, km != null ? `${km.toFixed(1)} km` : null, agoText(issue.created_at)]
+        : [issue.street && home && issue.street === home.street ? 'Your street' : issue.street || issue.neighbourhood_name,
+            issue.visibility === 'public' ? 'Public' : null, agoText(issue.created_at)];
+    return (
+        <Pressable onPress={onPress} style={[styles.card, {backgroundColor: c.bg.surface}]}>
+            {issue.media[0] ? (
+                <Image source={{uri: issue.media[0].image}} style={styles.thumb} contentFit="cover"/>
+            ) : (
+                <View style={[styles.thumb, styles.placeholder, {backgroundColor: c.bg.subtle}]}>
+                    <Icon name={CATEGORY_META[issue.category].icon} size={26} color={c.icon.muted}/>
+                </View>
             )}
-
-            <View style={styles.meta}>
-                <View style={[styles.pill, {backgroundColor: resolved ? c.feedback.successBg : c.bg.subtle}]}>
-                    <Text variant="caption1" color={resolved ? c.feedback.success : c.text.secondary}>
-                        {STATUS_LABEL[issue.status]}
-                    </Text>
+            <View style={styles.body}>
+                <View style={styles.tags}>
+                    <SeverityBadge severity={issue.severity}/>
+                    <Text variant="caption1" color={c.text.muted}>{CATEGORY_META[issue.category].short}</Text>
                 </View>
-                <View style={[styles.pill, {backgroundColor: c.bg.subtle}]}>
-                    <Text variant="caption1" color={severityColor(c, issue.severity)}>
-                        {SEVERITY_LABEL[issue.severity]}
+                <Text variant="headline" numberOfLines={2}>{issue.title}</Text>
+                <View style={styles.meta}>
+                    <View style={styles.count}>
+                        <Icon name="thumbs-up" size={16} color={c.icon.muted}/>
+                        <Text variant="footnote" color={c.text.secondary}>{issue.support_count}</Text>
+                    </View>
+                    {!otherArea && (
+                        <View style={styles.count}>
+                            <Icon name="message-circle" size={16} color={c.icon.muted}/>
+                            <Text variant="footnote" color={c.text.secondary}>{issue.comment_count}</Text>
+                        </View>
+                    )}
+                    <Text variant="footnote" color={c.text.muted} numberOfLines={1} style={styles.flex}>
+                        {where.filter(Boolean).join(' · ')}
                     </Text>
-                </View>
-                <View style={styles.flex}/>
-                <View style={styles.count}>
-                    <Icon name="users" size={16} color={issue.i_support ? c.icon.brand : c.icon.muted}/>
-                    <Text variant="caption1" color={issue.i_support ? c.text.brand : c.text.muted}>
-                        {issue.support_count}
-                    </Text>
-                </View>
-                <View style={styles.count}>
-                    <Icon name="message-circle" size={16} color={c.icon.muted}/>
-                    <Text variant="caption1" color={c.text.muted}>{issue.comment_count}</Text>
                 </View>
             </View>
         </Pressable>
@@ -92,11 +94,13 @@ export default function IssueCard({issue, otherArea, onPress}: {
 }
 
 const styles = StyleSheet.create({
-    card: {borderRadius: radius.lg, padding: 14, gap: 10},
-    top: {flexDirection: 'row', gap: 12, alignItems: 'flex-start'},
-    icon: {width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center'},
-    flex: {flex: 1, gap: 2},
-    meta: {flexDirection: 'row', alignItems: 'center', gap: 8},
-    pill: {paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill},
+    card: {flexDirection: 'row', gap: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16},
+    thumb: {width: 72, height: 72, borderRadius: 12},
+    placeholder: {alignItems: 'center', justifyContent: 'center'},
+    body: {flex: 1, gap: 4},
+    tags: {flexDirection: 'row', alignItems: 'center', gap: 6},
+    badge: {paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6},
+    meta: {flexDirection: 'row', alignItems: 'center', gap: 12},
     count: {flexDirection: 'row', alignItems: 'center', gap: 4},
+    flex: {flex: 1},
 });

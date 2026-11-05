@@ -25,6 +25,9 @@ export default function TabBarSOS({state, navigation}: BottomTabBarProps) {
     const c = useColors();
     const insets = useSafeAreaInsets();
     const routes = state.routes.filter((r) => TABS[r.name]);
+    // Inside a tab's own stack (an issue, the report form) the screen is full height, as in the frames.
+    const nested = (state.routes[state.index] as any)?.state;
+    if (nested && nested.routes?.[nested.index ?? 0]?.name !== 'index') return null;
 
     const tab = (routeIndex: number) => {
         const route = routes[routeIndex];

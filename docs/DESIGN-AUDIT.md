@@ -103,3 +103,16 @@ Bug found on the way: the Issues tab was missing from the tab bar on every phone
 | Attach | 1715:791 | Composer "+" sheet | match minus "Contact" (needs a contacts permission we do not ask for) |
 | Group discusses an issue | 1716:11667 | issue cards in `chat/[id]` | see page 06 |
 | Alert — arrived, incident chat | 1632:1945 | `chat/[id]` while an alert is live | match (banner + quick replies) |
+
+## 06 · Issues
+
+| Frame | Node | Route | Status |
+| --- | --- | --- | --- |
+| Issues | 1620:859 | `(tabs)/issues` | match, plus a map-pin icon beside "+" (the frame shows no way into the map view) |
+| Issues — other neighbourhoods | 1737:428 | `(tabs)/issues`, "Other areas" | match |
+| Issues — on map | 1634:2354 | `(tabs)/issues?map=1` | match (satellite map, category pins, Show list, bottom card) |
+| Issue detail | 1620:991 | `issues/[id]` | match. "…" appears only for the reporter: mark as being dealt with / resolved |
+| Issue detail — other area | 1741:1029 | `issues/[id]` | match (Follow updates; comment box replaced by the lock note) |
+| Discuss in group | 1716:11835 | sheet in `issues/[id]` | match, but lists only the groups I am in. The server shares to my own neighbourhood group, so in practice there is one |
+| Report an issue | 1620:1056 | `issues/report` | match. No "Security" pill on purpose; the pin is where the phone is, not the house |
+| Issue posted | 1634:2297 | `issues/posted` | match ("Share to <group>" opens the Discuss sheet) |

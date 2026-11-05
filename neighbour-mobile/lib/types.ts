@@ -139,7 +139,7 @@ export type Neighbour = {
     home: { id: number; house_number?: string; street: string; status: 'pending' | 'verified' };
 };
 
-export type IssueCategory = 'security' | 'lighting' | 'roads' | 'water' | 'waste' | 'other';
+export type IssueCategory = 'security' | 'lighting' | 'roads' | 'water' | 'waste' | 'noise' | 'other';
 export type IssueSeverity = 'low' | 'moderate' | 'high' | 'critical';
 export type IssueStatus = 'open' | 'in_progress' | 'resolved';
 export type IssueVisibility = 'neighbourhood' | 'public';
@@ -166,6 +166,7 @@ export type Issue = {
     i_support: boolean;
     i_follow: boolean;
     media: { id: number; image: string }[];
+    street?: string;
 };
 
 export type IssueComment = {

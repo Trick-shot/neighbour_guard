@@ -15,6 +15,7 @@ class Issue(models.Model):
         ROADS = 'roads', 'Roads and drainage'
         WATER = 'water', 'Water'
         WASTE = 'waste', 'Waste'
+        NOISE = 'noise', 'Noise'
         OTHER = 'other', 'Other'
 
     class Severity(models.TextChoices):

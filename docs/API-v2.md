@@ -102,10 +102,11 @@ Push payload the phone receives: `data = {kind: "sos", alert_id, type}`, Android
 | POST/DELETE | `issues/<id>/follow/` | | `{i_follow}`. 403 unless my home is verified |
 | GET | `issues/<id>/comments/` | | Comments. Readable by anyone who can see the issue |
 | POST | `issues/<id>/comments/` | `body` | 201. **403 unless I am a verified resident of the issue's own area** |
-| POST | `issues/<id>/share/` | | 201 `{conversation_id, message_id}` — an issue card in my neighbourhood group. 403 unless I am a verified resident of the issue's area |
+| POST | `issues/<id>/share/` | `message?` (≤ 500 chars) | 201 `{conversation_id, message_id}` — the optional message as a text, then an issue card, in my neighbourhood group. 403 unless I am a verified resident of the issue's area |
+| POST | `issues/<id>/media/` | multipart `photo` | 201 `{id, image}`. Reporter only, at most 4 photos; the bytes are sniffed (JPEG/PNG/WebP only) |
 
-Categories: `security, lighting, roads, water, waste, other`. Severity: `low, moderate, high,
-critical`. Status: `open, in_progress, resolved`. Visibility: `neighbourhood, public`.
+Categories: `security, lighting, roads, water, waste, noise, other` (the app does not offer `security`: danger now is an SOS). Severity: `low, moderate, high,
+critical`. Status: `open, in_progress, resolved`. Visibility: `neighbourhood, public`. Each issue also returns `street` (the reporter's street name, never the house) and `media[].image` as an absolute URL.
 
 Who sees and does what:
 
