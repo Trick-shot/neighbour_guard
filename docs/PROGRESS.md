@@ -125,6 +125,47 @@ reports that it cannot tell, and opens the setting, instead of displaying a gree
 
 ---
 
+## 2026-11-05 — Claude Code — first local run of the full design on Mac
+
+**Ran.** Backend on `backend.settings_local` (SQLite, no Redis, no worker): `migrate` clean, all
+providers/places/alerts migrations applied, `seed_showcase` created you@test.tz (house 109) and
+juma@test.tz (house 110). `runserver 0.0.0.0:8000` serving; `/api/v2/alerts/` returns 401 without a
+token, as it should. `POST /api/auth/email-code/` returns 200 and the 6-digit code is printed in the
+runserver terminal, so sign-in works with no mail server.
+
+App: `npm ci` put node_modules back on the lockfile (Expo **54.0.33**; it had drifted to 58).
+`npx tsc --noEmit` is now **completely clean — 0 errors**, including the old onboarding ones. They
+were never real: `.expo/types/router.d.ts` (generated, git-ignored) was a stale snapshot of an older
+route tree, so every literal like `/profile/medical` or `/providers/pay/[id]` looked unknown. The
+dev server regenerated it and all 40 errors went away. No app code was changed.
+
+Web preview works: `EXPO_PUBLIC_API_URL=http://localhost:8000 EXPO_PUBLIC_WS_URL=ws://localhost:8000
+npx expo start --web` → http://localhost:8081, bundle builds (9.5 MB, 200).
+
+**Failed: the iPhone simulator.** `npx expo run:ios` installed all 115 pods fine, then stopped at
+`CommandError: Can't determine id of Simulator app`. The cause is this Mac, not the app:
+`/Applications/Xcode.app/Contents/Developer/Applications/` does not exist, so **Simulator.app is not
+installed** — Xcode.app is only 3.9 GB where a full Xcode 27 is ~15 GB, i.e. an incomplete install.
+`xcrun simctl` and the iOS 26.3/26.5/27.0 runtimes are all present, which is why devices list but
+none can be shown. Proof the app is not at fault: `xcodebuild -scheme neighbourmobile -sdk
+iphonesimulator` → **BUILD SUCCEEDED**, 0 errors, with `react-native-keyboard-controller` autolinked.
+So only the Simulator GUI is missing; reinstall/repair Xcode and `expo run:ios` should go straight
+through (pods and derived data are already built).
+
+**Also hit:** the first web bundle failed with `Unable to resolve module react-native-web/dist/index`
+even though the file was there. Watchman had dropped the watch during `npm ci`
+(`Recrawled this watch 9 times … MustScanSubDirs UserDropped`), so Metro's file map was stale.
+`watchman watch-del` + `watch-project` and `expo start --clear` fixed it. Worth remembering: after
+any `npm ci` here, start Metro with `--clear`.
+
+**Left / for Erick:** two orphaned `runserver` processes from 2 and 3 Nov are still alive but no
+longer hold port 8000 — kill them when convenient. Expo notes a patch drift (expo 54.0.33 installed
+vs 54.0.37 expected); left alone on purpose, since the lockfile is what the app is tested against.
+Expected in this mode and not bugs: the SOS goes out the moment the hold ends (Celery runs inline,
+so cancel is too late) and every map is a placeholder with no `GOOGLE_MAPS_ANDROID_KEY`.
+
+**Files:** none but this log.
+
 ## 2026-11-05 — Claude Code — the whole Figma design implemented, pages 01 to 09
 
 **Done.** Every Android frame (the design for both platforms, no liquid glass) is built and was
