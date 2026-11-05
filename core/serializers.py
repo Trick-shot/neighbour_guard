@@ -25,7 +25,7 @@ class UserSerializer(BaseUserSerializer):
 
     class Meta(BaseUserSerializer.Meta):
         fields = ["id", "email", "full_name", "phone_number", "is_phone_verified", "photo_url",
-                  "is_admin", "is_superuser", "is_active", "is_staff"]
+                  "text_contacts_on_resolve", "routine_push", "quiet_from", "quiet_to", "is_admin", "is_superuser", "is_active", "is_staff"]
         read_only_fields = ["email", "phone_number", "is_phone_verified", "photo_url",
                             "is_admin", "is_superuser", "is_active", "is_staff"]
 

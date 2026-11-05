@@ -1,7 +1,7 @@
 import {Audio} from 'expo-av';
 import {router, useLocalSearchParams} from 'expo-router';
 import {useEffect, useRef, useState} from 'react';
-import {Linking, StyleSheet, View} from 'react-native';
+import {Linking, StyleSheet, Vibration, View} from 'react-native';
 import MapView, {Marker, Polyline, PROVIDER_GOOGLE} from 'react-native-maps';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
@@ -12,6 +12,7 @@ import {AlertPin, MePin} from '@/components/ui/MapPin';
 import Text from '@/components/ui/Text';
 import {alarmTitle, distanceM, formatDistance, minutesAgo, walkMinutes, WHAT_TO_DO} from '@/features/alerts';
 import {alertsApi, placesApi} from '@/lib/endpoints';
+import {prefs} from '@/lib/prefs';
 import {Alert, MyResidence} from '@/lib/types';
 import {alertColor, useColors} from '@/theme';
 import {streetMapStyle} from '@/theme/mapStyle';
@@ -33,6 +34,7 @@ export default function NeighbourAlarm() {
     const stopAlarm = async () => {
         const s = sound.current;
         sound.current = null;
+        Vibration.cancel();
         await s?.stopAsync().catch(() => undefined);
         await s?.unloadAsync().catch(() => undefined);
     };
@@ -48,6 +50,8 @@ export default function NeighbourAlarm() {
             await Audio.setAudioModeAsync({playsInSilentModeIOS: true, staysActiveInBackground: true, shouldDuckAndroid: false});
             const {sound: s} = await Audio.Sound.createAsync(require('@/assets/sounds/alarm.mp3'), {shouldPlay: true, isLooping: true, volume: 1});
             sound.current = s;
+            // "Vibrate" in Alarm & notifications: buzz with the siren until answered or muted.
+            if (await prefs.vibrate()) Vibration.vibrate([0, 800, 600], true);
         })().catch(() => undefined);
         return () => { stopAlarm(); };
     }, [alertId]);

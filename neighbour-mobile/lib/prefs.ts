@@ -9,6 +9,8 @@ export type Language = 'en' | 'sw';
 const LANGUAGE = 'pref.language';
 const ALARM_TESTED = 'pref.alarmTested';
 const CHECKLIST_SEEN = 'pref.checklistSeen';
+const SILENT_SOS = 'pref.silentSos';
+const VIBRATE = 'pref.vibrate';
 
 export const prefs = {
     async language(): Promise<Language | null> {
@@ -23,6 +25,20 @@ export const prefs = {
     },
     async setAlarmTested() {
         try { await AsyncStorage.setItem(ALARM_TESTED, '1'); } catch { /* best effort */ }
+    },
+    // "Silent SOS": my own phone stays quiet (no countdown ticks) while I send. Default on.
+    async silentSos() {
+        try { return (await AsyncStorage.getItem(SILENT_SOS)) !== '0'; } catch { return true; }
+    },
+    async setSilentSos(on: boolean) {
+        try { await AsyncStorage.setItem(SILENT_SOS, on ? '1' : '0'); } catch { /* best effort */ }
+    },
+    // "Vibrate" on the neighbour alarm screen, on top of the sound. Default on.
+    async vibrate() {
+        try { return (await AsyncStorage.getItem(VIBRATE)) !== '0'; } catch { return true; }
+    },
+    async setVibrate(on: boolean) {
+        try { await AsyncStorage.setItem(VIBRATE, on ? '1' : '0'); } catch { /* best effort */ }
     },
     async checklistSeen() {
         try { return (await AsyncStorage.getItem(CHECKLIST_SEEN)) === '1'; } catch { return true; }

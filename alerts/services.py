@@ -209,10 +209,13 @@ def resolve(alert: Alert, user, pin: str | None) -> Alert:
         logger.warning('Alert %s confirmed with the duress PIN', alert.pk)
         return alert  # the view answers exactly as for a real resolve
 
-    Alert.objects.filter(pk=alert.pk, status=Alert.Status.SENT).update(
+    changed = Alert.objects.filter(pk=alert.pk, status=Alert.Status.SENT).update(
         status=Alert.Status.RESOLVED, resolved_at=timezone.now()
     )
     alert.refresh_from_db()
+    if changed:
+        from .tasks import notify_contacts_resolved
+        transaction.on_commit(lambda: notify_contacts_resolved.delay(alert.pk))
     from chat.services import broadcast_alert_update
     broadcast_alert_update(alert, alert_summary(alert))
     return alert

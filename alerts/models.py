@@ -4,6 +4,7 @@ import uuid
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import models
+from django.utils import timezone
 
 
 class Alert(models.Model):
@@ -77,6 +78,7 @@ class AlertResponse(models.Model):
     responder = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='alert_responses')
     state = models.CharField(max_length=8, choices=State.choices)
     eta_min = models.PositiveSmallIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

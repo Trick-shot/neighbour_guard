@@ -38,10 +38,28 @@ def notify_emergency_contacts(alert_id: int):
     numbers = list(alert.sender.emergency_contacts.values_list('phone', flat=True))
     if not numbers:
         return
-    where = f'{alert.residence.house_number} {alert.residence.street}'.strip()
-    body = (f'{alert.sender.full_name} sent a {alert.get_type_display().lower()} alert on '
-            f'NeighbourGuard from {where}. Neighbours nearby have been alerted.')
+    # The same words as the preview on "Emergency contacts" (Figma 1634:2469).
+    at = timezone.localtime(alert.sent_at or timezone.now()).strftime('%H:%M')
+    kind = alert.get_type_display().lower()
+    article = 'an' if kind[:1] in 'aeiou' else 'a'
+    body = (f'NeighbourGuard: {alert.sender.full_name} sent {article} {kind} alert at {at} near House '
+            f'{alert.residence.house_number}, {alert.residence.street}. Neighbours are responding.')
     send_sms(body, numbers)
+
+
+@shared_task(ignore_result=True)
+def notify_contacts_resolved(alert_id: int):
+    """The all-clear for the same contacts, if the sender wants it. Never sent for a duress PIN,
+    because a duress "resolve" leaves the alert live (see services.resolve)."""
+    from core.sms import send_sms
+
+    alert = (Alert.objects.select_related('sender')
+             .filter(pk=alert_id, status=Alert.Status.RESOLVED, under_duress=False).first())
+    if not alert or not alert.sender.text_contacts_on_resolve:
+        return
+    numbers = list(alert.sender.emergency_contacts.values_list('phone', flat=True))
+    if numbers:
+        send_sms(f'{alert.sender.full_name} is safe. Their NeighbourGuard alert has been resolved.', numbers)
 
 
 @shared_task(ignore_result=True)

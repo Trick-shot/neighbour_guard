@@ -69,6 +69,19 @@ export type MyResidence = {
     neighbourhood: { id: number; name: string; slug: string; radius_m: number };
     gate_photo_url: string | null;
     vouchers?: { name: string; at: string }[];
+    map_visibility?: 'neighbours' | 'nobody';
+    /** People in my home who have the app. */
+    members?: { user_id: number; full_name: string; role: 'owner' | 'member' }[];
+};
+
+export type HistoryAlert = {
+    id: number; type: AlertType; status: 'sent' | 'resolved'; message: string;
+    sent_at: string | null; resolved_at: string | null; house_number: string; street: string;
+    sender_name: string | null; responded: number;
+};
+export type AlertHistory = {
+    sent_count: number; helped_count: number; avg_first_response_s: number | null;
+    sent: HistoryAlert[]; helped: HistoryAlert[];
 };
 
 export type NeighbourProfile = {
@@ -184,6 +197,11 @@ export type Me = {
     phone_number: string | null;
     is_phone_verified: boolean;
     photo_url: string | null;
+    text_contacts_on_resolve?: boolean;
+    routine_push?: boolean;
+    /** "22:00:00" local time, or null when quiet hours are off. */
+    quiet_from?: string | null;
+    quiet_to?: string | null;
 };
 
 export type EmergencyContact = {
@@ -196,6 +214,7 @@ export type EmergencyContact = {
 export type HouseholdPerson = {
     id: number;
     name: string;
+    relation?: string;
     age_group: 'child' | 'adult' | 'elderly';
     needs_help: boolean;
 };

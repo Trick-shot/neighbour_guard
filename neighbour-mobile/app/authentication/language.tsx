@@ -1,5 +1,5 @@
-import {router} from 'expo-router';
-import {useState} from 'react';
+import {router, useLocalSearchParams} from 'expo-router';
+import {useEffect, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
@@ -15,11 +15,15 @@ import {useColors} from '@/theme';
 export default function OnboardingLanguage() {
     const c = useColors();
     const insets = useSafeAreaInsets();
+    const {from} = useLocalSearchParams<{ from?: string }>();
     const [lang, setLang] = useState<Language>('en');
+    useEffect(() => { prefs.language().then((l) => l && setLang(l)); }, []);
 
     const next = async () => {
         await prefs.setLanguage(lang);
-        router.replace('/authentication/onboarding');
+        // From Profile it is a setting, so go back there; on a new phone it leads on to the slides.
+        if (from === 'profile') router.back();
+        else router.replace('/authentication/onboarding');
     };
 
     return (

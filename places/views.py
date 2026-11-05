@@ -67,7 +67,7 @@ class MyResidenceView(APIView):
         if not residence:
             return Response({'detail': 'You have not added your home yet.'}, status=status.HTTP_404_NOT_FOUND)
         # Moving the pin changes who gets your alerts, so only these text fields are editable here.
-        allowed = {k: v for k, v in request.data.items() if k in ('house_number', 'street', 'directions')}
+        allowed = {k: v for k, v in request.data.items() if k in ('house_number', 'street', 'directions', 'map_visibility')}
         serializer = MyResidenceSerializer(residence, data=allowed, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()

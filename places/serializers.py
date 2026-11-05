@@ -33,11 +33,13 @@ class MyResidenceSerializer(serializers.ModelSerializer):
     vouches_needed = serializers.SerializerMethodField()
     gate_photo_url = serializers.SerializerMethodField()
     vouchers = serializers.SerializerMethodField()
+    members = serializers.SerializerMethodField()
 
     class Meta:
         model = Residence
         fields = ['id', 'house_number', 'street', 'district', 'directions', 'lat', 'lng', 'status',
-                  'verified_at', 'neighbourhood', 'vouches', 'vouches_needed', 'gate_photo_url', 'vouchers']
+                  'verified_at', 'neighbourhood', 'vouches', 'vouches_needed', 'gate_photo_url', 'vouchers',
+                  'map_visibility', 'members']
         read_only_fields = ['status', 'verified_at']
 
     def get_vouches_needed(self, obj):
@@ -45,6 +47,11 @@ class MyResidenceSerializer(serializers.ModelSerializer):
 
     def get_gate_photo_url(self, obj):
         return gate_photo_url(obj, self.context.get('request'))
+
+    def get_members(self, obj):
+        # People in my home who have the app (Figma "My household", 1637:5288). Mine to see.
+        return [{'user_id': m.user_id, 'full_name': m.user.full_name, 'role': m.role}
+                for m in obj.members.select_related('user').order_by('joined_at')]
 
     def get_vouchers(self, obj):
         # Who confirmed my own home ("Almost there", 1633:2184). Mine to see.
@@ -68,7 +75,7 @@ class ResidencePublicSerializer(serializers.ModelSerializer):
 class HouseholdPersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = HouseholdPerson
-        fields = ['id', 'name', 'age_group', 'needs_help']
+        fields = ['id', 'name', 'relation', 'age_group', 'needs_help']
         read_only_fields = ['id']
 
 

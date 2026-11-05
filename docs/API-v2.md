@@ -12,15 +12,15 @@ cancel, already sent).
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
 | GET | `places/neighbours/<user_id>/` | | One neighbour, same neighbourhood only (else 404): `{full_name, photo_url, home, vouched_by[], i_vouched, skills[]}`. Never household, phone or pin |
-| GET | `places/me/` | | My home, incl. my own `lat`/`lng`, `house_number`, `street`, `district`, `directions`, `status` (`pending`/`verified`), `verified_at`, `vouches`, `vouches_needed`, `neighbourhood`, `gate_photo_url`, `vouchers[{name, at}]` |
+| GET | `places/me/` | | My home, incl. my own `lat`/`lng`, `house_number`, `street`, `district`, `directions`, `status` (`pending`/`verified`), `verified_at`, `vouches`, `vouches_needed`, `neighbourhood`, `gate_photo_url`, `vouchers[{name, at}]`, `map_visibility` (`neighbours`/`nobody`), `members[{user_id, full_name, role}]` (people in my home with the app) |
 | POST | `places/me/` | `house_number, street, lat, lng, district?, directions?` | 201 my home. 409 if I already have one |
-| PATCH | `places/me/` | `house_number?, street?, directions?` | My home. The pin cannot move here |
+| PATCH | `places/me/` | `house_number?, street?, directions?, map_visibility?` | My home. The pin cannot move here. `nobody` leaves my home out of the Home-map area counts |
 | POST | `places/me/gate-photo/` | multipart `photo` (JPEG/PNG/WebP, 5 MB) | My home with `gate_photo_url`. 404 without a home. Shown to live-alert responders only |
 | GET | `places/areas/` | | `{neighbourhood, areas: [{lat, lng, homes}]}` — grid cells, never exact homes |
 | GET | `places/neighbours/` | | `[{user_id, full_name, home}]`; `home` has `house_number` only if I am verified |
 | POST | `places/residences/<id>/vouch/` | | `{status, vouches}`. 403 unless I am a verified neighbour in the same area |
-| GET | `places/household/` | | The people in my own home: `[{id, name, age_group, needs_help}]` |
-| POST | `places/household/` | `name, age_group?, needs_help?` | 201 the person. Max 12 per home. The home comes from my membership, never the body |
+| GET | `places/household/` | | The people in my own home: `[{id, name, relation, age_group, needs_help}]` |
+| POST | `places/household/` | `name, relation?, age_group?, needs_help?` | 201 the person. Max 12 per home. The home comes from my membership, never the body |
 | PATCH | `places/household/<id>/` | `name?, age_group?, needs_help?` | The person. 404 for another home's household |
 | DELETE | `places/household/<id>/` | | 204. 404 for another home's household |
 
@@ -34,7 +34,8 @@ cancel, already sent).
 | DELETE | `contacts/<id>/` | | 204. 404 for someone else's |
 
 They are texted when an alert reaches `sent`, never during the countdown, and never again when the
-radius widens.
+radius widens. If `text_contacts_on_resolve` is on (default), they get an all-clear when it is
+resolved — never after the duress PIN, which leaves the alert live.
 
 ## SMS fallback (no data connection)
 
@@ -62,6 +63,7 @@ wording right.
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
+| GET | `alerts/history/` | | `{sent_count, helped_count, avg_first_response_s, sent[], helped[]}`. Rows: `id, type, status, message, sent_at, resolved_at, house_number, street, sender_name (helped only), responded`. Cancelled alerts are not listed. No coordinates |
 | POST | `alerts/witness/` | **No account needed.** multipart `client_id, type, lat, lng, street?, description?, photo?` | 201 `{id, type, homes_alerted, radius_m, created_at}`; repeat `client_id` → 200 same. 3/hour per IP. Pushes homes within 300 m (Celery) |
 | POST | `alerts/` | `client_id (uuid made on the phone), type, message?` | 201 pending alert with `seconds_left`; repeat `client_id` → 200 same alert |
 | GET | `alerts/` | | Live alerts around me |
@@ -197,7 +199,9 @@ means a guard was asked, not that one is coming; only the provider moves it on.
 | POST | `/api/auth/jwt/refresh/` | `{refresh}` → `{access}` |
 | POST | `/api/auth/send-otp/` | **Logged in.** `{phone_number}`. Max 3 per 10 min |
 | POST | `/api/auth/verify-otp/` | **Logged in.** `{otp}`. Sets the profile phone from the OTP record |
-| GET | `/api/auth/users/me/` | **Logged in.** Me: `id, email, full_name, phone_number, is_phone_verified, photo_url` |
+| GET / PATCH | `/api/auth/users/me/` | **Logged in.** Me: `id, email, full_name, phone_number, is_phone_verified, photo_url, text_contacts_on_resolve, routine_push, quiet_from, quiet_to`. Writable: `full_name`, the last four. `routine_push` off or quiet hours mute issue/message pushes on the server; an SOS ignores both |
+| GET | `/api/auth/users/me/export/` | **Logged in.** Everything kept about me as JSON (medical notes decrypted for me only) |
+| POST | `/api/auth/users/me/delete/` | **Logged in.** `{confirm: "DELETE"}` → 204. Switches the account off and wipes personal data; rows others rely on stay as "Former neighbour" |
 | PATCH | `/api/auth/users/me/` | **Logged in.** `full_name` only. Email and phone are read-only here: the phone reaches the profile through `verify-otp` and nowhere else |
 
 

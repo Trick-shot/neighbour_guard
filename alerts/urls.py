@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path('', views.AlertListCreateView.as_view(), name='alerts'),
     path('witness/', views.WitnessView.as_view(), name='witness'),
+    path('history/', views.HistoryView.as_view(), name='alert-history'),
     path('safety-pin/', views.SafetyPinView.as_view(), name='safety-pin'),
     path('push-token/', views.PushTokenView.as_view(), name='push-token'),
     path('<int:pk>/', views.AlertDetailView.as_view(), name='alert'),

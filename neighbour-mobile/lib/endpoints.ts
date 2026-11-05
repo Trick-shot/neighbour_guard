@@ -2,7 +2,7 @@
 import {api, call} from './api';
 import {
     Alert, AlertType, Area, Attachment, AttachmentKind, ChatMessage, Conversation, EmergencyContact,
-    HouseholdPerson, Issue, NeighbourProfile, IssueComment, IssueStatus, Me, MyResidence, MySubscription, Neighbour,
+    AlertHistory, HouseholdPerson, Issue, NeighbourProfile, IssueComment, IssueStatus, Me, MyResidence, MySubscription, Neighbour,
     NewResidence, PaymentStatus, ResponseState, SecurityProvider,
 } from './types';
 
@@ -31,7 +31,7 @@ export const placesApi = {
     // The server reads who you are from the token; the body carries the home only.
     create: (home: NewResidence) => call<MyResidence>(api.post('/api/v2/places/me/', home)),
     // Only the text fields. Moving the pin would change who gets your alerts, so the server refuses it.
-    update: (fields: { house_number?: string; street?: string; directions?: string }) =>
+    update: (fields: { house_number?: string; street?: string; directions?: string; map_visibility?: 'neighbours' | 'nobody' }) =>
         call<MyResidence>(api.patch('/api/v2/places/me/', fields)),
     // Responder-only, like the directions. The server sniffs the bytes.
     uploadGatePhoto: (uri: string, mime = 'image/jpeg') => {
@@ -61,6 +61,12 @@ export const profileApi = {
     me: () => call<Me>(api.get('/api/auth/users/me/')),
     // Only the name is writable: the phone reaches the profile through verify-otp and nowhere else.
     rename: (full_name: string) => call<Me>(api.patch('/api/auth/users/me/', {full_name})),
+    update: (fields: Partial<Pick<Me, 'full_name' | 'text_contacts_on_resolve' | 'routine_push' | 'quiet_from' | 'quiet_to'>>) =>
+        call<Me>(api.patch('/api/auth/users/me/', fields)),
+    setAllClear: (on: boolean) => call<Me>(api.patch('/api/auth/users/me/', {text_contacts_on_resolve: on})),
+    exportData: () => call<Record<string, unknown>>(api.get('/api/auth/users/me/export/')),
+    // Typing DELETE is the guard: sign-in is by emailed code, so there is no password to re-type.
+    deleteAccount: () => call(api.post('/api/auth/users/me/delete/', {confirm: 'DELETE'})),
     // The server sniffs the bytes; the mime here is only a hint for the upload.
     uploadPhoto: (uri: string, mime = 'image/jpeg') => {
         const form = new FormData();
@@ -116,6 +122,7 @@ export const alertsApi = {
     respond: (id: number, state: ResponseState, eta_min?: number) =>
         call<Alert>(api.post(`/api/v2/alerts/${id}/respond/`, {state, eta_min})),
     resolve: (id: number, pin?: string) => call<Alert>(api.post(`/api/v2/alerts/${id}/resolve/`, {pin})),
+    history: () => call<AlertHistory>(api.get('/api/v2/alerts/history/')),
     pinStatus: () => call<{ is_set: boolean }>(api.get('/api/v2/alerts/safety-pin/')),
     setPins: (pin: string, duress_pin: string) =>
         call<{ is_set: boolean }>(api.put('/api/v2/alerts/safety-pin/', {pin, duress_pin})),

@@ -359,3 +359,71 @@ class EmergencyContactView(APIView):
             return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
         contact.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MyDataExportView(APIView):
+    """GET /api/auth/users/me/export/ — "Download my data" (Figma 1634:2692).
+
+    Everything the server keeps about me, as JSON. Medical notes are decrypted for me alone.
+    Other people's data (who vouched, who responded) is reduced to counts or first names.
+    """
+
+    def get(self, request):
+        from alerts.models import Alert
+        from issues.models import Issue
+        from main.models import Profile
+        from places.services import residence_of
+        from .models import SafetyProfile
+
+        u = request.user
+        home = residence_of(u)
+        safety = SafetyProfile.objects.filter(user=u).first()
+        data = {
+            'account': {'email': u.email, 'full_name': u.full_name, 'joined': u.date_joined,
+                        'phone_number': getattr(Profile.objects.filter(user=u).first(), 'phone_number', None) or None},
+            'home': None if not home else {
+                'house_number': home.house_number, 'street': home.street, 'district': home.district,
+                'directions': home.directions, 'lat': home.lat, 'lng': home.lng, 'status': home.status,
+                'household': list(home.household.values('name', 'relation', 'age_group', 'needs_help')),
+            },
+            'emergency_contacts': list(u.emergency_contacts.values('name', 'relation', 'phone')),
+            'safety': None if not safety else {'skills': safety.skills, **safety.notes()},
+            'alerts_sent': list(Alert.objects.filter(sender=u).values('type', 'status', 'created_at', 'sent_at', 'resolved_at')),
+            'issues_reported': list(Issue.objects.filter(created_by=u).values('title', 'category', 'status', 'created_at')),
+        }
+        return Response(data, headers={'Content-Disposition': 'attachment; filename="neighbourguard-my-data.json"'})
+
+
+class DeleteAccountView(APIView):
+    """POST /api/auth/users/me/delete/ {confirm: "DELETE"} — Figma "Delete account".
+
+    Sign-in is by emailed code, so there is no password to re-type; typing DELETE is the guard.
+    The account is switched off and personal details are wiped at once. Rows other people rely on
+    (an alert they answered, a comment in their thread) stay, under the name "Former neighbour".
+    """
+
+    def post(self, request):
+        from django.db import transaction
+        from places.models import ResidenceMember
+
+        if request.data.get('confirm') != 'DELETE':
+            return Response({'detail': 'Type DELETE to confirm.'}, status=status.HTTP_400_BAD_REQUEST)
+        u = request.user
+        with transaction.atomic():
+            u.emergency_contacts.all().delete()
+            ResidenceMember.objects.filter(user=u).delete()
+            from .models import SafetyProfile
+            SafetyProfile.objects.filter(user=u).delete()
+            from main.models import Profile
+            for profile in Profile.objects.filter(user=u):
+                if profile.profile_pic:
+                    profile.profile_pic.delete(save=False)
+                profile.delete()
+            u.full_name = 'Former neighbour'
+            u.push_token = None
+            u.is_active = False
+            u.email = f'deleted-{u.pk}@deleted.invalid'
+            u.set_unusable_password()
+            u.save()
+        logger.info('Account %s deleted by its owner', u.pk)
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -211,3 +211,42 @@ def _witness_data(report):
     # Homes in range, not people: the count the reporter sees must not reveal who lives where.
     return {'id': report.id, 'type': report.type, 'homes_alerted': report.notified_count,
             'radius_m': report.RADIUS_M, 'created_at': report.created_at}
+
+
+class HistoryView(APIView):
+    """GET /api/v2/alerts/history/ — Figma "My alert history" (1634:2762).
+
+    Only my own record: alerts I sent (not cancelled ones: those never went out) and alerts I
+    answered "coming" to. No coordinates, no names of other responders.
+    """
+
+    def get(self, request):
+        from .models import AlertResponse
+
+        sent = (Alert.objects.filter(sender=request.user, status__in=[Alert.Status.SENT, Alert.Status.RESOLVED])
+                .select_related('residence').order_by('-sent_at')[:50])
+        helped = (AlertResponse.objects.filter(responder=request.user, state__in=['coming', 'arrived'])
+                  .select_related('alert__residence', 'alert__sender').order_by('-created_at')[:50])
+        waits = []
+        for a in sent:
+            first = (a.responses.filter(state__in=['coming', 'arrived']).order_by('created_at')
+                     .values_list('created_at', flat=True).first())
+            if first and a.sent_at:
+                waits.append(max(0, (first - a.sent_at).total_seconds()))
+
+        def row(a, mine):
+            return {
+                'id': a.id, 'type': a.type, 'status': a.status, 'message': a.message,
+                'sent_at': a.sent_at, 'resolved_at': a.resolved_at,
+                'house_number': a.residence.house_number, 'street': a.residence.street,
+                'sender_name': None if mine else a.sender.full_name,
+                'responded': a.responses.filter(state__in=['coming', 'arrived']).count(),
+            }
+
+        return Response({
+            'sent_count': Alert.objects.filter(sender=request.user, status__in=[Alert.Status.SENT, Alert.Status.RESOLVED]).count(),
+            'helped_count': AlertResponse.objects.filter(responder=request.user, state__in=['coming', 'arrived']).count(),
+            'avg_first_response_s': round(sum(waits) / len(waits)) if waits else None,
+            'sent': [row(a, True) for a in sent],
+            'helped': [row(r.alert, False) for r in helped],
+        })

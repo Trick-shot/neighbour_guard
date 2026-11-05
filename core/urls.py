@@ -1,5 +1,5 @@
 from django.urls import path, include
-from .views import EmailCodeRequestView, EmailCodeVerifyView, MyPhotoView, MySafetyProfileView, PhoneNumberSendOTP, SmsCodeRequestView, PhoneNumberVerifyOTP
+from .views import DeleteAccountView, MyDataExportView, EmailCodeRequestView, EmailCodeVerifyView, MyPhotoView, MySafetyProfileView, PhoneNumberSendOTP, SmsCodeRequestView, PhoneNumberVerifyOTP
 from rest_framework.routers import DefaultRouter
 from .views import CustomUserViewSet
 
@@ -9,6 +9,8 @@ router.register('users', CustomUserViewSet, basename='user')
 urlpatterns = [
     path('users/me/photo/', MyPhotoView.as_view(), name='my-photo'),
     path('users/me/safety/', MySafetyProfileView.as_view(), name='my-safety'),
+    path('users/me/export/', MyDataExportView.as_view(), name='my-export'),
+    path('users/me/delete/', DeleteAccountView.as_view(), name='my-delete'),
     path('', include(router.urls)),
     path('send-otp/', PhoneNumberSendOTP.as_view(), name='send-otp'),
     path('verify-otp/', PhoneNumberVerifyOTP.as_view(), name='verify-otp'),

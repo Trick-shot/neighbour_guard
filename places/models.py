@@ -33,6 +33,14 @@ class Residence(models.Model):
     directions = models.CharField(max_length=255, blank=True, help_text='How to find the house (gate colour, landmark)')
     # Responder-only, like `directions`: shown to people answering a live alert from this home.
     gate_photo = models.ImageField(upload_to='gates/', null=True, blank=True)
+
+    class MapVisibility(models.TextChoices):
+        NEIGHBOURS = 'neighbours', 'Verified neighbours, as an approximate area'
+        NOBODY = 'nobody', 'Nobody until I send an alert'
+
+    # Figma "Privacy & location" (1634:2692). Only the approximate-area count on the Home map;
+    # an alert still shows the exact home to its responders.
+    map_visibility = models.CharField(max_length=10, choices=MapVisibility.choices, default=MapVisibility.NEIGHBOURS)
     lat = models.FloatField()
     lng = models.FloatField()
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
@@ -84,6 +92,7 @@ class HouseholdPerson(models.Model):
 
     residence = models.ForeignKey(Residence, on_delete=models.CASCADE, related_name='household')
     name = models.CharField(max_length=100)
+    relation = models.CharField(max_length=40, blank=True, help_text='Mother, son, grandfather…')
     age_group = models.CharField(max_length=10, choices=AgeGroup.choices, default=AgeGroup.ADULT)
     needs_help = models.BooleanField(default=False, help_text='Needs help moving in an emergency')
 

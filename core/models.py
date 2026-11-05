@@ -31,6 +31,25 @@ class User(AbstractUser):
     is_online = models.BooleanField(default=False)
     # Everything in the notifications feed newer than this is unread (the bell's badge).
     notifications_seen_at = models.DateTimeField(null=True, blank=True)
+    # "Text them when it's resolved" (Figma 1634:2469): emergency contacts also get an all-clear.
+    text_contacts_on_resolve = models.BooleanField(default=True)
+    # "Alarm & notifications" (Figma 1634:2529). Routine pushes only (issues, messages): an SOS
+    # ignores both, because a neighbour's emergency must always ring.
+    routine_push = models.BooleanField(default=True)
+    quiet_from = models.TimeField(null=True, blank=True)
+    quiet_to = models.TimeField(null=True, blank=True)
+
+    def wants_routine_push(self, at=None) -> bool:
+        """False when routine pushes are off, or `at` (local time) falls in my quiet hours."""
+        if not self.routine_push:
+            return False
+        if self.quiet_from is None or self.quiet_to is None:
+            return True
+        from django.utils import timezone
+        t = (at or timezone.localtime()).time()
+        if self.quiet_from <= self.quiet_to:
+            return not (self.quiet_from <= t < self.quiet_to)
+        return not (t >= self.quiet_from or t < self.quiet_to)  # crosses midnight, e.g. 22:00–06:00
 
     objects = CustomUserManager()
 

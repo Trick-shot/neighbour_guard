@@ -116,3 +116,16 @@ Bug found on the way: the Issues tab was missing from the tab bar on every phone
 | Discuss in group | 1716:11835 | sheet in `issues/[id]` | match, but lists only the groups I am in. The server shares to my own neighbourhood group, so in practice there is one |
 | Report an issue | 1620:1056 | `issues/report` | match. No "Security" pill on purpose; the pin is where the phone is, not the house |
 | Issue posted | 1634:2297 | `issues/posted` | match ("Share to <group>" opens the Discuss sheet) |
+
+## 07 · Profile
+
+| Frame | Node | Route | Status |
+| --- | --- | --- | --- |
+| Profile v2 | 1745:12125 | `(tabs)/profile` | match. The yellow card appears only when the alarm checks really fail |
+| Emergency contacts | 1634:2469 | `profile/contacts` | match. The preview is the exact SMS the server sends |
+| Alarm & notifications | 1634:2529 | `profile/alarm` | match, with two honest variants: "Press power 5 times" is disabled (needs a native Android build), "Alarm sound" has one sound so no chevron |
+| Personal information | 1634:2642 | `profile/personal` | match. Email is read-only; phone and home open their own flows |
+| Privacy & location | 1634:2692 | `profile/privacy` | match. "Hide my name on witness reports" is fixed "On": reports never carry a name |
+| My alert history | 1634:2762 | `profile/history` | match |
+| My household | 1637:5288 | `profile/household` | match (no ages in years: we store child / adult / elderly) |
+| Skills & medical notes | 1637:5378 | `profile/medical` | match (earlier) |

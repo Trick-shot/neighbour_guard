@@ -51,7 +51,7 @@ export default function SafetyPins() {
     return (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                               style={[styles.screen, {backgroundColor: c.bg.surface}]}>
-            <ScreenHeader title="Safety and duress PINs"/>
+            <ScreenHeader title="SOS PIN & duress code"/>
             <View style={styles.content}>
                 <Text variant="body" color={c.text.secondary}>
                     You type one of these to end an alert. Which one you type decides what your neighbours see.

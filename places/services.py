@@ -87,7 +87,8 @@ def areas_for(neighbourhood: Neighbourhood):
     """Approximate areas for the Home map: grid cell centres with a house count, never exact homes."""
     grid = settings.AREA_GRID_DEG
     counts = Counter(
-        area_cell(r.lat, r.lng, grid) for r in neighbourhood.residences.only('lat', 'lng')
+        area_cell(r.lat, r.lng, grid)
+        for r in neighbourhood.residences.exclude(map_visibility='nobody').only('lat', 'lng')
     )
     return [{'lat': lat, 'lng': lng, 'homes': n} for (lat, lng), n in counts.items()]
 

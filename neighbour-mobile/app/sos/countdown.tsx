@@ -10,6 +10,7 @@ import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import Text from '@/components/ui/Text';
 import {alertsApi} from '@/lib/endpoints';
+import {prefs} from '@/lib/prefs';
 import {Alert, AlertType} from '@/lib/types';
 import {palettes} from '@/theme/colors';
 
@@ -35,6 +36,10 @@ export default function Countdown() {
     const [busy, setBusy] = useState<'send' | 'cancel' | null>(null);
     const deadline = useRef<number>(Date.now() + TOTAL * 1000);
     const leaving = useRef(false);
+    // "Silent SOS" (Profile → Alarm & notifications): on, the countdown does not even tick in the hand.
+    const [silent, setSilent] = useState(true);
+    const silentRef = useRef(true);
+    useEffect(() => { prefs.silentSos().then((on) => { silentRef.current = on; setSilent(on); }); }, []);
 
     const goLive = () => {
         if (leaving.current) return;
@@ -56,7 +61,7 @@ export default function Countdown() {
             const s = Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000));
             setLeft(s);
             if (s > 0) {
-                Haptics.selectionAsync();
+                if (!silentRef.current) Haptics.selectionAsync();
                 return;
             }
             // The server sends at send_at; confirm and move on (also covers a slow worker).
@@ -107,10 +112,12 @@ export default function Countdown() {
     return (
         <View style={[styles.screen, {paddingTop: insets.top}]}>
             {/* The sender's own phone never rings: an alarm going off in a robbery is the last thing anyone needs. */}
-            <View style={styles.silent}>
-                <Icon name="volume-x" size={14} color="#ffffff"/>
-                <Text variant="label" color="rgba(255,255,255,0.9)">Silent SOS · your phone stays quiet</Text>
-            </View>
+            {silent && (
+                <View style={styles.silent}>
+                    <Icon name="volume-x" size={14} color="#ffffff"/>
+                    <Text variant="label" color="rgba(255,255,255,0.9)">Silent SOS · your phone stays quiet</Text>
+                </View>
+            )}
             <View style={styles.ringBox}>
                 <Svg width={SIZE} height={SIZE} style={{transform: [{rotate: '-90deg'}]}}>
                     <Circle cx={SIZE / 2} cy={SIZE / 2} r={r} stroke="rgba(255,255,255,0.12)" strokeWidth={STROKE} fill="none"/>
