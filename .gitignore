@@ -145,3 +145,5 @@ __pycache__/
 db.sqlite3
 .env
 venv/
+
+db_local.sqlite3
