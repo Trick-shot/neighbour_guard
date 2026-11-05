@@ -180,3 +180,24 @@ class HouseholdMemberView(APIView):
             return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
         person.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class NotificationsView(APIView):
+    """GET /api/v2/notifications/?kind=alerts — my feed, newest first, with the unread count."""
+
+    def get(self, request):
+        from .feed import feed_for
+        items = feed_for(request.user)
+        if request.query_params.get('kind') == 'alerts':
+            items = [i for i in items if i['kind'] == 'alert']
+        return Response({'unread': sum(1 for i in items if i['unread']), 'items': items})
+
+
+class NotificationsSeenView(APIView):
+    """POST /api/v2/notifications/seen/ — everything up to now is read."""
+
+    def post(self, request):
+        from django.utils import timezone
+        request.user.notifications_seen_at = timezone.now()
+        request.user.save(update_fields=['notifications_seen_at'])
+        return Response(status=status.HTTP_204_NO_CONTENT)

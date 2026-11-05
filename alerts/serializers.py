@@ -59,13 +59,14 @@ class AlertSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source='sender.full_name', read_only=True)
     home = serializers.SerializerMethodField()
     sender_phone = serializers.SerializerMethodField()
+    sender_medical = serializers.SerializerMethodField()
     responses = serializers.SerializerMethodField()
     seconds_left = serializers.SerializerMethodField()
 
     class Meta:
         model = Alert
         fields = ['id', 'client_id', 'type', 'message', 'status', 'channel', 'sender_id', 'sender_name',
-                  'sender_phone', 'home', 'send_at', 'sent_at', 'resolved_at', 'seconds_left', 'radius_m',
+                  'sender_phone', 'sender_medical', 'home', 'send_at', 'sent_at', 'resolved_at', 'seconds_left', 'radius_m',
                   'notified_count', 'under_duress', 'responses', 'created_at']
 
     def _exact(self, obj):
@@ -81,6 +82,13 @@ class AlertSerializer(serializers.ModelSerializer):
             return None
         profile = getattr(obj.sender, 'profile', None)
         return profile.phone_number if profile and profile.is_phone_verified else None
+
+    def get_sender_medical(self, obj):
+        # Same rule as the exact pin: only inside a live alert, only for those who may see it exactly.
+        if not self._exact(obj):
+            return None
+        sp = getattr(obj.sender, 'safety_profile', None)
+        return {'skills': sp.skills, **sp.notes()} if sp else None
 
     def get_responses(self, obj):
         qs = obj.responses.select_related('responder__profile')

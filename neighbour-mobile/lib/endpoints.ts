@@ -69,6 +69,23 @@ export const profileApi = {
     },
 };
 
+export type SafetyProfile = { skills: string[]; conditions: string; allergies: string; blood_type: string };
+export const safetyApi = {
+    // Skills a neighbour offers, and medical notes (encrypted; responders see them only in my live alert).
+    get: () => call<SafetyProfile>(api.get('/api/auth/users/me/safety/')),
+    save: (p: SafetyProfile) => call<SafetyProfile>(api.put('/api/auth/users/me/safety/', p)),
+};
+
+export type FeedItem = {
+    id: string; kind: 'alert' | 'vouch' | 'issue' | 'provider' | 'welcome'; title: string; body: string; at: string;
+    unread: boolean; alert_id?: number; issue_id?: number; residence_id?: number; live?: boolean;
+};
+export const notificationsApi = {
+    list: (alertsOnly = false) =>
+        call<{ unread: number; items: FeedItem[] }>(api.get('/api/v2/notifications/', alertsOnly ? {kind: 'alerts'} : {})),
+    seen: () => call(api.post('/api/v2/notifications/seen/')),
+};
+
 export const contactsApi = {
     list: () => call<EmergencyContact[]>(api.get('/api/v2/contacts/')),
     add: (contact: Omit<EmergencyContact, 'id'>) =>

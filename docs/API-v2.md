@@ -188,6 +188,7 @@ means a guard was asked, not that one is coming; only the provider moves it on.
 | POST | `/api/auth/email-code/` | `{email}` — emails a 6-digit code that signs in **or signs up**. Always the same 200 (does not reveal accounts). 10 per 10 min per IP |
 | POST | `/api/auth/email-code/sms/` | `{email}` — the same code, texted to the account's **verified** phone (Celery). Same 200 either way |
 | POST | `/api/auth/email-code/verify/` | `{email, code}` → `{access, refresh, is_new}`. Creates the account when the email is new. 5 wrong tries kill the code |
+| GET / PUT | `/api/auth/users/me/safety/` | **Logged in.** `{skills[], conditions, allergies, blood_type}`. Skills from a fixed list; notes encrypted at rest |
 | POST | `/api/auth/users/me/photo/` | **Logged in.** multipart `photo` (JPEG/PNG/WebP, 5 MB, bytes sniffed) → `{photo_url}`. DELETE removes it |
 | POST | `/api/auth/jwt/create/` | `{email, password}` → `{access, refresh}` |
 | POST | `/api/auth/jwt/refresh/` | `{refresh}` → `{access}` |
@@ -195,3 +196,14 @@ means a guard was asked, not that one is coming; only the provider moves it on.
 | POST | `/api/auth/verify-otp/` | **Logged in.** `{otp}`. Sets the profile phone from the OTP record |
 | GET | `/api/auth/users/me/` | **Logged in.** Me: `id, email, full_name, phone_number, is_phone_verified, photo_url` |
 | PATCH | `/api/auth/users/me/` | **Logged in.** `full_name` only. Email and phone are read-only here: the phone reaches the profile through `verify-otp` and nowhere else |
+
+
+## Notifications
+
+| Method | Path | Body | Returns |
+| --- | --- | --- | --- |
+| GET | `notifications/?kind=alerts` | | `{unread, items[{id, kind (alert/vouch/issue/provider/welcome), title, body, at, unread, alert_id?, live?, issue_id?, residence_id?}]}`, newest first, last 30 days. Built from existing data; my own alerts are never included |
+| POST | `notifications/seen/` | | 204. Everything up to now is read |
+
+Alert detail now also carries `sender_medical: {skills, conditions, allergies, blood_type}` for
+people allowed to see the alert exactly, while it is live; `null` otherwise.

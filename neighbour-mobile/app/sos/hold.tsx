@@ -8,6 +8,7 @@ import {ALERT_META} from '@/components/ui/AlertTypeChip';
 import Icon from '@/components/ui/Icon';
 import Text from '@/components/ui/Text';
 import {alertsApi} from '@/lib/endpoints';
+import {events} from '@/lib/events';
 import {AlertType} from '@/lib/types';
 import {newClientId} from '@/lib/uuid';
 import {alertColor, shadow, useColors} from '@/theme';
@@ -72,6 +73,8 @@ export default function SosHold() {
             const {pageX, pageY} = e.nativeEvent;
             const onDisc = Math.hypot(pageX - centre.x, pageY - centre.y) <= DISC / 2;
             if (!onDisc) {
+                // Closed without holding: Home shows "Hold for 2 seconds to send SOS" (1672:1313).
+                events.emit('sosHint');
                 router.back();
                 return;
             }

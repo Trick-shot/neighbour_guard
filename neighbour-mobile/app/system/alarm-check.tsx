@@ -9,6 +9,7 @@ import Text from '@/components/ui/Text';
 // `type` matters: without it Babel sees a value binding called AlarmCheck beside the component
 // of the same name and refuses to parse the file, which fails the whole bundle, not just this
 // screen. TypeScript alone does not catch it — the two live in different declaration spaces.
+import {prefs} from '@/lib/prefs';
 import {type AlarmCheck, type CheckState, runAlarmChecks, sendTestAlarm} from '@/lib/notifications';
 import {radius, shadow, useColors} from '@/theme';
 
@@ -66,6 +67,7 @@ export default function AlarmCheck() {
 
     const runTest = async () => {
         await sendTestAlarm(TEST_DELAY_SECONDS);
+        prefs.setAlarmTested();
         setTestIn(TEST_DELAY_SECONDS);
     };
 

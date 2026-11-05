@@ -1,71 +1,135 @@
-import {router, useFocusEffect} from 'expo-router';
-import {useCallback, useMemo, useRef, useState} from 'react';
-import {Pressable, StyleSheet, View} from 'react-native';
+import * as Location from 'expo-location';
+import {router, useFocusEffect, useLocalSearchParams} from 'expo-router';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Linking, Pressable, StyleSheet, View} from 'react-native';
 import MapView, {Circle, Marker, PROVIDER_GOOGLE, Region} from 'react-native-maps';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import AreaPill from '@/components/home/AreaPill';
+import QuickActions from '@/components/home/QuickActions';
+import SafetyChecklist from '@/components/home/SafetyChecklist';
 import {ALERT_META} from '@/components/ui/AlertTypeChip';
 import Icon from '@/components/ui/Icon';
 import {AlertPin, MePin} from '@/components/ui/MapPin';
+import MapUnavailable from '@/components/ui/MapUnavailable';
 import StatusCompact from '@/components/ui/StatusCompact';
 import Text from '@/components/ui/Text';
-import MapUnavailable from '@/components/ui/MapUnavailable';
-import {alertsApi, placesApi} from '@/lib/endpoints';
+import {alertsApi, notificationsApi, placesApi, providersApi} from '@/lib/endpoints';
+import {events} from '@/lib/events';
 import {hasMapsKey} from '@/lib/maps';
 import {alarmsAreAtRisk} from '@/lib/notifications';
+import {prefs} from '@/lib/prefs';
 import {Alert, Area, MyResidence} from '@/lib/types';
 import {shadow, useColors} from '@/theme';
 import {streetMapStyle} from '@/theme/mapStyle';
 
-/** Figma "Home" (1672:1171): the map with approximate neighbour areas, status bar, controls. */
+/**
+ * Figma "Home" (1672:1171) and its states: alert nearby (1672:1635), actions open (1672:1460),
+ * SOS hint (1672:1313), offline / no location (1673:5258), safety checklist (1673:5384).
+ * Neighbours are shown as approximate areas with a home count, never as houses.
+ */
 const AREA_RADIUS_M = 75;
+
+const metres = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+    const R = 6371000, rad = Math.PI / 180;
+    const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+};
 
 export default function Home() {
     const c = useColors();
     const insets = useSafeAreaInsets();
+    const params = useLocalSearchParams<{ checklist?: string }>();
     const map = useRef<MapView>(null);
     const [home, setHome] = useState<MyResidence | null>(null);
     const [areas, setAreas] = useState<Area[]>([]);
     const [alerts, setAlerts] = useState<Alert[]>([]);
+    const [unread, setUnread] = useState(0);
+    const [covered, setCovered] = useState<boolean | null>(null);
     const [satellite, setSatellite] = useState(false);
     const [actionsOpen, setActionsOpen] = useState(false);
     const [noHome, setNoHome] = useState(false);
+    const [offline, setOffline] = useState(false);
+    const [locationOff, setLocationOff] = useState(false);
     const [alarmRisk, setAlarmRisk] = useState(false);
+    const [hint, setHint] = useState(false);
+    const [checklist, setChecklist] = useState(false);
+    const [stackHeight, setStackHeight] = useState(56);
 
     const load = useCallback(async () => {
         try {
             const me = await placesApi.me();
             setHome(me);
             setNoHome(false);
-            const [a, live] = await Promise.all([placesApi.areas(), alertsApi.active()]);
+            setOffline(false);
+            const [a, live, feed] = await Promise.all([
+                placesApi.areas(), alertsApi.active(), notificationsApi.list().catch(() => null),
+            ]);
             setAreas(a.areas);
             setAlerts(live);
+            if (feed) setUnread(feed.unread);
         } catch (e: any) {
             if (e.status === 404) setNoHome(true);
+            if (e.message === 'No connection') setOffline(true);
         }
+        providersApi.mine().then((subs) => setCovered(subs.some((s) => s.status === 'active'))).catch(() => setCovered(null));
     }, []);
 
     useFocusEffect(useCallback(() => {
         load();
         // Phone settings change outside the app, so re-read them every time Home comes into focus.
         alarmsAreAtRisk().then(setAlarmRisk);
+        Location.getForegroundPermissionsAsync()
+            .then(async (p) => setLocationOff(!p.granted || !(await Location.hasServicesEnabledAsync())))
+            .catch(() => undefined);
         const t = setInterval(load, 20_000);
         return () => clearInterval(t);
     }, [load]));
+
+    // Once, straight after onboarding.
+    useEffect(() => {
+        if (params.checklist !== '1') return;
+        prefs.checklistSeen().then((seen) => {
+            if (!seen) { setChecklist(true); prefs.setChecklistSeen(); }
+        });
+    }, [params.checklist]);
+
+    useEffect(() => events.on('sosHint', () => {
+        setHint(true);
+        setTimeout(() => setHint(false), 3500);
+    }), []);
 
     const region: Region | undefined = useMemo(() => home ? {
         latitude: home.lat, longitude: home.lng, latitudeDelta: 0.012, longitudeDelta: 0.012,
     } : undefined, [home]);
 
     const homes = areas.reduce((n, a) => n + a.homes, 0);
+    const neighbours = Math.max(0, homes - 1);
     const others = alerts.filter((a) => a.home?.lat != null);
     const nearest = alerts[0];
+    const coming = nearest?.responses.filter((r) => r.state === 'coming' || r.state === 'arrived').length ?? 0;
+    const away = nearest && home && nearest.home?.lat != null
+        ? `${Math.round(metres(home, {lat: nearest.home.lat!, lng: nearest.home.lng!}) / 10) * 10} m away` : 'nearby';
 
     const status = nearest
-        ? {tone: 'alert' as const, title: `${ALERT_META[nearest.type].label} nearby`, subtitle: `${nearest.sender_name} · tap to see`}
+        ? {tone: 'alert' as const, title: `${ALERT_META[nearest.type].label} ${away}`,
+            subtitle: `${nearest.sender_name} · ${coming} responding · tap to help`}
         : {tone: 'quiet' as const, title: `All quiet in ${home?.neighbourhood.name ?? 'your area'}`,
-            subtitle: noHome ? 'Add your home to see your neighbours' : `${Math.max(0, homes - 1)} neighbours nearby`};
+            subtitle: noHome ? 'Add your home to see your neighbours'
+                : `${neighbours} ${neighbours === 1 ? 'neighbour' : 'neighbours'} nearby`};
+
+    const actions = [
+        {key: 'report', label: 'Report', icon: 'eye' as const, tone: 'danger' as const,
+            onPress: () => router.push('/issues/report')},
+        {key: 'checkin', label: 'Check-in', icon: 'check' as const, tone: 'success' as const,
+            onPress: () => router.push({pathname: '/(tabs)/message', params: {compose: 'checkin'}})},
+        {key: 'guard', label: 'Guard', icon: 'shield-check' as const, tone: 'brand' as const,
+            badge: covered === false ? 1 : 0, onPress: () => router.push('/providers')},
+        {key: 'voice', label: 'Voice', icon: 'mic' as const, tone: 'warning' as const,
+            onPress: () => router.push({pathname: '/(tabs)/message', params: {compose: 'voice'}})},
+    ];
+    const openAction = (fn: () => void) => () => { setActionsOpen(false); fn(); };
 
     return (
         <View style={[styles.screen, {backgroundColor: c.bg.subtle}]}>
@@ -76,7 +140,6 @@ export default function Home() {
                 customMapStyle={satellite ? undefined : streetMapStyle}
                 mapType={satellite ? 'hybrid' : 'standard'}
                 initialRegion={region}
-                region={undefined}
                 showsCompass={false}
                 showsMyLocationButton={false}
                 toolbarEnabled={false}
@@ -88,7 +151,7 @@ export default function Home() {
                 ))}
                 {areas.map((a) => (
                     <Marker key={`p${a.lat},${a.lng}`} coordinate={{latitude: a.lat, longitude: a.lng}} anchor={{x: 0.5, y: 0.5}}
-                            tracksViewChanges={false}>
+                            tracksViewChanges={false} onPress={() => router.push('/neighbours')}>
                         <AreaPill homes={a.homes}/>
                     </Marker>
                 ))}
@@ -105,66 +168,61 @@ export default function Home() {
                 ))}
             </MapView>}
 
-            <View style={[styles.top, {top: insets.top + 6}]}>
-                <StatusCompact {...status} badge={alerts.length}
-                               onPress={() => nearest ? router.push(`/alert/${nearest.id}`) : undefined}/>
+            <View style={[styles.top, {top: insets.top - 2}]} onLayout={(e) => setStackHeight(e.nativeEvent.layout.height)}>
+                {offline ? (
+                    <View style={[styles.offline, {backgroundColor: c.feedback.warningBg, borderColor: c.feedback.warning}]}>
+                        <View style={[styles.offlineIcon, {backgroundColor: c.bg.surface}]}>
+                            <Icon name="volume-x" size={20} color={c.feedback.warning}/>
+                        </View>
+                        <View style={styles.flex}>
+                            <Text variant="headline">You’re offline</Text>
+                            <Text variant="subhead" color={c.text.secondary}>SOS still works. It will be sent by SMS.</Text>
+                        </View>
+                    </View>
+                ) : (
+                    <StatusCompact {...status} badge={nearest ? alerts.length : unread}
+                                   onPress={() => (nearest ? router.push(`/alert/${nearest.id}`) : router.push('/notifications'))}
+                                   onBell={() => router.push('/notifications')}/>
+                )}
+                {locationOff && (
+                    <View style={[styles.card, {backgroundColor: c.bg.surface, borderColor: c.border.default}]}>
+                        <Icon name="locate" size={20} color={c.icon.danger}/>
+                        <Text variant="footnote" style={styles.flex}>Location is off. Neighbours can’t find you.</Text>
+                        <Pressable onPress={() => Linking.openSettings()} style={[styles.turnOn, {backgroundColor: c.bg.brandSubtle}]}>
+                            <Text variant="buttonM" color={c.text.brand}>Turn on</Text>
+                        </Pressable>
+                    </View>
+                )}
                 {/* An alarm that cannot ring is the one failure nobody notices until it matters. */}
                 {alarmRisk && (
-                    <Pressable
-                        accessibilityRole="button"
-                        onPress={() => router.push('/system/alarm-check')}
-                        style={[styles.notice, shadow.control, {backgroundColor: c.feedback.errorBg}]}>
-                        <Icon name="triangle-alert" size={22} color={c.icon.danger}/>
-                        <View style={styles.noticeText}>
-                            <Text variant="label" color={c.text.danger}>Alarms can’t reach you</Text>
-                            <Text variant="footnote" color={c.text.danger}>A neighbour’s SOS would stay silent. Fix it.</Text>
+                    <Pressable accessibilityRole="button" onPress={() => router.push('/system/alarm-check')}
+                               style={[styles.card, {backgroundColor: c.bg.surface, borderColor: c.border.default}]}>
+                        <Icon name="bell" size={20} color={c.icon.danger}/>
+                        <Text variant="footnote" style={styles.flex}>Alarms can’t reach this phone. A neighbour’s SOS would stay silent.</Text>
+                        <View style={[styles.turnOn, {backgroundColor: c.bg.brandSubtle}]}>
+                            <Text variant="buttonM" color={c.text.brand}>Fix</Text>
                         </View>
-                        <Icon name="chevron-right" size={20} color={c.icon.danger}/>
                     </Pressable>
                 )}
                 {/* No home means no neighbourhood, so an SOS would reach nobody. Say so and offer the fix. */}
                 {noHome && (
-                    <Pressable
-                        accessibilityRole="button"
-                        onPress={() => router.push('/authentication/location')}
-                        style={[styles.notice, shadow.control, {backgroundColor: c.bg.surface}]}>
-                        <Icon name="map-pin" size={22} color={c.icon.brand}/>
-                        <View style={styles.noticeText}>
-                            <Text variant="label">Pin your home</Text>
-                            <Text variant="footnote" color={c.text.secondary}>Until you do, an alert reaches nobody.</Text>
+                    <Pressable accessibilityRole="button" onPress={() => router.push({pathname: '/authentication/location', params: {from: 'home'}})}
+                               style={[styles.card, {backgroundColor: c.bg.surface, borderColor: c.border.default}]}>
+                        <Icon name="map-pin" size={20} color={c.icon.brand}/>
+                        <Text variant="footnote" style={styles.flex}>Pin your home. Until you do, an alert from you reaches nobody.</Text>
+                        <View style={[styles.turnOn, {backgroundColor: c.bg.brandSubtle}]}>
+                            <Text variant="buttonM" color={c.text.brand}>Pin it</Text>
                         </View>
-                        <Icon name="chevron-right" size={20} color={c.icon.muted}/>
                     </Pressable>
                 )}
             </View>
 
-            <View style={[styles.rail, shadow.control, {top: insets.top + 82, backgroundColor: c.bg.surface}]}>
-                <Pressable accessibilityLabel="Actions" onPress={() => setActionsOpen((o) => !o)}
-                           style={[styles.expand, {backgroundColor: actionsOpen ? c.bg.subtle : c.bg.brand}]}>
-                    <Icon name={actionsOpen ? 'x' : 'more-horizontal'} size={22} color={actionsOpen ? c.icon.default : c.icon.onBrand}/>
-                    {!actionsOpen && alerts.length > 0 && (
-                        <View style={[styles.badge, {borderColor: c.bg.surface}]}>
-                            <Text variant="caption2" color="#ffffff">{alerts.length}</Text>
-                        </View>
-                    )}
-                </Pressable>
-                {actionsOpen ? (
-                    <>
-                        <Pressable onPress={() => { setActionsOpen(false); router.push('/(tabs)/issues'); }} style={styles.action}>
-                            <Icon name="clipboard-list" size={22}/>
-                            <Text variant="caption2" color={c.text.secondary}>Report</Text>
-                        </Pressable>
-                        <Pressable onPress={() => { setActionsOpen(false); router.push('/neighbours'); }} style={styles.action}>
-                            <Icon name="users" size={22}/>
-                            <Text variant="caption2" color={c.text.secondary}>Neighbours</Text>
-                        </Pressable>
-                    </>
-                ) : (
-                    <Text variant="caption2" color={c.text.secondary}>Actions</Text>
-                )}
+            <View style={[styles.rail, {top: insets.top - 2 + stackHeight + (stackHeight > 60 ? 12 : 20)}]}>
+                <QuickActions open={actionsOpen} onToggle={() => setActionsOpen((o) => !o)}
+                              actions={actions.map((a) => ({...a, onPress: openAction(a.onPress)}))}/>
             </View>
 
-            <View style={[styles.controls, shadow.control, {top: insets.top + 82, backgroundColor: c.bg.surface}]}>
+            <View style={[styles.controls, shadow.control, {top: insets.top - 2 + stackHeight + (stackHeight > 60 ? 12 : 20), backgroundColor: c.bg.surface}]}>
                 <Pressable accessibilityLabel={satellite ? 'Street map' : 'Satellite map'} onPress={() => setSatellite((s) => !s)} style={styles.control}>
                     <Icon name="image" size={22} color={satellite ? c.icon.brand : c.icon.default}/>
                 </Pressable>
@@ -172,19 +230,31 @@ export default function Home() {
                     <Icon name="locate" size={22}/>
                 </Pressable>
             </View>
+
+            {hint && (
+                <View pointerEvents="none" style={styles.hint}>
+                    <Icon name="clock" size={16} color={c.text.inverse}/>
+                    <Text variant="subhead" color={c.text.inverse}>Hold for 2 seconds to send SOS</Text>
+                </View>
+            )}
+
+            <SafetyChecklist visible={checklist} onClose={() => setChecklist(false)}/>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     screen: {flex: 1},
-    top: {position: 'absolute', left: 16, right: 16, gap: 8},
-    notice: {flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16},
-    noticeText: {flex: 1},
-    rail: {position: 'absolute', left: 16, alignItems: 'center', gap: 4, paddingTop: 10, paddingBottom: 12, paddingHorizontal: 10, borderRadius: 999},
-    expand: {width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center'},
-    badge: {position: 'absolute', left: 32, top: -4, width: 18, height: 18, borderRadius: 9, borderWidth: 2, backgroundColor: '#e52e2e', alignItems: 'center', justifyContent: 'center'},
-    action: {alignItems: 'center', gap: 2, paddingTop: 6},
+    flex: {flex: 1},
+    top: {position: 'absolute', left: 16, right: 16, gap: 12},
+    offline: {flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1},
+    offlineIcon: {width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center'},
+    card: {flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, borderWidth: 1},
+    turnOn: {height: 40, paddingHorizontal: 16, borderRadius: 999, alignItems: 'center', justifyContent: 'center', minWidth: 100},
+    rail: {position: 'absolute', left: 16},
     controls: {position: 'absolute', right: 16, padding: 2, borderRadius: 999},
     control: {width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center'},
+    // "Hold hint" (1672:1313): near-black pill above the tab bar.
+    hint: {position: 'absolute', bottom: 134, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8,
+        paddingVertical: 10, paddingLeft: 14, paddingRight: 16, borderRadius: 999, backgroundColor: 'rgba(20,26,36,0.88)'},
 });

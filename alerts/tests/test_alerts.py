@@ -207,6 +207,21 @@ class AlertApiTests(APITestCase):
             services.claim_and_send(data['id'])
         self.assertIn('lat', self.client.get(f"/api/v2/alerts/{data['id']}/").data['home'])
 
+    def test_medical_notes_reach_the_neighbour_only_while_the_alert_is_live(self):
+        self.client.force_authenticate(self.sender)
+        self.client.put('/api/auth/users/me/safety/', {'skills': ['first_aid'], 'conditions': 'Asthma',
+                                                     'allergies': '', 'blood_type': 'O+'}, format='json')
+        data = self.start()
+        self.client.force_authenticate(self.neighbour)
+        self.assertIsNone(self.client.get(f"/api/v2/alerts/{data['id']}/").data['sender_medical'])  # countdown
+        with mock.patch('alerts.push.send', return_value=0):
+            services.claim_and_send(data['id'])
+        live = self.client.get(f"/api/v2/alerts/{data['id']}/").data['sender_medical']
+        self.assertEqual(live['conditions'], 'Asthma')
+        self.assertEqual(live['blood_type'], 'O+')
+        Alert.objects.filter(pk=data['id']).update(status=Alert.Status.RESOLVED)
+        self.assertIsNone(self.client.get(f"/api/v2/alerts/{data['id']}/").data['sender_medical'])
+
     def test_sender_view_hides_duress(self):
         data = self.start()
         with mock.patch('alerts.push.send', return_value=0):

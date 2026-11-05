@@ -55,7 +55,7 @@ export default function OnboardingDone() {
                     )}
                 </View>
             )}
-            <Footer><Button title="Go to my map" onPress={() => router.replace('/(tabs)')}/></Footer>
+            <Footer><Button title="Go to my map" onPress={() => router.replace({pathname: '/(tabs)', params: {checklist: '1'}})}/></Footer>
         </View>
     );
 }

@@ -44,3 +44,19 @@ the frame — compare from the status bar down.
 | Sign in — email | 1631:1402 | `authentication/login` | match |
 | Sign in — code | 1631:1434 | `authentication/code?mode=signin` | match |
 | Can’t access email | 1631:1475 | `authentication/recover` | match; "Ask a neighbour" is marked coming soon |
+
+## 02 · Home & map
+
+| Frame | Node | Route | Status |
+| --- | --- | --- | --- |
+| Home | 1672:1171 | `(tabs)/index` | match (real Google map with the street style; areas, not houses) |
+| Tapped SOS (hint) | 1672:1313 | Home toast, shown when the hold screen is closed without holding | match |
+| Actions open | 1672:1460 | Home quick-actions rail: Report, Check-in, Guard, Voice | match |
+| Alert nearby | 1672:1635 | Home status bar turns red, distance from my home | match |
+| Neighbour sheet | 1673:5101 | — areas open the Neighbours list instead (an area is several homes) | todo with page 04 |
+| Offline / no location | 1673:5258 | Home banners; offline = the API is unreachable | match ("last known location" pill left out: the pin is the home, not a live position) |
+| Complete your safety profile | 1673:5384 | `components/home/SafetyChecklist` (after onboarding, and from Profile) | match (all seven steps from real data) |
+| Notifications | 1631:1675 | `notifications` | match (feed built by the server, vouch works) |
+
+Bug found on the way: the Issues tab was missing from the tab bar on every phone —
+`app/(tabs)/issues/` had no `_layout.tsx`, so no route was called `issues`.

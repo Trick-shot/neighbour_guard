@@ -203,6 +203,9 @@ DJOSER = {
 }
 
 # --- Redis, Channels, Celery ------------------------------------------------
+# Fernet key for medical notes (core/crypto.py). Generate with Fernet.generate_key().
+MEDICAL_NOTES_KEY = config('MEDICAL_NOTES_KEY', default='')
+
 REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379/0')
 
 CHANNEL_LAYERS = {

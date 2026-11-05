@@ -286,6 +286,32 @@ class MyPhotoView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class MySafetyProfileView(APIView):
+    """GET / PUT /api/auth/users/me/safety/ — {skills[], conditions, allergies, blood_type}. Mine only."""
+
+    def _data(self, sp):
+        return {'skills': sp.skills if sp else [], **(sp.notes() if sp else {'conditions': '', 'allergies': '', 'blood_type': ''})}
+
+    def get(self, request):
+        from core.models import SafetyProfile
+        return Response(self._data(SafetyProfile.objects.filter(user=request.user).first()))
+
+    def put(self, request):
+        from core.crypto import encrypt
+        from core.models import SafetyProfile
+        skills = request.data.get('skills') or []
+        if not isinstance(skills, list) or any(s not in SafetyProfile.SKILLS for s in skills):
+            return Response({'detail': 'Unknown skill.'}, status=status.HTTP_400_BAD_REQUEST)
+        fields = {}
+        for name, limit in (('conditions', 200), ('allergies', 200), ('blood_type', 5)):
+            value = str(request.data.get(name) or '').strip()
+            if len(value) > limit:
+                return Response({'detail': f'{name} is too long.'}, status=status.HTTP_400_BAD_REQUEST)
+            fields[f'{name}_enc'] = encrypt(value)
+        sp, _ = SafetyProfile.objects.update_or_create(user=request.user, defaults={'skills': sorted(set(skills)), **fields})
+        return Response(self._data(sp))
+
+
 class EmergencyContactsView(APIView):
     """GET / POST /api/v2/contacts/ — the people texted when I send an SOS.
 

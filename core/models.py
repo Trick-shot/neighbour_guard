@@ -29,6 +29,8 @@ class User(AbstractUser):
     is_superuser = models.BooleanField(default=False)
     push_token = models.CharField(max_length=255, blank=True, null=True)
     is_online = models.BooleanField(default=False)
+    # Everything in the notifications feed newer than this is unread (the bell's badge).
+    notifications_seen_at = models.DateTimeField(null=True, blank=True)
 
     objects = CustomUserManager()
 
@@ -63,3 +65,24 @@ class EmergencyContact(models.Model):
 
     def __str__(self):
         return f'{self.name} for {self.user_id}'
+
+
+class SafetyProfile(models.Model):
+    """Skills a neighbour can offer, and medical notes for responders.
+
+    The notes are encrypted at rest (core/crypto.py) and leave the server only inside a live alert
+    from this person, to the people allowed to see that alert exactly.
+    """
+    SKILLS = ['first_aid', 'nurse', 'doctor', 'security_guard', 'firefighting', 'has_car', 'electrician']
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='safety_profile')
+    skills = models.JSONField(default=list, blank=True)
+    conditions_enc = models.TextField(blank=True)
+    allergies_enc = models.TextField(blank=True)
+    blood_type_enc = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def notes(self) -> dict:
+        from .crypto import decrypt
+        return {'conditions': decrypt(self.conditions_enc), 'allergies': decrypt(self.allergies_enc),
+                'blood_type': decrypt(self.blood_type_enc)}

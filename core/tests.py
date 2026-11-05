@@ -218,3 +218,29 @@ class SmsSignInCodeTests(APITestCase):
         with mock.patch('core.tasks.send_sign_in_code_sms.delay') as sms:
             self.client.post('/api/auth/email-code/sms/', {'email': 'a@x.tz', 'phone_number': '+255700000000'})
         sms.assert_not_called()
+
+
+class SafetyProfileTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email='a@x.tz', password='pw-12345!', full_name='Asha')
+        self.client.force_authenticate(self.user)
+
+    def test_notes_are_encrypted_at_rest_and_readable_by_me(self):
+        from core.models import SafetyProfile
+        r = self.client.put('/api/auth/users/me/safety/', {'skills': ['nurse', 'has_car'], 'conditions': 'Asthma',
+                                                         'allergies': 'Penicillin', 'blood_type': 'O+'}, format='json')
+        self.assertEqual(r.status_code, 200)
+        row = SafetyProfile.objects.get(user=self.user)
+        self.assertNotIn('Asthma', row.conditions_enc)
+        self.assertNotIn('Penicillin', row.allergies_enc)
+        me = self.client.get('/api/auth/users/me/safety/').data
+        self.assertEqual(me['allergies'], 'Penicillin')
+        self.assertEqual(me['skills'], ['has_car', 'nurse'])
+
+    def test_unknown_skill_is_refused(self):
+        r = self.client.put('/api/auth/users/me/safety/', {'skills': ['hacker']}, format='json')
+        self.assertEqual(r.status_code, 400)
+
+    def test_signed_out_is_refused(self):
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get('/api/auth/users/me/safety/').status_code, 401)

@@ -2,6 +2,21 @@
 
 Each entry: the decision, why, and what would make us revisit it. Newest first.
 
+## 2026-11-05 · The notifications feed is computed, not stored
+`GET /api/v2/notifications/` builds the list from alerts, vouch requests, issue replies, provider
+coverage and the welcome, every time (places/feed.py). `notifications_seen_at` on the user is the
+only new state: it decides the bell's badge. **Why:** a separate notifications table would have to
+be written from five places and could drift from the truth; computing it means the feed can never
+show more than the screens it links to already show. My own alerts are never in my feed, because
+a duress alert must keep looking resolved to its sender. **Revisit:** if the feed gets slow
+(it is a handful of indexed queries per call today), or when push-only events need a history.
+
+## 2026-11-05 · Medical notes are encrypted with Fernet, keyed by MEDICAL_NOTES_KEY
+`core.SafetyProfile` keeps skills in clear and conditions/allergies/blood type encrypted. They
+reach responders as `sender_medical` only under the same rule as the exact pin (live alert,
+allowed to see it exactly). Without `MEDICAL_NOTES_KEY` the key is derived from SECRET_KEY, so
+set it on the server before rotating SECRET_KEY.
+
 ## 2026-11-05 · One emailed code signs in and signs up
 `POST /api/auth/email-code/` now sends a code to any valid address, and `email-code/verify/`
 creates the account if it does not exist yet (`is_new: true`), so onboarding is email → code →
