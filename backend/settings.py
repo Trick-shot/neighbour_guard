@@ -181,6 +181,8 @@ REST_FRAMEWORK = {
         'otp_send': '3/10min',
         'otp_verify': '10/10min',
         'email_code': '10/10min',
+        # A witness report can wake a whole street; anyone can send one, so very few per IP.
+        'witness': '3/60min',
     },
 }
 

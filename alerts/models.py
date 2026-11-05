@@ -103,3 +103,26 @@ class SafetyPin(models.Model):
         if duress:
             return 'duress'
         return None
+
+
+class WitnessReport(models.Model):
+    """A passer-by reporting what they see (Figma "Witness — report what I see").
+
+    No account needed and the reporter is never shown to anyone: neighbours within
+    `RADIUS_M` of the point get a push, nothing more. It does not become an Alert, because an
+    Alert has a sender and a home that responders walk to, and a witness has neither.
+    """
+    RADIUS_M = 300
+
+    client_id = models.UUIDField(unique=True)
+    type = models.CharField(max_length=12, choices=Alert.Type.choices, default=Alert.Type.SUSPICIOUS)
+    description = models.CharField(max_length=500, blank=True)
+    lat = models.FloatField()
+    lng = models.FloatField()
+    street = models.CharField(max_length=100, blank=True)
+    photo = models.ImageField(upload_to='witness/', null=True, blank=True)
+    # Kept for abuse handling only; never serialised.
+    reporter = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+                                 related_name='witness_reports')
+    notified_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)

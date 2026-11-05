@@ -25,6 +25,11 @@ Notifications.setNotificationHandler({
 });
 
 export async function setupNotificationChannels() {
+    // The two buttons under an SOS on the lock screen. "I'm coming" opens the app and answers.
+    await Notifications.setNotificationCategoryAsync('sos', [
+        {identifier: 'coming', buttonTitle: 'I’m coming', options: {opensAppToForeground: true}},
+        {identifier: 'view', buttonTitle: 'View map', options: {opensAppToForeground: true}},
+    ]).catch(() => undefined);
     if (Platform.OS !== 'android') return;
     await Notifications.setNotificationChannelAsync(SOS_CHANNEL, {
         name: 'SOS from neighbours',
@@ -78,8 +83,16 @@ export async function registerForSos(): Promise<boolean> {
     return (await savePushToken()) === 'ok';
 }
 
-function openFromNotification(data: Record<string, unknown> | undefined) {
-    if (data?.kind === 'sos' && data.alert_id) router.push(`/alert/${data.alert_id}`);
+function openFromNotification(data: Record<string, unknown> | undefined, action?: string) {
+    if (data?.kind !== 'sos' || !data.alert_id) return;
+    const id = Number(data.alert_id);
+    if (action === 'coming') {
+        // Answer first, then show the route: the sender sees "on the way" as soon as possible.
+        alertsApi.respond(id, 'coming').catch(() => undefined)
+            .finally(() => router.push({pathname: '/alert/on-the-way', params: {id: String(id)}}));
+        return;
+    }
+    router.push(`/alert/${id}`);
 }
 
 /** Opens the alarm screen when an SOS arrives while the app is open, or when one is tapped. */
@@ -87,10 +100,10 @@ export function listenForSos() {
     const received = Notifications.addNotificationReceivedListener((n) =>
         openFromNotification(n.request.content.data as Record<string, unknown>));
     const tapped = Notifications.addNotificationResponseReceivedListener((r) =>
-        openFromNotification(r.notification.request.content.data as Record<string, unknown>));
+        openFromNotification(r.notification.request.content.data as Record<string, unknown>, r.actionIdentifier));
     // The app may have been opened by tapping an SOS while it was closed.
     Notifications.getLastNotificationResponseAsync().then((r) => {
-        if (r) openFromNotification(r.notification.request.content.data as Record<string, unknown>);
+        if (r) openFromNotification(r.notification.request.content.data as Record<string, unknown>, r.actionIdentifier);
     });
     return () => {
         received.remove();

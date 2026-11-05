@@ -129,7 +129,7 @@ def fan_out(alert: Alert, radius_m: int, exclude_user_ids=()):
     recipients = users_near(alert.residence, radius_m).exclude(id__in=exclude_user_ids)
     tokens = [t for t in recipients.values_list('push_token', flat=True) if t]
     title = push.TITLES.get(alert.type, push.TITLES['other'])
-    body = f'{alert.sender.full_name} at {alert.residence.street} needs help'
+    body = f'{alert.sender.full_name} at {alert.residence.street} needs help. Tap to see the map and say you’re coming.'
     data = {'kind': 'sos', 'alert_id': alert.id, 'type': alert.type}
     accepted = push.send([push.sos_message(t, title, body, data) for t in tokens])
     Alert.objects.filter(pk=alert.pk).update(notified_count=alert.notified_count + accepted)

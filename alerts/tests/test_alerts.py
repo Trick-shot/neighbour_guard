@@ -222,6 +222,22 @@ class AlertApiTests(APITestCase):
         Alert.objects.filter(pk=data['id']).update(status=Alert.Status.RESOLVED)
         self.assertIsNone(self.client.get(f"/api/v2/alerts/{data['id']}/").data['sender_medical'])
 
+    def test_a_guard_phone_shows_only_once_the_provider_accepts(self):
+        from providers.models import Dispatch, Provider
+        data = self.start()
+        with mock.patch('alerts.push.send', return_value=0):
+            services.claim_and_send(data['id'])
+        provider = Provider.objects.create(name='Masaki Guard')
+        d = Dispatch.objects.create(alert_id=data['id'], provider=provider, guard_name='Baraka', guard_phone='+255700000001')
+        mine = self.client.get(f"/api/v2/alerts/{data['id']}/").data['dispatches']
+        self.assertEqual(mine[0]['status'], 'requested')
+        self.assertEqual(mine[0]['guard_phone'], '')
+        Dispatch.objects.filter(pk=d.pk).update(status='accepted', eta_min=4)
+        mine = self.client.get(f"/api/v2/alerts/{data['id']}/").data['dispatches']
+        self.assertEqual(mine[0]['guard_phone'], '+255700000001')
+        self.client.force_authenticate(self.stranger)
+        self.assertEqual(self.client.get(f"/api/v2/alerts/{data['id']}/").status_code, 404)
+
     def test_sender_view_hides_duress(self):
         data = self.start()
         with mock.patch('alerts.push.send', return_value=0):
@@ -274,3 +290,44 @@ class CountdownExtrasTests(AlertApiTests):
         self.assertEqual(self.client.get(f"/api/v2/alerts/{data['id']}/").data['responses'][0]['phone'], '+255700000002')
         self.client.post(f"/api/v2/alerts/{data['id']}/resolve/")
         self.assertIsNone(self.client.get(f"/api/v2/alerts/{data['id']}/").data['responses'][0]['phone'])
+
+
+class WitnessTests(APITestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.neighbour = user('w-n@x.tz')
+        self.home = home(self.neighbour, house='5')
+
+    def report(self, **extra):
+        body = {'client_id': str(uuid.uuid4()), 'type': 'suspicious', 'lat': self.home.lat, 'lng': self.home.lng,
+                'description': 'Two men climbing a wall', **extra}
+        with mock.patch('alerts.tasks.fan_out_witness.delay') as fan:
+            with self.captureOnCommitCallbacks(execute=True):
+                r = self.client.post('/api/v2/alerts/witness/', body)
+        return r, fan
+
+    def test_no_account_needed_and_the_street_is_alerted(self):
+        r, fan = self.report()
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.data['homes_alerted'], 1)
+        fan.assert_called_once()
+        self.assertNotIn('reporter', r.data)
+
+    def test_a_retry_with_the_same_client_id_does_not_push_twice(self):
+        cid = str(uuid.uuid4())
+        self.report(client_id=cid)
+        r, fan = self.report(client_id=cid)
+        self.assertEqual(r.status_code, 200)
+        fan.assert_not_called()
+
+    def test_rate_limited_per_ip(self):
+        for _ in range(3):
+            self.report()
+        r, _ = self.report()
+        self.assertEqual(r.status_code, 429)
+
+    def test_unknown_type_is_refused(self):
+        r, fan = self.report(type='party')
+        self.assertEqual(r.status_code, 400)
+        fan.assert_not_called()

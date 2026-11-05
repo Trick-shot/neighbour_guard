@@ -60,3 +60,21 @@ the frame — compare from the status bar down.
 
 Bug found on the way: the Issues tab was missing from the tab bar on every phone —
 `app/(tabs)/issues/` had no `_layout.tsx`, so no route was called `issues`.
+
+## 03 · SOS & response
+
+| Frame | Node | Route | Status |
+| --- | --- | --- | --- |
+| SOS — hold, slide to a type | 1677:700 | `sos/hold` | match (was already right) |
+| SOS — sending in 10 s | 1677:780 | `sos/countdown` | match (added the "Silent SOS" chip) |
+| SOS — help on the way | 1677:829 | `sos/live` | match (full-screen map under the sheet) |
+| SOS — no one responded, widening | 1677:958 | `sos/live` after 60 s with nobody coming | match (rings 500 m / 1 000 m follow the server's radius) |
+| SOS — I’m safe, confirm | 1677:1049 | `sos/live` sheet | match (PIN field only when a PIN is set) |
+| SOS — guard dispatched | 1758:12612 | `sos/live`, from the alert's `dispatches` | match ("requested" shown as notified, never as coming) |
+| Neighbour — alarm (+ robbery) | 1678:915, 1707:928 | `alert/[id]` | match (was already right) |
+| Neighbour — on the way | 1678:1014 | `alert/on-the-way` | match |
+| Alert — arrived, incident chat | 1632:1945 | `chat/[id]?alert=` | see page 05 |
+| Alert — resolved | 1618:528 | `alert/resolved` | match (stats from server timestamps) |
+| Lock screen — critical alert | 1632:1882 | OS notification with "I’m coming" / "View map" buttons | match on Android; iOS rings on silent only with Apple's Critical Alerts entitlement |
+| Witness — report what I see | 1632:2008 | `witness` (Home → Actions → Report) | match |
+| Witness — alert sent | 1632:2102 | `witness/sent` | honest variant: "homes alerted" instead of "people alerted · already responding" |

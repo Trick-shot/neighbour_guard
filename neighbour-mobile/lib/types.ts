@@ -18,6 +18,7 @@ export type AlertResponse = {
     state: ResponseState;
     eta_min: number | null;
     phone: string | null;
+    updated_at?: string;
 };
 
 export type Alert = {
@@ -32,13 +33,25 @@ export type Alert = {
     home: AlertHome;
     send_at: string;
     sent_at: string | null;
+    resolved_at?: string | null;
     seconds_left: number;
     radius_m: number;
     notified_count: number;
     recipients?: number;
     under_duress?: boolean;
     responses: AlertResponse[];
+    dispatches?: Dispatch[];
+    sender_medical?: { skills: string[]; conditions: string; allergies: string; blood_type: string } | null;
     created_at: string;
+};
+
+/** A security provider's guard for a live alert. `requested` means asked, not coming. */
+export type Dispatch = {
+    provider: string;
+    status: 'requested' | 'accepted' | 'arrived' | 'declined';
+    guard_name: string;
+    eta_min: number | null;
+    guard_phone: string;
 };
 
 export type MyResidence = {

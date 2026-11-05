@@ -121,7 +121,7 @@ export default function Home() {
 
     const actions = [
         {key: 'report', label: 'Report', icon: 'eye' as const, tone: 'danger' as const,
-            onPress: () => router.push('/issues/report')},
+            onPress: () => router.push('/witness')},
         {key: 'checkin', label: 'Check-in', icon: 'check' as const, tone: 'success' as const,
             onPress: () => router.push({pathname: '/(tabs)/message', params: {compose: 'checkin'}})},
         {key: 'guard', label: 'Guard', icon: 'shield-check' as const, tone: 'brand' as const,

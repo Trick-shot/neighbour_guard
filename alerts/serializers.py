@@ -60,13 +60,14 @@ class AlertSerializer(serializers.ModelSerializer):
     home = serializers.SerializerMethodField()
     sender_phone = serializers.SerializerMethodField()
     sender_medical = serializers.SerializerMethodField()
+    dispatches = serializers.SerializerMethodField()
     responses = serializers.SerializerMethodField()
     seconds_left = serializers.SerializerMethodField()
 
     class Meta:
         model = Alert
         fields = ['id', 'client_id', 'type', 'message', 'status', 'channel', 'sender_id', 'sender_name',
-                  'sender_phone', 'sender_medical', 'home', 'send_at', 'sent_at', 'resolved_at', 'seconds_left', 'radius_m',
+                  'sender_phone', 'sender_medical', 'dispatches', 'home', 'send_at', 'sent_at', 'resolved_at', 'seconds_left', 'radius_m',
                   'notified_count', 'under_duress', 'responses', 'created_at']
 
     def _exact(self, obj):
@@ -89,6 +90,14 @@ class AlertSerializer(serializers.ModelSerializer):
             return None
         sp = getattr(obj.sender, 'safety_profile', None)
         return {'skills': sp.skills, **sp.notes()} if sp else None
+
+    def get_dispatches(self, obj):
+        # A security provider's guard, shown verbatim: "requested" is not "coming" (DECISIONS 2026-10-19).
+        if not self._exact(obj):
+            return []
+        return [{'provider': d.provider.name, 'status': d.status, 'guard_name': d.guard_name, 'eta_min': d.eta_min,
+                 'guard_phone': d.guard_phone if d.status in ('accepted', 'arrived') else ''}
+                for d in obj.dispatches.select_related('provider')]
 
     def get_responses(self, obj):
         qs = obj.responses.select_related('responder__profile')

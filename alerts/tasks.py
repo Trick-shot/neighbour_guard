@@ -42,3 +42,25 @@ def notify_emergency_contacts(alert_id: int):
     body = (f'{alert.sender.full_name} sent a {alert.get_type_display().lower()} alert on '
             f'NeighbourGuard from {where}. Neighbours nearby have been alerted.')
     send_sms(body, numbers)
+
+
+@shared_task(ignore_result=True)
+def fan_out_witness(report_id: int):
+    """Push a witness report to everyone living near the point. Slow work, so a task."""
+    from places.services import residences_near
+
+    from . import push
+    from .models import WitnessReport
+    from django.contrib.auth import get_user_model
+
+    report = WitnessReport.objects.filter(pk=report_id).first()
+    if not report:
+        return
+    ids = [r.id for r, _ in residences_near(report.lat, report.lng, WitnessReport.RADIUS_M)]
+    tokens = [t for t in get_user_model().objects.filter(residence_membership__residence_id__in=ids, is_active=True)
+              .values_list('push_token', flat=True) if t]
+    where = f' near {report.street}' if report.street else ' near you'
+    title = f'Witness report: {report.get_type_display().lower()}{where}'
+    body = report.description or 'Someone passing by reported this. Check on your neighbours.'
+    data = {'kind': 'witness', 'report_id': report.id, 'type': report.type}
+    push.send([push.sos_message(t, title, body, data) for t in tokens])

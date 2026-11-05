@@ -41,6 +41,7 @@ export default function NeighbourAlarm() {
         alertsApi.get(alertId).then((a) => {
             setAlert(a);
             if (a.status === 'sent') alertsApi.respond(alertId, 'seen').catch(() => undefined);
+            if (a.status === 'resolved') router.replace({pathname: '/alert/resolved', params: {id: String(alertId)}});
         }).catch(() => router.back());
         placesApi.me().then(setMe).catch(() => undefined);
         (async () => {

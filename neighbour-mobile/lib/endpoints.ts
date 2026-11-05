@@ -96,6 +96,17 @@ export const contactsApi = {
 export const alertsApi = {
     create: (client_id: string, type: AlertType) => call<Alert>(api.post('/api/v2/alerts/', {client_id, type})),
     active: () => call<Alert[]>(api.get('/api/v2/alerts/')),
+    // A passer-by's report. No account needed; the reporter is never shown. Retry with the same client_id.
+    witness: (r: { client_id: string; type: AlertType; lat: number; lng: number; street?: string; description?: string; photo?: string | null }) => {
+        const form = new FormData();
+        Object.entries(r).forEach(([k, v]) => {
+            if (v == null || k === 'photo') return;
+            form.append(k, String(v));
+        });
+        if (r.photo) form.append('photo', {uri: r.photo, name: 'witness.jpg', type: 'image/jpeg'} as unknown as Blob);
+        return call<{ id: number; homes_alerted: number; radius_m: number; created_at: string }>(
+            api.post('/api/v2/alerts/witness/', form, {headers: {'Content-Type': 'multipart/form-data'}}));
+    },
     get: (id: number) => call<Alert>(api.get(`/api/v2/alerts/${id}/`)),
     changeType: (id: number, type: AlertType) => call<Alert>(api.post(`/api/v2/alerts/${id}/type/`, {type})),
     cancel: (id: number) => call<Alert>(api.post(`/api/v2/alerts/${id}/cancel/`)),

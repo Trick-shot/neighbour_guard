@@ -38,10 +38,18 @@ export default function OnTheWay() {
     const responding = (alert?.responses ?? []).filter((r) => r.state === 'coming' || r.state === 'arrived').length;
     const live = alert?.status === 'sent';
 
+    // Over: everyone sees the same summary (Figma "Alert — resolved").
+    useEffect(() => {
+        if (alert?.status === 'resolved') router.replace({pathname: '/alert/resolved', params: {id: String(alertId)}});
+    }, [alert?.status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // "I've arrived" hands over to the incident chat (Figma "Alert — arrived, incident chat").
     const arrived = async () => {
         setBusy(true);
         await alertsApi.respond(alertId, 'arrived').catch(() => undefined);
-        router.replace('/(tabs)');
+        const group = (await chatApi.conversations().catch(() => [])).find((x) => x.kind === 'group');
+        if (group) router.replace({pathname: '/chat/[id]', params: {id: String(group.id), alert: String(alertId)}});
+        else router.replace('/(tabs)');
     };
 
     const messageGroup = async () => {

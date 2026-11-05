@@ -26,6 +26,8 @@ def sos_message(token: str, title: str, body: str, data: dict) -> dict:
         'priority': 'high',
         # The phone creates an Android channel called "sos" with the alarm sound and max importance.
         'channelId': 'sos',
+        # Lock-screen buttons "I'm coming" and "View map" (Figma "Lock screen — critical alert").
+        'categoryId': 'sos',
         'sound': 'alarm.mp3',
         # iOS: passes Focus modes. Ringing on silent needs Apple's Critical Alerts entitlement.
         'interruptionLevel': 'time-sensitive',

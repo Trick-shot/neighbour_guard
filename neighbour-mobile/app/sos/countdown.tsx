@@ -7,6 +7,7 @@ import Svg, {Circle} from 'react-native-svg';
 
 import AlertTypeChip, {ALERT_META} from '@/components/ui/AlertTypeChip';
 import Button from '@/components/ui/Button';
+import Icon from '@/components/ui/Icon';
 import Text from '@/components/ui/Text';
 import {alertsApi} from '@/lib/endpoints';
 import {Alert, AlertType} from '@/lib/types';
@@ -100,11 +101,16 @@ export default function Countdown() {
     const label = alert ? ALERT_META[alert.type].label : 'Emergency';
     const recipients = alert?.recipients;
     const body = alert
-        ? `${label} alert to ${recipients ?? 'your'} neighbour${recipients === 1 ? '' : 's'} within ${alert.radius_m} m. Pressed by mistake? Cancel now and nobody is disturbed.`
+        ? `${label} alert to ${recipients ?? 'your'} neighbour${recipients === 1 ? '' : 's'} within ${alert.radius_m}\u00a0m. Pressed by mistake? Cancel now and nobody is disturbed.`
         : 'Pressed by mistake? Cancel now and nobody is disturbed.';
 
     return (
         <View style={[styles.screen, {paddingTop: insets.top}]}>
+            {/* The sender's own phone never rings: an alarm going off in a robbery is the last thing anyone needs. */}
+            <View style={styles.silent}>
+                <Icon name="volume-x" size={14} color="#ffffff"/>
+                <Text variant="label" color="rgba(255,255,255,0.9)">Silent SOS · your phone stays quiet</Text>
+            </View>
             <View style={styles.ringBox}>
                 <Svg width={SIZE} height={SIZE} style={{transform: [{rotate: '-90deg'}]}}>
                     <Circle cx={SIZE / 2} cy={SIZE / 2} r={r} stroke="rgba(255,255,255,0.12)" strokeWidth={STROKE} fill="none"/>
@@ -128,7 +134,7 @@ export default function Countdown() {
             <Text variant="footnote" color="rgba(255,255,255,0.55)" style={styles.center}>Change the type before it goes out.</Text>
 
             <View style={{flex: 1}}/>
-            <View style={[styles.buttons, {paddingBottom: Math.max(insets.bottom, 16)}]}>
+            <View style={[styles.buttons, {paddingBottom: Math.max(insets.bottom, 30)}]}>
                 <Button title="Send now" variant="danger" onPress={sendNow} loading={busy === 'send'} disabled={!!busy}/>
                 <Button title="Cancel · it was a mistake" variant="outlineOnDark" onPress={cancel} loading={busy === 'cancel'} disabled={!!busy}/>
             </View>
@@ -138,7 +144,9 @@ export default function Countdown() {
 
 const styles = StyleSheet.create({
     screen: {flex: 1, backgroundColor: INK, alignItems: 'center'},
-    ringBox: {marginTop: 96, width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center'},
+    silent: {marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 12, paddingRight: 14,
+        paddingVertical: 7, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)'},
+    ringBox: {marginTop: 40, width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center'},
     ringCenter: {position: 'absolute', alignItems: 'center'},
     center: {textAlign: 'center'},
     body: {width: 340, marginTop: 10},

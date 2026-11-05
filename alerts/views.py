@@ -1,7 +1,10 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
+
+from core.views import MinuteWindowThrottle
 
 from . import services
 from .models import Alert, SafetyPin
@@ -142,3 +145,69 @@ class PushTokenView(APIView):
         request.user.push_token = token
         request.user.save(update_fields=['push_token'])
         return Response({'saved': True})
+
+
+class WitnessThrottle(MinuteWindowThrottle):
+    """By IP, signed in or not: a witness report can wake a street, so it must be rare."""
+    scope = 'witness'
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {'scope': self.scope, 'ident': self.get_ident(request)}
+
+
+class WitnessView(APIView):
+    """POST /api/v2/alerts/witness/ — {client_id, type, lat, lng, street?, description?, photo?}.
+
+    AllowAny on purpose (passers-by have no account). The reporter is never returned or shown.
+    Retrying with the same client_id returns the same report instead of a second push.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [WitnessThrottle]
+
+    def post(self, request):
+        import uuid
+
+        from django.db import transaction
+
+        from chat.files import sniff
+
+        from .models import WitnessReport
+        from .tasks import fan_out_witness
+
+        try:
+            client_id = uuid.UUID(str(request.data.get('client_id')))
+            lat, lng = float(request.data.get('lat')), float(request.data.get('lng'))
+        except (TypeError, ValueError):
+            return Response({'detail': 'client_id, lat and lng are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            return Response({'detail': 'That location is not on Earth.'}, status=status.HTTP_400_BAD_REQUEST)
+        kind = request.data.get('type') or Alert.Type.SUSPICIOUS
+        if kind not in Alert.Type.values:
+            return Response({'detail': 'Unknown type.'}, status=status.HTTP_400_BAD_REQUEST)
+        existing = WitnessReport.objects.filter(client_id=client_id).first()
+        if existing:
+            return Response(_witness_data(existing))
+        photo = request.FILES.get('photo')
+        if photo is not None:
+            head = photo.read(32)
+            photo.seek(0)
+            if photo.size > 10 * 1024 * 1024 or sniff(head) not in ('image/jpeg', 'image/png', 'image/webp'):
+                return Response({'detail': 'Use a JPEG, PNG or WebP photo under 10 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+        from places.services import residences_near
+        report = WitnessReport.objects.create(
+            client_id=client_id, type=kind, lat=lat, lng=lng,
+            street=str(request.data.get('street') or '')[:100],
+            description=str(request.data.get('description') or '')[:500],
+            reporter=request.user if request.user.is_authenticated else None,
+            notified_count=len(residences_near(lat, lng, WitnessReport.RADIUS_M)),
+        )
+        if photo is not None:
+            report.photo.save(f'{report.pk}.img', photo, save=True)
+        transaction.on_commit(lambda: fan_out_witness.delay(report.id))
+        return Response(_witness_data(report), status=status.HTTP_201_CREATED)
+
+
+def _witness_data(report):
+    # Homes in range, not people: the count the reporter sees must not reveal who lives where.
+    return {'id': report.id, 'type': report.type, 'homes_alerted': report.notified_count,
+            'radius_m': report.RADIUS_M, 'created_at': report.created_at}

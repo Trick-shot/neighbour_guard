@@ -61,6 +61,7 @@ wording right.
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
+| POST | `alerts/witness/` | **No account needed.** multipart `client_id, type, lat, lng, street?, description?, photo?` | 201 `{id, type, homes_alerted, radius_m, created_at}`; repeat `client_id` → 200 same. 3/hour per IP. Pushes homes within 300 m (Celery) |
 | POST | `alerts/` | `client_id (uuid made on the phone), type, message?` | 201 pending alert with `seconds_left`; repeat `client_id` → 200 same alert |
 | GET | `alerts/` | | Live alerts around me |
 | GET | `alerts/<id>/` | | Alert. 404 if I am not the sender or a neighbour |
@@ -205,5 +206,5 @@ means a guard was asked, not that one is coming; only the provider moves it on.
 | GET | `notifications/?kind=alerts` | | `{unread, items[{id, kind (alert/vouch/issue/provider/welcome), title, body, at, unread, alert_id?, live?, issue_id?, residence_id?}]}`, newest first, last 30 days. Built from existing data; my own alerts are never included |
 | POST | `notifications/seen/` | | 204. Everything up to now is read |
 
-Alert detail now also carries `sender_medical: {skills, conditions, allergies, blood_type}` for
+Alert detail now also carries `dispatches[{provider, status, guard_name, eta_min, guard_phone}]` (phone only once accepted) and `sender_medical: {skills, conditions, allergies, blood_type}` for
 people allowed to see the alert exactly, while it is live; `null` otherwise.

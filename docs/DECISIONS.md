@@ -2,6 +2,15 @@
 
 Each entry: the decision, why, and what would make us revisit it. Newest first.
 
+## 2026-11-05 · A witness report is not an Alert
+`POST /api/v2/alerts/witness/` (no account needed) stores a `WitnessReport` and pushes homes within
+300 m of the point, in a Celery task. **Why not an Alert:** an Alert has a sender's home that
+responders walk to, a countdown and a PIN to end it; a passer-by has none of those. **Abuse:** it
+is the one endpoint that lets a stranger wake a street, so it is limited to 3 per hour per IP,
+idempotent on `client_id`, and the reporter (when signed in) is stored for abuse handling but never
+returned. The reporter sees "homes alerted", not people, and no "responding" count — nobody
+responds to a witness report. **Revisit:** if it is abused, require a verified phone.
+
 ## 2026-11-05 · The notifications feed is computed, not stored
 `GET /api/v2/notifications/` builds the list from alerts, vouch requests, issue replies, provider
 coverage and the welcome, every time (places/feed.py). `notifications_seen_at` on the user is the

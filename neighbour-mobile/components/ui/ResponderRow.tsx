@@ -29,7 +29,7 @@ export default function ResponderRow({response}: { response: AlertResponse }) {
             <Avatar name={response.name}/>
             <View style={styles.text}>
                 <Text variant="bodyEmphasis" numberOfLines={1}>{response.name}</Text>
-                <Text variant="footnote" color={active ? c.text.secondary : c.text.muted}>{responseLabel(response)}</Text>
+                <Text variant="footnote" color={response.state === 'arrived' ? c.text.brand : active ? c.text.secondary : c.text.muted}>{responseLabel(response)}</Text>
             </View>
             {response.phone ? (
                 <Pressable
