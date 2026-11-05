@@ -162,6 +162,8 @@ export const providersApi = {
     join: (planId: number) => call<MySubscription>(api.post(`/api/v2/providers/plans/${planId}/join/`)),
     leave: (planId: number) => call(api.delete(`/api/v2/providers/plans/${planId}/join/`)),
     /** Poll while a payment is on the customer's phone. The server decides `paid`, never the app. */
+    // "Resend request": a second tap within a minute returns the same request, not a new prompt.
+    pay: (subscriptionId: number) => call<PaymentStatus>(api.post(`/api/v2/providers/subscriptions/${subscriptionId}/pay/`)),
     payment: (id: number) => call<PaymentStatus>(api.get(`/api/v2/providers/payments/${id}/`)),
 };
 

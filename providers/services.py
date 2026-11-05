@@ -61,9 +61,10 @@ def leave_pool(user, plan: Plan) -> None:
     home = residence_of(user)
     if not home:
         return
-    SubscriptionMember.objects.filter(
-        subscription__plan=plan, residence=home,
-    ).exclude(status=SubscriptionMember.Status.PAID).update(status=SubscriptionMember.Status.LEFT)
+    members = SubscriptionMember.objects.filter(subscription__plan=plan, residence=home)
+    members.exclude(status=SubscriptionMember.Status.PAID).update(status=SubscriptionMember.Status.LEFT)
+    # A month already paid stays paid: the home is covered to the end of it, then not renewed.
+    members.filter(status=SubscriptionMember.Status.PAID).update(renews=False)
 
 
 def maybe_collect(subscription: Subscription) -> int:

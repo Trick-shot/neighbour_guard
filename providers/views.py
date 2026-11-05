@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from places.services import residence_of
 
 from . import services
-from .models import Payment, Plan, Subscription
+from .models import Payment, Plan, Subscription, SubscriptionMember
 from .serializers import MySubscriptionSerializer, PaymentSerializer, ProviderSerializer
 
 logger = logging.getLogger(__name__)
@@ -59,6 +59,34 @@ class MySubscriptionsView(APIView):
                          .select_related('plan__provider').distinct())
         return Response(MySubscriptionSerializer(
             subscriptions, many=True, context={'residence': home}).data)
+
+
+class PayView(APIView):
+    """POST /api/v2/providers/subscriptions/<id>/pay/ — "Resend request" on "Pay with M-Pesa".
+
+    Only for my own membership once the pool is collecting. A request younger than a minute is
+    returned instead of sending another, so a double tap is one prompt on the phone, not two.
+    """
+
+    def post(self, request, pk):
+        from datetime import timedelta
+        from django.utils import timezone
+
+        home = residence_of(request.user)
+        member = SubscriptionMember.objects.filter(subscription_id=pk, residence=home, user=request.user).select_related('subscription__plan').first() if home else None
+        if not member or member.status not in (SubscriptionMember.Status.INVITED, SubscriptionMember.Status.JOINED):
+            return Response({'detail': 'Nothing to pay here yet.'}, status=status.HTTP_409_CONFLICT)
+        if member.status == SubscriptionMember.Status.JOINED and member.subscription.joined_count < member.subscription.plan.min_houses:
+            return Response({'detail': 'Nobody pays until enough houses join.'}, status=status.HTTP_409_CONFLICT)
+        recent = member.payments.filter(status=Payment.Status.PENDING, created_at__gte=timezone.now() - timedelta(seconds=60)).first()
+        if recent:
+            return Response(PaymentSerializer(recent).data)
+        try:
+            payment = services.start_payment(member)
+        except services.PoolError as e:
+            return Response({'detail': str(e)}, status=CODES.get(e.code, status.HTTP_400_BAD_REQUEST))
+        SubscriptionMember.objects.filter(pk=member.pk, status=SubscriptionMember.Status.JOINED).update(status=SubscriptionMember.Status.INVITED)
+        return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
 
 class PaymentView(APIView):

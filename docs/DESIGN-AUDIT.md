@@ -129,3 +129,17 @@ Bug found on the way: the Issues tab was missing from the tab bar on every phone
 | My alert history | 1634:2762 | `profile/history` | match |
 | My household | 1637:5288 | `profile/household` | match (no ages in years: we store child / adult / elderly) |
 | Skills & medical notes | 1637:5378 | `profile/medical` | match (earlier) |
+
+## 08 · Security providers
+
+| Frame | Node | Route | Status |
+| --- | --- | --- | --- |
+| Security providers — near you | 1635:2654 | `providers` | match. The filter icon switches the order: response time / price |
+| Provider & plans | 1635:2751 | `providers/[id]` | match. "Best value" goes to the cheapest whole-street plan |
+| Whole street gathering | 1758:186 | `providers/pool/[id]` | match, minus "House 116 · Not on the app": we cannot know houses that have no account, so the invite button covers them |
+| Confirm payment — M-Pesa | 1758:245 | `providers/pay/[id]` | match. The countdown is the 60 s an M-Pesa prompt stays open |
+| My plan | 1758:291 | `providers/mine/[id]` | match. "On duty tonight" only for a paying member of an active plan |
+| Subscribed — Home | 1749:2431 | `(tabs)` with `covered` param | match (status "Protected by …", toast) |
+
+Provider ratings, review counts, response times, features and the guard on duty are entered by the
+provider (admin today); the app shows nothing it was not given.

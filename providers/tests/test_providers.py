@@ -291,3 +291,65 @@ class DispatchTests(APITestCase):
         self.assertEqual(summary['guards'], [{'provider': 'Masaki Security', 'status': 'requested',
                                               'eta_min': None, 'name': None}])
         self.assertEqual(payload['status'], 'sent')
+
+
+class PlanScreensTests(PoolTests):
+    """Figma page 08: what "Whole street plan", "Pay with M-Pesa" and "My security plan" may show."""
+
+    def _join(self, u):
+        self.client.force_authenticate(u)
+        with mock.patch('providers.tasks.request_member_payment'):
+            return self.client.post(f'/api/v2/providers/plans/{self.plan.pk}/join/')
+
+    def test_houses_list_shows_house_and_first_name_to_verified_members(self):
+        self._join(self.a)
+        r = self._join(self.b)
+        houses = r.data['houses']
+        self.assertEqual({h['house_number'] for h in houses}, {'109', '110'})
+        self.assertEqual({h['first_name'] for h in houses}, {'Asha', 'Juma'})
+        self.assertNotIn('lat', houses[0])
+
+    def test_pay_refuses_before_the_pool_is_full(self):
+        self._join(self.a)
+        sub = Subscription.objects.get()
+        r = self.client.post(f'/api/v2/providers/subscriptions/{sub.pk}/pay/')
+        self.assertEqual(r.status_code, 409)
+
+    def test_pay_refuses_someone_not_in_the_pool(self):
+        self._join(self.a)
+        sub = Subscription.objects.get()
+        self.client.force_authenticate(self.b)
+        r = self.client.post(f'/api/v2/providers/subscriptions/{sub.pk}/pay/')
+        self.assertEqual(r.status_code, 409)
+
+    @override_settings(**MPESA)
+    def test_a_double_tap_is_one_request(self):
+        self._join(self.a)
+        self._join(self.b)
+        sub = Subscription.objects.get()
+        self.client.force_authenticate(self.a)
+        with mock.patch('providers.mpesa.request_payment', return_value='checkout-x') as stk:
+            first = self.client.post(f'/api/v2/providers/subscriptions/{sub.pk}/pay/')
+            again = self.client.post(f'/api/v2/providers/subscriptions/{sub.pk}/pay/')
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(again.data['id'], first.data['id'])
+        stk.assert_called_once()
+
+    def test_guard_on_duty_is_hidden_until_I_have_paid(self):
+        self.provider.on_duty_name, self.provider.on_duty_shift = 'Baraka Mwita', 'Night patrol · 22:00–05:00'
+        self.provider.save()
+        r = self._join(self.a)
+        self.assertIsNone(r.data['on_duty'])
+        sub = Subscription.objects.get()
+        Subscription.objects.filter(pk=sub.pk).update(status=Subscription.Status.ACTIVE)
+        SubscriptionMember.objects.filter(user=self.a).update(status=SubscriptionMember.Status.PAID)
+        mine = self.client.get('/api/v2/providers/subscriptions/').data[0]
+        self.assertEqual(mine['on_duty']['name'], 'Baraka Mwita')
+
+    def test_cancelling_a_paid_month_keeps_cover_but_stops_renewal(self):
+        self._join(self.a)
+        SubscriptionMember.objects.filter(user=self.a).update(status=SubscriptionMember.Status.PAID)
+        self.client.delete(f'/api/v2/providers/plans/{self.plan.pk}/join/')
+        m = SubscriptionMember.objects.get(user=self.a)
+        self.assertEqual(m.status, SubscriptionMember.Status.PAID)
+        self.assertFalse(m.renews)

@@ -1,156 +1,134 @@
-import {router} from 'expo-router';
-import {useCallback, useEffect, useState} from 'react';
-import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {router, useFocusEffect} from 'expo-router';
+import {useCallback, useState} from 'react';
+import {Pressable, RefreshControl, ScrollView, StyleSheet, View} from 'react-native';
 
+import ProviderLogo from '@/components/providers/ProviderLogo';
 import Icon from '@/components/ui/Icon';
 import ScreenHeader from '@/components/ui/ScreenHeader';
 import StateView from '@/components/ui/StateView';
 import Text from '@/components/ui/Text';
 import {providersApi} from '@/lib/endpoints';
 import {MySubscription, SecurityProvider} from '@/lib/types';
-import {radius, shadow, useColors} from '@/theme';
+import {useColors} from '@/theme';
 
 /**
- * Figma page "Android · 08" / "Security providers".
- *
- * A street pool: houses join for free, and nobody is charged until enough of them have joined for
- * the provider to run a patrol. That is the whole idea, so it is said on the screen rather than
- * buried in a plan's small print.
+ * Figma "Security providers — near you" (1635:2654). Only verified providers that cover my area
+ * reach this list (the server filters). The filter cycles the order: nearest response, then price.
  */
-const money = (tsh: number) => `${tsh.toLocaleString('en-US')} TSh`;
+const money = (n: number) => n.toLocaleString('en-US');
+const cheapest = (p: SecurityProvider) => Math.min(...p.plans.map((x) => x.price_tsh));
 
 export default function Providers() {
     const c = useColors();
-    const insets = useSafeAreaInsets();
-    const [list, setList] = useState<SecurityProvider[] | null>(null);
+    const [providers, setProviders] = useState<SecurityProvider[] | null>(null);
     const [mine, setMine] = useState<MySubscription[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [order, setOrder] = useState<'response' | 'price'>('response');
 
     const load = useCallback(async () => {
         try {
-            const [providers, subscriptions] = await Promise.all([providersApi.list(), providersApi.mine()]);
-            setList(providers);
-            setMine(subscriptions);
+            const [list, subs] = await Promise.all([providersApi.list(), providersApi.mine()]);
+            setProviders(list);
+            setMine(subs);
             setError(null);
         } catch (e: any) {
             setError(e.message);
-            setList([]);
         }
     }, []);
+    useFocusEffect(useCallback(() => { load(); }, [load]));
 
-    useEffect(() => { load(); }, [load]);
+    const sorted = [...(providers ?? [])].filter((p) => p.plans.length > 0).sort((a, b) => order === 'price'
+        ? cheapest(a) - cheapest(b)
+        : (a.response_min ?? 99) - (b.response_min ?? 99));
+    const active = mine.find((s) => s.status === 'active' && s.my_status === 'paid');
 
-    const joinedPlanIds = new Set(mine.filter((s) => s.my_status && s.my_status !== 'left').map((s) => s.plan.id));
+    const open = (p: SecurityProvider) => {
+        const sub = mine.find((s) => s.provider_id === p.id && s.my_status && s.my_status !== 'left');
+        if (sub?.status === 'active' && sub.my_status === 'paid') router.push({pathname: '/providers/mine/[id]', params: {id: String(sub.id)}});
+        else if (sub?.my_payment_id) router.push({pathname: '/providers/pay/[id]', params: {id: String(sub.id)}});
+        else if (sub && sub.plan.kind === 'street') router.push({pathname: '/providers/pool/[id]', params: {id: String(sub.id)}});
+        else router.push({pathname: '/providers/[id]', params: {id: String(p.id)}});
+    };
 
     return (
-        <View style={[styles.screen, {backgroundColor: c.bg.page}]}>
-            <ScreenHeader title="Security providers"/>
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                <View style={[styles.note, {backgroundColor: c.bg.brandSubtle}]}>
-                    <Icon name="users" size={20} color={c.icon.brand}/>
-                    <Text variant="footnote" color={c.text.secondary} style={styles.flex}>
-                        Joining a street plan is free. Nobody pays anything until enough houses on the street have
-                        joined for the provider to run a patrol — then everyone is asked at once.
-                    </Text>
-                </View>
-
-                {mine.filter((s) => s.my_status && s.my_status !== 'left').map((subscription) => (
-                    <Pressable key={subscription.id} accessibilityRole="button"
-                               onPress={() => router.push(`/providers/${subscription.plan.id}`)}
-                               style={[styles.card, shadow.bubble, {backgroundColor: c.bg.surface}]}>
-                        <View style={styles.row}>
-                            <Text variant="bodyEmphasis" style={styles.flex}>{subscription.provider}</Text>
-                            <View style={[styles.pill, {backgroundColor: subscription.status === 'active'
-                                    ? c.feedback.successBg : c.bg.subtle}]}>
-                                <Text variant="caption1" color={subscription.status === 'active'
-                                    ? c.feedback.success : c.text.secondary}>
-                                    {subscription.status === 'active' ? 'Covering your street'
-                                        : subscription.status === 'lapsed' ? 'Lapsed' : 'Gathering houses'}
-                                </Text>
-                            </View>
-                        </View>
-                        <Text variant="subhead" color={c.text.secondary}>
-                            {subscription.plan.name} · {money(subscription.plan.price_tsh)} a month each
+        <View style={[styles.screen, {backgroundColor: c.bg.surface}]}>
+            <ScreenHeader title="Security providers" right={
+                <Pressable accessibilityLabel={`Sort by ${order === 'price' ? 'response time' : 'price'}`} hitSlop={10}
+                           onPress={() => setOrder((o) => (o === 'price' ? 'response' : 'price'))}>
+                    <Icon name="filter" size={24}/>
+                </Pressable>
+            }/>
+            {providers === null && !error ? <StateView kind="loading"/> : error && !providers ? (
+                <StateView kind="error" body={error} actionLabel="Try again" onAction={load}/>
+            ) : (
+                <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={false} onRefresh={load}/>}>
+                    <View style={[styles.note, {backgroundColor: c.bg.subtle}]}>
+                        <Icon name="shield-check" size={18} color={c.icon.brand}/>
+                        <Text variant="footnote" color={c.text.secondary} style={styles.flex}>
+                            Providers get your street’s alerts at the same time as your neighbours. Prices are set by each provider.
                         </Text>
-                        <Progress joined={subscription.joined} paid={subscription.paid} needed={subscription.needed}/>
-                    </Pressable>
-                ))}
-
-                <Text variant="label" color={c.text.muted} style={styles.heading}>Available where you live</Text>
-
-                {list === null ? <StateView kind="loading"/>
-                    : error ? <StateView kind="error" body={error} actionLabel="Try again" onAction={load}/>
-                        : list.length === 0 ? (
-                            <StateView kind="empty" icon="shield-check" title="No providers here yet"
-                                       body="Nobody licensed covers your neighbourhood on NeighbourGuard so far."/>
-                        ) : list.map((provider) => (
-                            <View key={provider.id} style={[styles.card, shadow.bubble, {backgroundColor: c.bg.surface}]}>
-                                <View style={styles.row}>
-                                    <View style={[styles.icon, {backgroundColor: c.bg.subtle}]}>
-                                        <Icon name="shield-check" size={20} color={c.icon.brand}/>
+                    </View>
+                    {active && (
+                        <Pressable onPress={() => router.push({pathname: '/providers/mine/[id]', params: {id: String(active.id)}})}
+                                   style={[styles.covered, {backgroundColor: c.feedback.successBg}]}>
+                            <Icon name="shield-check" size={20} color={c.feedback.success}/>
+                            <Text variant="subhead" color={c.feedback.success} style={styles.flex}>You’re covered by {active.provider}</Text>
+                            <Icon name="chevron-right" size={18} color={c.feedback.success}/>
+                        </Pressable>
+                    )}
+                    {sorted.length === 0 && (
+                        <StateView kind="empty" title="No providers here yet" body="When a licensed provider covers your area, they appear here."/>
+                    )}
+                    {sorted.map((p) => (
+                        <Pressable key={p.id} onPress={() => open(p)} style={[styles.card, {borderColor: c.border.default}]}>
+                            <View style={styles.top}>
+                                <ProviderLogo name={p.name}/>
+                                <View style={styles.flex}>
+                                    <View style={styles.nameRow}>
+                                        <Text variant="headline" numberOfLines={1} style={styles.shrink}>{p.name}</Text>
+                                        {p.verified && <Icon name="shield-check" size={18} color={c.feedback.success}/>}
                                     </View>
-                                    <View style={styles.flex}>
-                                        <Text variant="bodyEmphasis">{provider.name}</Text>
-                                        <Text variant="footnote" color={c.text.muted}>
-                                            {[provider.licence_no && `Licence ${provider.licence_no}`,
-                                                provider.rating && `${provider.rating} / 5`]
-                                                .filter(Boolean).join(' · ') || 'Licensed provider'}
+                                    {p.rating && (
+                                        <Text variant="footnote" color={c.text.secondary}>
+                                            ★ {Number(p.rating).toFixed(1)}{p.review_count ? ` · ${p.review_count} reviews` : ''}
                                         </Text>
-                                    </View>
+                                    )}
                                 </View>
-                                {provider.plans.map((plan) => (
-                                    <Pressable key={plan.id} accessibilityRole="button"
-                                               onPress={() => router.push(`/providers/${plan.id}`)}
-                                               style={[styles.plan, {borderColor: c.border.default}]}>
-                                        <View style={styles.flex}>
-                                            <Text variant="label">{plan.name}</Text>
-                                            <Text variant="footnote" color={c.text.muted}>
-                                                {money(plan.price_tsh)} a month · needs {plan.min_houses}{' '}
-                                                {plan.min_houses === 1 ? 'house' : 'houses'}
-                                            </Text>
-                                        </View>
-                                        {joinedPlanIds.has(plan.id)
-                                            ? <Icon name="check" size={20} color={c.icon.brand}/>
-                                            : <Icon name="chevron-right" size={20} color={c.icon.muted}/>}
-                                    </Pressable>
-                                ))}
+                                <Icon name="chevron-right" size={20} color={c.icon.muted}/>
                             </View>
-                        ))}
-                <View style={{height: Math.max(insets.bottom, 16)}}/>
-            </ScrollView>
-        </View>
-    );
-}
-
-export function Progress({joined, paid, needed}: { joined: number; paid: number; needed: number }) {
-    const c = useColors();
-    const share = Math.min(1, needed ? joined / needed : 1);
-    return (
-        <View style={styles.progressWrap}>
-            <View style={[styles.track, {backgroundColor: c.bg.subtle}]}>
-                <View style={[styles.fill, {width: `${share * 100}%`, backgroundColor: c.bg.brand}]}/>
-            </View>
-            <Text variant="caption1" color={c.text.muted}>
-                {joined} of {needed} houses joined{paid ? ` · ${paid} paid` : ''}
-            </Text>
+                            <View style={styles.chips}>
+                                {p.response_min != null && (
+                                    <View style={[styles.chip, {backgroundColor: c.bg.subtle}]}>
+                                        <Icon name="clock" size={16} color={c.icon.brand}/>
+                                        <Text variant="footnote" color={c.text.secondary}>~{p.response_min} min response</Text>
+                                    </View>
+                                )}
+                                {!!p.licence_no && (
+                                    <View style={[styles.chip, {backgroundColor: c.feedback.successBg}]}>
+                                        <Icon name="check" size={16} color={c.feedback.success}/>
+                                        <Text variant="footnote" color={c.feedback.success}>Licensed</Text>
+                                    </View>
+                                )}
+                            </View>
+                            <Text variant="subhead" color={c.text.brand}>From TSh {money(cheapest(p))} / house / month</Text>
+                        </Pressable>
+                    ))}
+                </ScrollView>
+            )}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     screen: {flex: 1},
-    content: {paddingHorizontal: 16, paddingTop: 8, gap: 12},
-    note: {flexDirection: 'row', gap: 12, padding: 14, borderRadius: radius.md, alignItems: 'flex-start'},
     flex: {flex: 1, gap: 2},
-    card: {borderRadius: radius.lg, padding: 14, gap: 10},
-    row: {flexDirection: 'row', alignItems: 'center', gap: 12},
-    icon: {width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center'},
-    pill: {paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill},
-    plan: {flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.md,
-        borderWidth: 1},
-    heading: {marginTop: 12, marginLeft: 4},
-    progressWrap: {gap: 6},
-    track: {height: 6, borderRadius: radius.pill, overflow: 'hidden'},
-    fill: {height: 6, borderRadius: radius.pill},
+    shrink: {flexShrink: 1},
+    content: {padding: 16, gap: 12},
+    note: {flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12},
+    covered: {flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12},
+    card: {borderWidth: 1, borderRadius: 16, padding: 16, gap: 12},
+    top: {flexDirection: 'row', alignItems: 'center', gap: 12},
+    nameRow: {flexDirection: 'row', alignItems: 'center', gap: 6},
+    chips: {flexDirection: 'row', gap: 8, flexWrap: 'wrap'},
+    chip: {flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, height: 24, borderRadius: 999},
 });

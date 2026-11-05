@@ -109,13 +109,17 @@ export type Plan = {
     description: string;
     price_tsh: number;
     min_houses: number;
+    features: string[];
 };
 
 export type SecurityProvider = {
     id: number;
     name: string;
     licence_no: string;
+    verified: boolean;
     rating: string | null;
+    review_count: number;
+    response_min: number | null;
     plans: Plan[];
 };
 
@@ -132,6 +136,12 @@ export type MySubscription = {
     my_status: 'joined' | 'invited' | 'paid' | 'left' | null;
     /** Set while a payment is waiting on the customer's phone; poll it, never assume. */
     my_payment_id: number | null;
+    provider_id: number;
+    /** House number + first name of each house in the pool; empty for an unverified viewer. */
+    houses: { house_number: string; first_name: string; status: 'joined' | 'invited' | 'paid'; is_me: boolean }[];
+    me: { paid_until: string | null; renews: boolean; pay_phone: string | null; receipts: { at: string; amount_tsh: number; ref: string | null }[] } | null;
+    /** Only for a paying member of a live plan. */
+    on_duty: { name: string; shift: string; phone: string } | null;
 };
 
 export type PaymentStatus = {

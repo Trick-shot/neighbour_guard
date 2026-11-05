@@ -40,13 +40,15 @@ const metres = (a: { lat: number; lng: number }, b: { lat: number; lng: number }
 export default function Home() {
     const c = useColors();
     const insets = useSafeAreaInsets();
-    const params = useLocalSearchParams<{ checklist?: string }>();
+    const params = useLocalSearchParams<{ checklist?: string; covered?: string }>();
     const map = useRef<MapView>(null);
     const [home, setHome] = useState<MyResidence | null>(null);
     const [areas, setAreas] = useState<Area[]>([]);
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [unread, setUnread] = useState(0);
     const [covered, setCovered] = useState<boolean | null>(null);
+    const [guard, setGuard] = useState<{ provider: string; onDuty: boolean } | null>(null);
+    const [toast, setToast] = useState<string | null>(null);
     const [satellite, setSatellite] = useState(false);
     const [actionsOpen, setActionsOpen] = useState(false);
     const [noHome, setNoHome] = useState(false);
@@ -73,7 +75,11 @@ export default function Home() {
             if (e.status === 404) setNoHome(true);
             if (e.message === 'No connection') setOffline(true);
         }
-        providersApi.mine().then((subs) => setCovered(subs.some((s) => s.status === 'active'))).catch(() => setCovered(null));
+        providersApi.mine().then((subs) => {
+            const live = subs.find((s) => s.status === 'active' && s.my_status === 'paid');
+            setCovered(!!live);
+            setGuard(live ? {provider: live.provider, onDuty: !!live.on_duty} : null);
+        }).catch(() => setCovered(null));
     }, []);
 
     useFocusEffect(useCallback(() => {
@@ -95,6 +101,14 @@ export default function Home() {
         });
     }, [params.checklist]);
 
+    // "Subscribed — Home" (1749:2431): the payment screen lands here once the server says paid.
+    useEffect(() => {
+        if (!params.covered) return;
+        setToast(`You’re now covered by ${params.covered}`);
+        const t = setTimeout(() => setToast(null), 4000);
+        return () => clearTimeout(t);
+    }, [params.covered]);
+
     useEffect(() => events.on('sosHint', () => {
         setHint(true);
         setTimeout(() => setHint(false), 3500);
@@ -115,6 +129,8 @@ export default function Home() {
     const status = nearest
         ? {tone: 'alert' as const, title: `${ALERT_META[nearest.type].label} ${away}`,
             subtitle: `${nearest.sender_name} · ${coming} responding · tap to help`}
+        : guard ? {tone: 'protected' as const, title: `Protected by ${guard.provider}`,
+            subtitle: `${guard.onDuty ? 'Guard on duty · ' : ''}${neighbours} ${neighbours === 1 ? 'neighbour' : 'neighbours'} nearby`}
         : {tone: 'quiet' as const, title: `All quiet in ${home?.neighbourhood.name ?? 'your area'}`,
             subtitle: noHome ? 'Add your home to see your neighbours'
                 : `${neighbours} ${neighbours === 1 ? 'neighbour' : 'neighbours'} nearby`};
@@ -235,6 +251,13 @@ export default function Home() {
                 <View pointerEvents="none" style={styles.hint}>
                     <Icon name="clock" size={16} color={c.text.inverse}/>
                     <Text variant="subhead" color={c.text.inverse}>Hold for 2 seconds to send SOS</Text>
+                </View>
+            )}
+
+            {toast && (
+                <View pointerEvents="none" style={styles.hint}>
+                    <Icon name="check" size={16} color={c.feedback.success}/>
+                    <Text variant="subhead" color={c.text.inverse}>{toast}</Text>
                 </View>
             )}
 

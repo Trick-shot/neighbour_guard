@@ -159,10 +159,11 @@ home. A sent SOS posts a `kind: "alert"` message there.
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
-| GET | `providers/` | | **Verified** providers covering my neighbourhood, with their active plans. `coverage` is never returned |
+| GET | `providers/` | | **Verified** providers covering my neighbourhood: `id, name, licence_no, verified, rating, review_count, response_min, plans[{id, kind, name, description, price_tsh, min_houses, features[]}]`. `coverage` is never returned |
 | POST | `providers/plans/<id>/join/` | | 201 my pool. Free. 403 unless my home is verified and the provider covers my area |
-| DELETE | `providers/plans/<id>/join/` | | 204. A member who has already paid is not removed |
-| GET | `providers/subscriptions/` | | The pools my home is in: `joined`, `paid`, `needed`, `my_status`, `my_payment_id` |
+| DELETE | `providers/plans/<id>/join/` | | 204. A member who has already paid is not removed: they stay covered to `paid_until` and `renews` becomes false |
+| GET | `providers/subscriptions/` | | The pools my home is in: `joined`, `paid`, `needed`, `my_status`, `my_payment_id`, `provider_id`, `houses[{house_number, first_name, status, is_me}]` (verified viewers only), `me{paid_until, renews, pay_phone (masked), receipts[{at, amount_tsh, ref}]}`, `on_duty{name, shift, phone}` (only a paying member of an active plan) |
+| POST | `providers/subscriptions/<id>/pay/` | | 201 a new M-Pesa request for my share, or 200 the one sent in the last minute (a double tap is one prompt). 409 before the pool is full or if I am not in it |
 | GET | `providers/payments/<id>/` | | `{id, amount_tsh, status, created_at, settled_at}`. Someone else's is a 404 |
 | POST | `providers/mpesa/callback/?key=<MPESA_CALLBACK_SECRET>` | gateway callback body | `{received: true}`. 403 wrong key, 503 if the secret is unset |
 

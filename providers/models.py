@@ -20,6 +20,12 @@ class Provider(models.Model):
     verified = models.BooleanField(default=False)
     rating = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
     phone = models.CharField(max_length=20, blank=True)
+    # Shown on "Security providers near you" (Figma 1635:2654). Entered by the provider, checked by us.
+    review_count = models.PositiveIntegerField(default=0)
+    response_min = models.PositiveSmallIntegerField(null=True, blank=True, help_text='Typical minutes to arrive')
+    # "On duty tonight" on "My security plan" (1758:291): only paying members of a live plan see it.
+    on_duty_name = models.CharField(max_length=120, blank=True)
+    on_duty_shift = models.CharField(max_length=60, blank=True, help_text='e.g. Night patrol · 22:00–05:00')
     coverage = models.ManyToManyField('places.Neighbourhood', related_name='providers', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -42,6 +48,7 @@ class Plan(models.Model):
     price_tsh = models.PositiveIntegerField(help_text='Per house, per month, in TSh')
     # The provider decides how many houses make a patrol worth running.
     min_houses = models.PositiveSmallIntegerField(default=1)
+    features = models.JSONField(default=list, blank=True, help_text='Short lines: "Night patrol, 22:00–05:00"')
     active = models.BooleanField(default=True)
 
     class Meta:
@@ -99,6 +106,8 @@ class SubscriptionMember(models.Model):
     status = models.CharField(max_length=7, choices=Status.choices, default=Status.JOINED, db_index=True)
     joined_at = models.DateTimeField(auto_now_add=True)
     paid_until = models.DateTimeField(null=True, blank=True)
+    # "Cancel plan" after paying: covered until paid_until, then not asked again.
+    renews = models.BooleanField(default=True)
 
     class Meta:
         constraints = [
