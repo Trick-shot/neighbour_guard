@@ -5,7 +5,9 @@ repo. Keep it short: what changed, where, what is left, what Erick must check.
 
 ## Status at a glance
 
-Everything below is **written and tested on a laptop**. Nothing has run on a phone or a server yet.
+Everything below is **written and tested on a laptop**, and every screen has been seen running in
+the browser preview next to its Figma frame (`docs/DESIGN-AUDIT.md`). Nothing has run on a phone
+or a server yet.
 
 | Area | Backend | App |
 | --- | --- | --- |
@@ -16,11 +18,12 @@ Everything below is **written and tested on a laptop**. Nothing has run on a pho
 | Sign in with email code | Done, tested | Done |
 | Alarm reliability on the phone | Channel + push done | Alarm check screen, linked from Home and Profile |
 | Onboarding v2 (4 stages) | Done, tested | Account → Verify → Location → Safety, all v2 |
-| Profile v2 + sub-screens | Done, tested (household, `users/me`) | Profile, personal, home, household, PINs, contacts |
-| Issues v2 (visibility, follow, share) | Done, tested + v1 import | Issues tab (both scopes), detail, report |
+| Profile v2 + sub-screens | Done, tested (history, export, delete, quiet hours, map privacy) | All seven frames of page 07 |
+| Issues v2 (visibility, follow, share, photos) | Done, tested + v1 import | All eight frames of page 06, incl. map and discuss sheet |
 | Emergency contacts + SMS fallback | Done, tested | Contacts screen + the offline SMS send screen |
 | Neighbours + vouching | Endpoints already existed | Neighbours screen with vouching |
-| Security providers + mobile money | Done, tested — **no live gateway yet** | Providers list, plan and pool, payment polling |
+| Security providers + mobile money | Done, tested — **no live gateway yet** | All six frames of page 08 |
+| Figma fidelity (Android pages 01–09) | — | Every frame matched or an honest variant, see DESIGN-AUDIT |
 
 Demo path for 24 Oct: sign in → Home map → hold SOS → 10 s countdown → neighbour's phone rings →
 "I'm coming" → alert card in the group chat.
@@ -121,6 +124,38 @@ either shows you proof or shows you the gap.** (The battery-optimisation row is 
 reports that it cannot tell, and opens the setting, instead of displaying a green tick.)
 
 ---
+
+## 2026-11-05 — Claude Code — the whole Figma design implemented, pages 01 to 09
+
+**Done.** Every Android frame (the design for both platforms, no liquid glass) is built and was
+checked side by side with Figma in the browser preview. Commits on `rebuild/v2`, one per page:
+c05d3ac (01 onboarding + sign in), 6a32599 (02 Home), d07d89f (03 SOS), 9dde50b (04–05 neighbours,
+groups, messages), f5ef6a9 (06 issues), ed3ba25 (07 profile), 975a472 (08 providers),
+11b05fd (09 system states). Backend tests: 234, all pass. `npx tsc --noEmit`: only the old
+onboarding errors.
+
+Backend added along the way (each with tests, each in `API-v2.md`): issue photos, noise category,
+share-with-message; alert history; data export; delete account; quiet hours and a routine-push
+switch (server-side); an all-clear SMS to contacts on resolve; per-home map privacy; household
+relation and app members; provider rating/response/guard on duty; street-pool house list;
+resend-payment; SMS replies to an SMS SOS; the word after "SOS" decides the SMS type.
+
+**Files:** most of `neighbour-mobile/app/**`, new `components/ui/Settings.tsx`,
+`components/ui/StateView.tsx` (illustrated), `components/issues/DiscussSheet.tsx`,
+`components/providers/ProviderLogo.tsx`, `assets/illustrations/*.png`; backend in `core`, `places`,
+`alerts`, `issues`, `providers` (+5 migrations); `docs/DESIGN-AUDIT.md` (new).
+
+**How to see it without a phone:** `docs/DESIGN-AUDIT.md` → "How to run the preview".
+
+**Honest variants** (the frame shows something the app cannot know or do yet — each listed in
+DESIGN-AUDIT): ID check says "pending"; "Press power 5 times" disabled; houses "not on the app"
+are not listed; offline screen does not invent a neighbour count; a map-pin icon opens the Issues
+map (the frame has no way in).
+
+**Left / Erick must check on a phone:** the two-phone demo test (still the first roadmap item);
+the alarm on a locked phone with Vibrate on and off; Silent SOS on/off during the countdown;
+"Send SMS" opens the SMS app with the full message; image picker for issue photos and profile
+photo; Download my data opens the share sheet; Delete account on a throwaway account only.
 
 ## 2026-10-20 — Claude Code — onboarding seen running, and a crash that stops the demo
 

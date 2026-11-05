@@ -10,6 +10,8 @@ Pitch: DIC 2026, 24–25 Oct 2026 (Yeosu). Concept note due 20 Oct.
 - [ ] **Two-phone test of the demo path** (see the test table in PROGRESS.md). Fix every failure.
       Build both phones with `npx expo prebuild --clean` first — the `android/` folder on the
       machine is from an older config and has neither the notification permissions nor the Maps key.
+- [x] **Implement the whole Figma design, Android pages 01–09** (both platforms use the Android
+      frames). *(2026-11-05 — see DESIGN-AUDIT.md and the PROGRESS entry.)*
 - [x] Replace `neighbour-mobile/assets/illustrations/signin.png` with the Figma export of node
       `1631:1422` (Sign in illustration, 3x PNG). *(2026-11-05, with every other illustration.)*
 - [x] Google Maps Android key via `app.config.js` reading an env var (never committed).
@@ -64,13 +66,8 @@ or a server**, so treat every one as "written and tested, not yet seen working".
 - `expo-av` is deprecated and due for removal in SDK 54 (the SDK we are on). The voice note
   recorder and player need moving to `expo-audio` / `expo-video`.
 - Nothing behind sign-in has ever been seen running. 30-odd screens are still type-checked only.
-- Profile photos: the v1 upload screen is gone and v2 has no replacement. Avatars are initials
-  everywhere. Decide whether a photo is worth an endpoint.
-- Profile skills and encrypted medical notes are still "to build" in the backend reference; no
-  roadmap item covers them yet.
 - `alerts/tests/test_alerts.py`: `CountdownExtrasTests` subclasses `AlertApiTests`, so every parent
   test runs twice. Harmless, but it inflates the test count — split the shared `setUp` into a mixin.
-- `IssueMedia` has a model and a serializer but no upload endpoint: issues are text-only for now.
 - A `Dispatch` can only be moved on by staff in the admin. A provider-facing way to accept a
   dispatch and give an ETA is the obvious next piece of that feature.
 - `providers/mpesa.py` needs its endpoint and field names confirmed against Vodacom TZ credentials.
@@ -82,3 +79,13 @@ missing onboarding Safety stage.)*
 - `alerts/tests/test_alerts.py`: `CountdownExtrasTests` subclasses `AlertApiTests`, so every parent
   test runs twice. Harmless, but it inflates the test count — split the shared `setUp` into a mixin
   some time.
+- *(2026-11-05)* Provider data (rating, review count, response time, guard on duty, plan features)
+  is typed in the admin. A provider-facing page to keep it current is the next piece.
+- *(2026-11-05)* "Press power 5 times to send" needs a native Android module (not possible in a
+  managed Expo build). Shown disabled in Alarm & notifications until then.
+- *(2026-11-05)* Kiswahili: the language choice is stored but no Swahili strings exist yet.
+- *(2026-11-05)* Delete account switches the account off and wipes personal data; a nightly job
+  that hard-deletes switched-off accounts after 30 days is not written.
+- *(2026-11-05)* Monthly re-billing of street plans (`renews`) is recorded but no task charges the
+  second month yet.
+

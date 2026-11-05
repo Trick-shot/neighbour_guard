@@ -2,6 +2,39 @@
 
 Each entry: the decision, why, and what would make us revisit it. Newest first.
 
+## 2026-11-05 · Quiet hours and "Messages & issues" live on the server, not the phone
+A push that arrives while the app is closed is shown by the phone before any app code runs, so a
+phone-only switch could not silence it. `User.routine_push`, `quiet_from`, `quiet_to` are checked
+when the server sends issue pushes. An SOS ignores both. **Revisit:** when chat gets pushes, apply
+the same check.
+
+## 2026-11-05 · "Delete account" switches off and wipes, it does not hard-delete
+Alerts others answered and comments in their threads would otherwise vanish from their history.
+The account is deactivated, the email replaced, contacts, medical notes, photo and home membership
+removed, and the name becomes "Former neighbour". Typing DELETE is the guard (no password exists).
+
+## 2026-11-05 · Emergency contacts get an all-clear, never after the duress PIN
+`text_contacts_on_resolve` (default on). The duress PIN leaves the alert live, so no all-clear can
+be sent for it; the task also refuses any alert flagged `under_duress`.
+
+## 2026-11-05 · "Nobody" on the map hides a home from the area counts only
+`Residence.map_visibility`. It never hides a live alert's home from its responders — that is the
+point of an alert.
+
+## 2026-11-05 · A street pool shows house number + first name to verified members
+The same detail a verified neighbour already sees on Neighbours. Unverified viewers get no list.
+Houses with no account cannot be shown (we do not know them), so the invite button replaces the
+frame's "Not on the app" row.
+
+## 2026-11-05 · An SMS SOS gets SMS replies
+"Received" at once, and "<first name> is on the way" the first time someone answers coming. The
+sender has no data, so the app's live screen cannot tell them. The type is the word after "SOS",
+so a street name in the message cannot change it.
+
+## 2026-11-05 · The issue pin is where the phone is, never the home's exact point
+A public issue is seen by other areas. Security is not offered as an issue category: danger now
+is an SOS.
+
 ## 2026-11-05 · A witness report is not an Alert
 `POST /api/v2/alerts/witness/` (no account needed) stores a `WitnessReport` and pushes homes within
 300 m of the point, in a Celery task. **Why not an Alert:** an Alert has a sender's home that
