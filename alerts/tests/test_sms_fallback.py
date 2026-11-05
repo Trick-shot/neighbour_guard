@@ -84,7 +84,7 @@ class EmergencyContactTests(APITestCase):
             notify_emergency_contacts(alert.pk)
         body, numbers = send.call_args.args
         self.assertIn('Sara Juma', body)
-        self.assertIn('109 Masaki St', body)
+        self.assertIn('House 109, Masaki St', body)
         self.assertIn('fire', body.lower())
         self.assertEqual(numbers, ['+255754000111'])
 
