@@ -87,7 +87,7 @@ export default function Notifications() {
                 <Segmented options={[{key: 'all', label: 'All'}, {key: 'alerts', label: 'Alerts only'}]} value={tab} onChange={setTab}/>
             </View>
             {items === null && !error ? <StateView kind="loading"/> : error && !items ? (
-                <StateView kind="error" body={error} actionLabel="Try again" onAction={load}/>
+                <StateView kind="error" actionLabel="Try again" onAction={load}/>
             ) : shown.length === 0 ? (
                 <StateView kind="empty" title="Nothing yet" body="Alerts, vouch requests and replies from your neighbourhood show up here."/>
             ) : (

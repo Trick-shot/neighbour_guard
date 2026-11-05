@@ -11,6 +11,7 @@ import {Toggle} from '@/components/ui/Settings';
 import Text from '@/components/ui/Text';
 import TextField from '@/components/ui/TextField';
 import {contactsApi, placesApi, profileApi} from '@/lib/endpoints';
+import {prefs} from '@/lib/prefs';
 import {EmergencyContact, Me, MyResidence} from '@/lib/types';
 import {useColors} from '@/theme';
 
@@ -38,7 +39,12 @@ export default function EmergencyContacts() {
     const [adding, setAdding] = useState(false);
     const [menu, setMenu] = useState<EmergencyContact | null>(null);
 
-    const load = useCallback(async () => setContacts(await contactsApi.list().catch(() => [])), []);
+    const load = useCallback(async () => {
+        const list = await contactsApi.list().catch(() => null);
+        setContacts(list ?? []);
+        // The SMS fallback says how many contacts will be texted, with no network to ask.
+        if (list) prefs.setOfflineHome({contacts: list.length});
+    }, []);
     useEffect(() => {
         load();
         profileApi.me().then(setMe).catch(() => undefined);

@@ -171,3 +171,29 @@ class InboundSmsTests(APITestCase):
         r = self.client.post('/api/v2/alerts/', {'client_id': str(client_id), 'type': 'fire'})
         self.assertEqual(r.status_code, 201)      # their own, separate alert
         self.assertEqual(Alert.objects.count(), 2)
+
+
+class SmsRepliesTests(InboundSmsTests):
+    """Figma 1767:203 / 1635:2945: the SMS sender is told it arrived, and who is coming."""
+
+    def test_a_street_name_does_not_change_the_type(self):
+        from alerts.sms_inbound import parse
+        self.assertEqual(parse('SOS EMERGENCY · House 9, Fire Station Rd · ref a1b2c3d4'), ('emergency', 'a1b2c3d4'))
+        self.assertEqual(parse('SOS ROBBERY · House 109, Masaki St · -6.7484, 39.2797 · ref a1b2c3d4'), ('robbery', 'a1b2c3d4'))
+        self.assertEqual(parse('help there is a fire'), ('fire', ''))
+
+    def test_the_sender_gets_a_receipt_text(self):
+        with mock.patch('alerts.tasks.sms_sender.delay') as reply:
+            r = self.post(**{'from': '0754000111', 'text': 'SOS fire a1b2c3d4'})
+        reply.assert_called_once_with(r.data['alert_id'], 'received')
+
+    def test_the_sender_is_texted_once_when_someone_is_coming(self):
+        from alerts import services
+        r = self.post(**{'from': '0754000111', 'text': 'SOS fire a1b2c3d4'})
+        alert = Alert.objects.get(pk=r.data['alert_id'])
+        neighbour = alert.neighbourhood.residences.exclude(members__user=self.sender).first().members.first().user
+        with mock.patch('alerts.tasks.sms_sender.delay') as reply, self.captureOnCommitCallbacks(execute=True):
+            services.respond(alert, neighbour, 'coming')
+            services.respond(alert, neighbour, 'arrived')
+            services.respond(alert, neighbour, 'coming')
+        reply.assert_called_once_with(alert.pk, 'coming', neighbour.pk)

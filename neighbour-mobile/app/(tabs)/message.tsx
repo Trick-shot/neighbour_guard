@@ -6,6 +6,7 @@ import {FlatList, Pressable, StyleSheet, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import Avatar from '@/components/ui/Avatar';
+import StateView from '@/components/ui/StateView';
 import Icon from '@/components/ui/Icon';
 import Text from '@/components/ui/Text';
 import {shortTime} from '@/features/time';
@@ -27,7 +28,8 @@ function preview(x: Conversation, myId: number | null) {
 export default function Messages() {
     const c = useColors();
     const insets = useSafeAreaInsets();
-    const [items, setItems] = useState<Conversation[]>([]);
+    const [items, setItems] = useState<Conversation[] | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [tab, setTab] = useState<'all' | 'groups'>('all');
     const [myId, setMyId] = useState<number | null>(null);
     const {compose} = useLocalSearchParams<{ compose?: 'checkin' | 'voice' }>();
@@ -47,12 +49,13 @@ export default function Messages() {
 
     useFocusEffect(useCallback(() => {
         authStorage.getUser().then((u) => setMyId(u?.user_id ?? null));
-        chatApi.conversations().then(setItems).catch(() => undefined);
+        chatApi.conversations().then((l) => { setItems(l); setError(null); }).catch((e) => setError(e.message));
     }, []));
+    const reload = () => chatApi.conversations().then((l) => { setItems(l); setError(null); }).catch((e) => setError(e.message));
 
     const titleOf = (x: Conversation) =>
         x.name || x.participants.filter((p) => p.id !== myId).map((p) => p.full_name).join(', ') || 'Chat';
-    const shown = tab === 'groups' ? items.filter((x) => x.kind === 'group') : items;
+    const shown = tab === 'groups' ? (items ?? []).filter((x) => x.kind === 'group') : (items ?? []);
 
     return (
         <View style={[styles.screen, {backgroundColor: c.bg.surface, paddingTop: insets.top + 8}]}>
@@ -65,7 +68,13 @@ export default function Messages() {
             <View style={styles.segment}>
                 <Segmented options={[{key: 'all', label: 'All'}, {key: 'groups', label: 'Groups'}]} value={tab} onChange={setTab}/>
             </View>
-            <FlatList
+            {items === null && !error ? <StateView kind="loading"/> : items === null ? (
+                <StateView kind="error" body="We couldn’t load your messages. Check your connection and try again. Your SOS button still works." actionLabel="Try again" onAction={reload}/>
+            ) : shown.length === 0 ? (
+                // Figma "Empty — no messages" (1635:3000).
+                <StateView kind="empty" title="No messages yet" body="Say hello to your neighbours or join your street’s group."
+                           icon="users" actionLabel="Find neighbours" onAction={() => router.push('/neighbours')}/>
+            ) : <FlatList
                 data={shown}
                 keyExtractor={(x) => String(x.id)}
                 contentContainerStyle={{paddingTop: 14, paddingBottom: 140}}
@@ -90,7 +99,7 @@ export default function Messages() {
                         </View>
                     </Pressable>
                 )}
-            />
+            />}
         </View>
     );
 }

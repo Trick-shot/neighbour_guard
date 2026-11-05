@@ -118,7 +118,7 @@ export default function Issues() {
                 {filters}
             </View>
             {issues === null && !error ? <StateView kind="loading"/> : error && !issues ? (
-                <StateView kind="error" body={error} actionLabel="Try again" onAction={load}/>
+                <StateView kind="error" actionLabel="Try again" onAction={load}/>
             ) : (
                 <ScrollView refreshControl={<RefreshControl refreshing={false} onRefresh={load}/>} contentContainerStyle={styles.list}>
                     {shown.length === 0 && (

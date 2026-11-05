@@ -43,8 +43,10 @@ resolved — never after the duress PIN, which leaves the alert live.
 | --- | --- | --- | --- |
 | POST | `sms/inbound/?key=<SMS_INBOUND_SECRET>` | Africa's Talking fields: `from, to, text, date, id` | `{received: true, alert_id?}` |
 
-The phone shows the user a prefilled SMS: `SOS <type> <ref>`, where `ref` is the first 8 characters
-of the `client_id` it already made. The webhook then:
+The phone shows the user a prefilled SMS: `SOS <TYPE> · House <n>, <street> · <lat>, <lng> · ref <ref>`
+(home and position only when the phone has them), where `ref` is the first 8 characters of the
+`client_id` it already made. The word right after `SOS` is the type, so a street called "Fire
+Station Rd" cannot change it. The webhook then:
 
 - refuses everything unless `key` matches `SMS_INBOUND_SECRET` (403), and refuses everything if that
   setting is empty (503) — Africa's Talking does not sign callbacks, and this endpoint can raise an
@@ -58,6 +60,9 @@ of the `client_id` it already made. The webhook then:
 
 An unparseable message is still an emergency: someone texting this is not in a position to get the
 wording right.
+
+Replies by SMS (Celery `sms_sender`): "your SOS was received" right after the alert is raised, and
+"<first name> is on the way" the first time a neighbour answers `coming` to an `sms` alert.
 
 ## Alerts (SOS)
 

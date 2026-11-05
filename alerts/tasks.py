@@ -48,6 +48,26 @@ def notify_emergency_contacts(alert_id: int):
 
 
 @shared_task(ignore_result=True)
+def sms_sender(alert_id: int, what: str, responder_id: int | None = None):
+    """Reply by SMS to someone who raised an SOS by SMS ("System — offline SMS", Figma 1635:2945)."""
+    from django.contrib.auth import get_user_model
+    from core.sms import send_sms
+    from main.models import Profile
+
+    alert = Alert.objects.select_related('sender').filter(pk=alert_id).first()
+    profile = Profile.objects.filter(user=alert.sender, is_phone_verified=True).first() if alert else None
+    if not profile or not profile.phone_number:
+        return
+    if what == 'received':
+        body = 'NeighbourGuard: your SOS was received. Your neighbours are being alerted now.'
+    else:
+        responder = get_user_model().objects.filter(pk=responder_id).first()
+        name = (responder.full_name.split(' ')[0] if responder and responder.full_name else 'A neighbour')
+        body = f'NeighbourGuard: {name} is on the way.'
+    send_sms(body, [profile.phone_number])
+
+
+@shared_task(ignore_result=True)
 def notify_contacts_resolved(alert_id: int):
     """The all-clear for the same contacts, if the sender wants it. Never sent for a duress PIN,
     because a duress "resolve" leaves the alert live (see services.resolve)."""

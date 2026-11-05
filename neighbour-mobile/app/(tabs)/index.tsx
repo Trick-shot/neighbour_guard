@@ -63,6 +63,7 @@ export default function Home() {
         try {
             const me = await placesApi.me();
             setHome(me);
+            prefs.setOfflineHome({house_number: me.house_number, street: me.street});
             setNoHome(false);
             setOffline(false);
             const [a, live, feed] = await Promise.all([

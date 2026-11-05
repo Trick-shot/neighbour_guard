@@ -96,7 +96,7 @@ export default function Neighbours() {
                            value={tab} onChange={setTab}/>
             </View>
             {people === null && !error ? <StateView kind="loading"/> : error && !people ? (
-                <StateView kind="error" body={error} actionLabel="Try again" onAction={load}/>
+                <StateView kind="error" body="We couldn’t load your neighbours. Check your connection and try again. Your SOS button still works." actionLabel="Try again" onAction={load}/>
             ) : (
                 <ScrollView refreshControl={<RefreshControl refreshing={false} onRefresh={load}/>} contentContainerStyle={{paddingBottom: 32}}>
                     <Text variant="caption1" color={c.text.muted} style={styles.section}>

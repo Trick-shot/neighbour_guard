@@ -44,9 +44,18 @@ def parse(text: str) -> tuple[str, str]:
     position to get the wording right.
     """
     words = re.findall(r'[a-z0-9]+', (text or '').lower())
+    # The app writes "SOS <TYPE> · House 9, Fire Station Rd · … · ref …": the word right after "sos"
+    # is the type, so a street name further on cannot change it.
+    after_sos = next((words[i + 1] for i, w in enumerate(words[:-1]) if w == 'sos'), None)
+    if after_sos in {t.value for t in Alert.Type}:
+        return after_sos, _ref(text)
     alert_type = next((w for w in words if w in SPECIFIC_TYPES), Alert.Type.EMERGENCY)
+    return alert_type, _ref(text)
+
+
+def _ref(text: str) -> str:
     match = REF.search(text or '')
-    return alert_type, (match.group(1).lower() if match else '')
+    return match.group(1).lower() if match else ''
 
 
 class InboundSmsView(APIView):
@@ -93,4 +102,6 @@ class InboundSmsView(APIView):
             return Response({'received': True})
 
         logger.info('Alert %s raised from an inbound SMS', alert.pk)
+        from .tasks import sms_sender
+        sms_sender.delay(alert.pk, 'received')
         return Response({'received': True, 'alert_id': alert.pk})

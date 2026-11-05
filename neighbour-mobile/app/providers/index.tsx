@@ -59,7 +59,7 @@ export default function Providers() {
                 </Pressable>
             }/>
             {providers === null && !error ? <StateView kind="loading"/> : error && !providers ? (
-                <StateView kind="error" body={error} actionLabel="Try again" onAction={load}/>
+                <StateView kind="error" actionLabel="Try again" onAction={load}/>
             ) : (
                 <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={false} onRefresh={load}/>}>
                     <View style={[styles.note, {backgroundColor: c.bg.subtle}]}>

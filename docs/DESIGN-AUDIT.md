@@ -143,3 +143,14 @@ Bug found on the way: the Issues tab was missing from the tab bar on every phone
 
 Provider ratings, review counts, response times, features and the guard on duty are entered by the
 provider (admin today); the app shows nothing it was not given.
+
+## 09 · System states
+
+| Frame | Node | Route | Status |
+| --- | --- | --- | --- |
+| No internet — send SOS by SMS | 1767:203 | `sos/sms-fallback` | match. Home comes from a copy kept on the phone; position from the last GPS fix |
+| Offline SMS fallback (sent) | 1635:2945 | `sos/sms-fallback` after Send | match, honest wording: we cannot know how many neighbours were alerted while offline, so it says "alerted as it arrives" |
+| Alarms can't reach you | 1767:259 | `system/alarm-check` | match. Rows are the real checks for this phone (Android: channel, sound, Do Not Disturb, battery; iOS: silent switch) |
+| Empty — messages | 1635:3000 | `StateView kind="empty"` | match |
+| Loading | 1635:3064 | `StateView kind="loading"` | match (pulsing skeleton cards) |
+| Error | 1635:3137 | `StateView kind="error"` | match |

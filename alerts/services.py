@@ -180,9 +180,14 @@ def respond(alert: Alert, user, state: str, eta_min=None) -> AlertResponse:
         raise AlertError('This alert is no longer live.', 'conflict')
     if not can_respond(user, alert):
         raise AlertError('You are not a neighbour of this alert.', 'forbidden')
+    before = AlertResponse.objects.filter(alert=alert, responder=user).values_list('state', flat=True).first()
     response, _ = AlertResponse.objects.update_or_create(
         alert=alert, responder=user, defaults={'state': state, 'eta_min': eta_min}
     )
+    # An SOS sent by SMS has no app to show "help on the way", so the sender gets a text instead.
+    if alert.channel == Alert.Channel.SMS and state == 'coming' and before not in ('coming', 'arrived'):
+        from .tasks import sms_sender
+        transaction.on_commit(lambda: sms_sender.delay(alert.pk, 'coming', user.pk))
     from chat.services import broadcast_alert_update
     broadcast_alert_update(alert, alert_summary(alert))
     return response

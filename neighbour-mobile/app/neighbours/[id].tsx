@@ -47,7 +47,7 @@ export default function NeighbourProfileScreen() {
     if (!p) return (
         <View style={[styles.screen, {backgroundColor: c.bg.surface}]}>
             <ScreenHeader title="Neighbour"/>
-            {error ? <StateView kind="error" body={error} actionLabel="Try again" onAction={load}/> : <StateView kind="loading"/>}
+            {error ? <StateView kind="error" actionLabel="Try again" onAction={load}/> : <StateView kind="loading"/>}
         </View>
     );
 

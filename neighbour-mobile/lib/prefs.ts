@@ -11,6 +11,7 @@ const ALARM_TESTED = 'pref.alarmTested';
 const CHECKLIST_SEEN = 'pref.checklistSeen';
 const SILENT_SOS = 'pref.silentSos';
 const VIBRATE = 'pref.vibrate';
+const OFFLINE_HOME = 'pref.offlineHome';
 
 export const prefs = {
     async language(): Promise<Language | null> {
@@ -39,6 +40,17 @@ export const prefs = {
     },
     async setVibrate(on: boolean) {
         try { await AsyncStorage.setItem(VIBRATE, on ? '1' : '0'); } catch { /* best effort */ }
+    },
+    // What the SMS fallback needs when there is no network: my house and street, and how many
+    // emergency contacts the server will text. Not secret: it is my own address, on my own phone.
+    async offlineHome(): Promise<{ house_number: string; street: string; contacts?: number } | null> {
+        try { return JSON.parse((await AsyncStorage.getItem(OFFLINE_HOME)) ?? 'null'); } catch { return null; }
+    },
+    async setOfflineHome(h: Partial<{ house_number: string; street: string; contacts: number }>) {
+        try {
+            const old = JSON.parse((await AsyncStorage.getItem(OFFLINE_HOME)) ?? '{}');
+            await AsyncStorage.setItem(OFFLINE_HOME, JSON.stringify({...old, ...h}));
+        } catch { /* best effort */ }
     },
     async checklistSeen() {
         try { return (await AsyncStorage.getItem(CHECKLIST_SEEN)) === '1'; } catch { return true; }
