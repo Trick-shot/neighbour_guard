@@ -89,11 +89,36 @@ class EmailCodeTests(APITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertIn('access', r.data)
 
-    def test_unknown_email_looks_the_same_and_sends_nothing(self):
+    def test_a_new_email_signs_up_with_the_same_answer(self):
+        known = self.client.post('/api/auth/email-code/', {'email': 'a@x.tz'})
+        new = self.client.post('/api/auth/email-code/', {'email': 'New@x.tz'})
+        self.assertEqual(known.status_code, 200)
+        self.assertEqual(new.data, known.data)  # nothing tells the two apart
+        r = self.client.post('/api/auth/email-code/verify/', {'email': 'new@x.tz', 'code': self._code_from_mail()})
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data['is_new'])
+        created = User.objects.get(email='new@x.tz')
+        self.assertTrue(created.is_active)
+        self.assertFalse(created.has_usable_password())
+
+    def test_an_existing_account_is_not_new(self):
+        self.client.post('/api/auth/email-code/', {'email': 'a@x.tz'})
+        r = self.client.post('/api/auth/email-code/verify/', {'email': 'a@x.tz', 'code': self._code_from_mail()})
+        self.assertFalse(r.data['is_new'])
+        self.assertEqual(User.objects.filter(email='a@x.tz').count(), 1)
+
+    def test_a_switched_off_account_gets_no_code(self):
         from django.core import mail
-        r = self.client.post('/api/auth/email-code/', {'email': 'nobody@x.tz'})
+        self.user.is_active = False
+        self.user.save()
+        r = self.client.post('/api/auth/email-code/', {'email': 'a@x.tz'})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(mail.outbox), 0)
+
+    def test_a_code_without_a_request_creates_nothing(self):
+        r = self.client.post('/api/auth/email-code/verify/', {'email': 'ghost@x.tz', 'code': '123456'})
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(User.objects.filter(email='ghost@x.tz').exists())
 
     def test_code_works_once_and_wrong_codes_are_limited(self):
         self.client.post('/api/auth/email-code/', {'email': 'a@x.tz'})
@@ -133,3 +158,63 @@ class MeTests(APITestCase):
 
     def test_me_needs_a_login(self):
         self.assertEqual(self.client.get('/api/auth/users/me/').status_code, 401)
+
+
+class MyPhotoTests(APITestCase):
+    PNG = b'\x89PNG\r\n\x1a\n' + b'\x00' * 64
+
+    def setUp(self):
+        self.user = User.objects.create_user(email='a@x.tz', password='pw-12345!', full_name='Asha')
+        self.client.force_authenticate(self.user)
+
+    def _upload(self, data, name='me.png'):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return self.client.post('/api/auth/users/me/photo/',
+                                {'photo': SimpleUploadedFile(name, data, content_type='image/png')},
+                                format='multipart')
+
+    def test_a_photo_is_saved_to_my_own_profile(self):
+        r = self._upload(self.PNG)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(Profile.objects.get(user=self.user).profile_pic)
+        self.assertIsNotNone(self.client.get('/api/auth/users/me/').data['photo_url'])
+
+    def test_a_file_that_only_claims_to_be_an_image_is_refused(self):
+        r = self._upload(b'MZ\x90\x00 not an image at all', name='evil.png')
+        self.assertEqual(r.status_code, 400)
+
+    def test_signed_out_cannot_upload(self):
+        self.client.force_authenticate(None)
+        self.assertEqual(self._upload(self.PNG).status_code, 401)
+
+
+class SmsSignInCodeTests(APITestCase):
+    """"Can't access your email?" — the code goes to the verified phone, never to a typed number."""
+
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(email='a@x.tz', password='pw-12345!', full_name='Asha')
+
+    def test_texts_the_verified_phone_and_the_code_signs_in(self):
+        Profile.objects.update_or_create(user=self.user, defaults={'phone_number': '+255754000111', 'is_phone_verified': True})
+        with mock.patch('core.tasks.send_sign_in_code_sms.delay') as sms:
+            r = self.client.post('/api/auth/email-code/sms/', {'email': 'a@x.tz'})
+        self.assertEqual(r.status_code, 200)
+        phone, code = sms.call_args.args
+        self.assertEqual(phone, '+255754000111')
+        r = self.client.post('/api/auth/email-code/verify/', {'email': 'a@x.tz', 'code': code})
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(r.data['is_new'])
+
+    def test_an_unverified_phone_gets_nothing_and_the_answer_is_the_same(self):
+        Profile.objects.update_or_create(user=self.user, defaults={'phone_number': '+255754000111', 'is_phone_verified': False})
+        with mock.patch('core.tasks.send_sign_in_code_sms.delay') as sms:
+            known = self.client.post('/api/auth/email-code/sms/', {'email': 'a@x.tz'})
+            unknown = self.client.post('/api/auth/email-code/sms/', {'email': 'nobody@x.tz'})
+        sms.assert_not_called()
+        self.assertEqual(known.data, unknown.data)
+
+    def test_a_phone_number_in_the_body_is_ignored(self):
+        with mock.patch('core.tasks.send_sign_in_code_sms.delay') as sms:
+            self.client.post('/api/auth/email-code/sms/', {'email': 'a@x.tz', 'phone_number': '+255700000000'})
+        sms.assert_not_called()

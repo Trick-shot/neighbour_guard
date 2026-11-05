@@ -31,6 +31,8 @@ class Residence(models.Model):
     street = models.CharField(max_length=100)
     district = models.CharField(max_length=100, blank=True)
     directions = models.CharField(max_length=255, blank=True, help_text='How to find the house (gate colour, landmark)')
+    # Responder-only, like `directions`: shown to people answering a live alert from this home.
+    gate_photo = models.ImageField(upload_to='gates/', null=True, blank=True)
     lat = models.FloatField()
     lng = models.FloatField()
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)

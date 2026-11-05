@@ -10,8 +10,10 @@ type Tokens = { access: string; refresh: string };
 
 export const authApi = {
     requestEmailCode: (email: string) => call(api.post('/api/auth/email-code/', {email})),
+    // "Can't access your email?": the same code, texted to the account's verified phone.
+    requestSmsCode: (email: string) => call(api.post('/api/auth/email-code/sms/', {email})),
     verifyEmailCode: (email: string, code: string) =>
-        call<Tokens>(api.post('/api/auth/email-code/verify/', {email, code})),
+        call<Tokens & { is_new: boolean }>(api.post('/api/auth/email-code/verify/', {email, code})),
     // Sign-up. Djoser emails an activation link; the account cannot sign in until it is clicked.
     signUp: (full_name: string, email: string, password: string) =>
         call(api.post('/api/auth/users/', {full_name, email, password, re_password: password})),
@@ -31,6 +33,14 @@ export const placesApi = {
     // Only the text fields. Moving the pin would change who gets your alerts, so the server refuses it.
     update: (fields: { house_number?: string; street?: string; directions?: string }) =>
         call<MyResidence>(api.patch('/api/v2/places/me/', fields)),
+    // Responder-only, like the directions. The server sniffs the bytes.
+    uploadGatePhoto: (uri: string, mime = 'image/jpeg') => {
+        const form = new FormData();
+        form.append('photo', {uri, name: 'gate.jpg', type: mime} as unknown as Blob);
+        return call<MyResidence>(api.post('/api/v2/places/me/gate-photo/', form, {
+            headers: {'Content-Type': 'multipart/form-data'},
+        }));
+    },
     areas: () => call<{ neighbourhood: string; areas: Area[] }>(api.get('/api/v2/places/areas/')),
     // The people in my home. Responders to my own live alert see this list; nobody else does.
     household: () => call<HouseholdPerson[]>(api.get('/api/v2/places/household/')),
@@ -49,6 +59,14 @@ export const profileApi = {
     me: () => call<Me>(api.get('/api/auth/users/me/')),
     // Only the name is writable: the phone reaches the profile through verify-otp and nowhere else.
     rename: (full_name: string) => call<Me>(api.patch('/api/auth/users/me/', {full_name})),
+    // The server sniffs the bytes; the mime here is only a hint for the upload.
+    uploadPhoto: (uri: string, mime = 'image/jpeg') => {
+        const form = new FormData();
+        form.append('photo', {uri, name: 'photo.jpg', type: mime} as unknown as Blob);
+        return call<{ photo_url: string }>(api.post('/api/auth/users/me/photo/', form, {
+            headers: {'Content-Type': 'multipart/form-data'},
+        }));
+    },
 };
 
 export const contactsApi = {

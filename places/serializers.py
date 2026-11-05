@@ -19,20 +19,31 @@ class ResidenceCreateSerializer(serializers.Serializer):
     lng = serializers.FloatField(min_value=-180, max_value=180)
 
 
+def gate_photo_url(residence, request):
+    if not residence.gate_photo:
+        return None
+    url = residence.gate_photo.url
+    return request.build_absolute_uri(url) if request else url
+
+
 class MyResidenceSerializer(serializers.ModelSerializer):
     """For the residence's own members: their own exact location is theirs to see."""
     neighbourhood = NeighbourhoodSerializer(read_only=True)
     vouches = serializers.IntegerField(source='vouches.count', read_only=True)
     vouches_needed = serializers.SerializerMethodField()
+    gate_photo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Residence
         fields = ['id', 'house_number', 'street', 'district', 'directions', 'lat', 'lng', 'status',
-                  'verified_at', 'neighbourhood', 'vouches', 'vouches_needed']
+                  'verified_at', 'neighbourhood', 'vouches', 'vouches_needed', 'gate_photo_url']
         read_only_fields = ['status', 'verified_at']
 
     def get_vouches_needed(self, obj):
         return Residence.VOUCHES_NEEDED
+
+    def get_gate_photo_url(self, obj):
+        return gate_photo_url(obj, self.context.get('request'))
 
 
 class ResidenceNeighbourSerializer(serializers.ModelSerializer):
@@ -59,7 +70,11 @@ class HouseholdPersonSerializer(serializers.ModelSerializer):
 class ResidenceResponderSerializer(serializers.ModelSerializer):
     """Responders to a live alert from this home only: exact pin, directions, who is inside."""
     household = HouseholdPersonSerializer(many=True, read_only=True)
+    gate_photo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Residence
-        fields = ['id', 'house_number', 'street', 'directions', 'lat', 'lng', 'household']
+        fields = ['id', 'house_number', 'street', 'directions', 'lat', 'lng', 'household', 'gate_photo_url']
+
+    def get_gate_photo_url(self, obj):
+        return gate_photo_url(obj, self.context.get('request'))

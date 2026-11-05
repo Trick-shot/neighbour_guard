@@ -9,7 +9,7 @@ import Text from './Text';
  * Figma "Button" (1611:65). Primary = main action, Danger = emergency only, Outline / Ghost =
  * secondary. L = 52 px tall (full width 343 on a phone), M = 40 px.
  */
-type Variant = 'primary' | 'danger' | 'outline' | 'ghost' | 'white' | 'outlineOnDark';
+type Variant = 'primary' | 'danger' | 'outline' | 'ghost' | 'text' | 'white' | 'outlineOnDark';
 type Props = {
     title: string;
     onPress?: () => void;
@@ -28,6 +28,8 @@ export default function Button({title, onPress, variant = 'primary', size = 'L',
         danger: {bg: c.bg.danger, pressed: c.bg.dangerPressed, fg: c.text.onBrand},
         outline: {bg: c.bg.surface, pressed: c.bg.subtle, fg: c.text.primary, border: c.border.strong, borderWidth: 1},
         ghost: {bg: 'transparent', pressed: 'rgba(255,255,255,0.12)', fg: c.text.onBrand},
+        // Figma "Ghost" on a light screen: brand text, no fill ("Skip for now").
+        text: {bg: 'transparent', pressed: c.bg.subtle, fg: c.text.brand},
         white: {bg: '#ffffff', pressed: '#f0f2f5', fg: c.text.primary},
         outlineOnDark: {bg: 'transparent', pressed: 'rgba(255,255,255,0.08)', fg: '#ffffff', border: 'rgba(255,255,255,0.5)', borderWidth: 1.5},
     };

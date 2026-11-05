@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import {Platform} from 'react-native';
 
 /**
  * Is a Google Maps key actually in this build?
@@ -14,5 +15,6 @@ import Constants from 'expo-constants';
 export const hasMapsKey = (() => {
     const android = (Constants.expoConfig as any)?.android?.config?.googleMaps?.apiKey;
     const ios = (Constants.expoConfig as any)?.ios?.config?.googleMapsApiKey;
-    return Boolean(android || ios);
+    // The browser preview uses a stand-in map (dev/web-preview), which needs no key.
+    return Platform.OS === 'web' || Boolean(android || ios);
 })();

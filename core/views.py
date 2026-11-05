@@ -154,28 +154,63 @@ def _email_code_key(email: str) -> str:
 
 
 class EmailCodeRequestView(APIView):
-    """POST {email} — email a 6-digit sign-in code. Always answers 200, so it cannot be used to
-    find out which emails have accounts."""
+    """POST {email} — email a 6-digit code. It signs in an existing account and signs up a new one.
+
+    It always answers the same 200, so it cannot be used to find out which emails have accounts.
+    A deactivated account gets nothing: staff switched it off, and a code must not switch it back on.
+    """
     permission_classes = [AllowAny]
     throttle_classes = [EmailCodeThrottle]
 
     def post(self, request):
         from django.contrib.auth import get_user_model
         from django.core.cache import cache
+        from django.core.exceptions import ValidationError
         from django.core.mail import send_mail
+        from django.core.validators import validate_email
 
         email = (request.data.get('email') or '').strip().lower()
-        user = get_user_model().objects.filter(email__iexact=email, is_active=True).first() if email else None
-        if user:
+        try:
+            validate_email(email)
+        except ValidationError:
+            return Response({'detail': 'Enter an email address you can open now.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        user = get_user_model().objects.filter(email__iexact=email).first()
+        if user is None or user.is_active:
             code = f'{secrets.randbelow(1_000_000):06d}'
             cache.set(_email_code_key(email), {'hash': hash_otp(code), 'attempts': 0}, EMAIL_CODE_TTL)
             try:
-                send_mail('Your NeighbourGuard sign-in code',
+                send_mail('Your NeighbourGuard code',
                           f'Your code is {code}. It expires in 10 minutes. If you did not ask for it, ignore this email.',
-                          settings.DEFAULT_FROM_EMAIL, [user.email])
+                          settings.DEFAULT_FROM_EMAIL, [email])
             except Exception:
-                logger.exception('Sign-in code email failed for user %s', user.pk)
-        return Response({'message': 'If that email has an account, a code is on its way.'})
+                logger.exception('Email code failed to send (user %s)', user.pk if user else 'new')
+        return Response({'message': 'A code is on its way if this address can receive it.'})
+
+
+class SmsCodeRequestView(APIView):
+    """POST {email} — "Can't access your email?": text the sign-in code to the account's verified
+    phone instead. The code is verified by the same `email-code/verify/` endpoint.
+
+    Same answer whether or not the account or the phone exists, so it reveals nothing.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [EmailCodeThrottle]
+
+    def post(self, request):
+        from django.contrib.auth import get_user_model
+        from django.core.cache import cache
+
+        from core.tasks import send_sign_in_code_sms
+
+        email = (request.data.get('email') or '').strip().lower()
+        user = get_user_model().objects.filter(email__iexact=email, is_active=True).first() if email else None
+        profile = Profile.objects.filter(user=user, is_phone_verified=True).first() if user else None
+        if profile and profile.phone_number:
+            code = f'{secrets.randbelow(1_000_000):06d}'
+            cache.set(_email_code_key(email), {'hash': hash_otp(code), 'attempts': 0}, EMAIL_CODE_TTL)
+            send_sign_in_code_sms.delay(profile.phone_number, code)
+        return Response({'message': 'If this account has a verified phone, a code is on its way.'})
 
 
 class EmailCodeVerifyView(APIView):
@@ -202,11 +237,53 @@ class EmailCodeVerifyView(APIView):
             cache.set(key, entry, EMAIL_CODE_TTL)
             return Response({'error': 'That code is not right.'}, status=status.HTTP_400_BAD_REQUEST)
         cache.delete(key)
-        user = get_user_model().objects.filter(email__iexact=email, is_active=True).first()
-        if not user:
-            return Response({'error': 'Account not found.'}, status=status.HTTP_400_BAD_REQUEST)
+        User = get_user_model()
+        user = User.objects.filter(email__iexact=email).first()
+        if user is not None and not user.is_active:
+            return Response({'error': 'This account is switched off. Contact support.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        is_new = user is None
+        if is_new:
+            # The code just proved the address is theirs, so the account starts active. The name
+            # comes next, on the onboarding profile screen.
+            user = User.objects.create_user(email=email, password=None, full_name='')
+            user.set_unusable_password()
+            user.save(update_fields=['password'])
         refresh = RefreshToken.for_user(user)
-        return Response({'access': str(refresh.access_token), 'refresh': str(refresh)})
+        return Response({'access': str(refresh.access_token), 'refresh': str(refresh),
+                         'is_new': is_new or not user.full_name})
+
+
+class MyPhotoView(APIView):
+    """POST /api/auth/users/me/photo/ (multipart `photo`) — my profile picture. DELETE removes it.
+
+    Only ever my own: the profile comes from the token. The bytes are sniffed, because the
+    client's Content-Type is a claim anyone can make.
+    """
+    MAX_BYTES = 5 * 1024 * 1024
+
+    def post(self, request):
+        from chat.files import sniff
+        upload = request.FILES.get('photo')
+        if upload is None:
+            return Response({'detail': 'Choose a photo.'}, status=status.HTTP_400_BAD_REQUEST)
+        if upload.size > self.MAX_BYTES:
+            return Response({'detail': 'That photo is over 5 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+        head = upload.read(32)
+        upload.seek(0)
+        if sniff(head) not in ('image/jpeg', 'image/png', 'image/webp'):
+            return Response({'detail': 'Use a JPEG, PNG or WebP photo.'}, status=status.HTTP_400_BAD_REQUEST)
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if profile.profile_pic:
+            profile.profile_pic.delete(save=False)
+        profile.profile_pic.save(f'{request.user.pk}-{secrets.token_hex(6)}.img', upload, save=True)
+        return Response({'photo_url': request.build_absolute_uri(profile.profile_pic.url)})
+
+    def delete(self, request):
+        profile = Profile.objects.filter(user=request.user).first()
+        if profile and profile.profile_pic:
+            profile.profile_pic.delete(save=True)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class EmergencyContactsView(APIView):

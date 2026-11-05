@@ -10,8 +10,8 @@ Pitch: DIC 2026, 24–25 Oct 2026 (Yeosu). Concept note due 20 Oct.
 - [ ] **Two-phone test of the demo path** (see the test table in PROGRESS.md). Fix every failure.
       Build both phones with `npx expo prebuild --clean` first — the `android/` folder on the
       machine is from an older config and has neither the notification permissions nor the Maps key.
-- [ ] Replace `neighbour-mobile/assets/illustrations/signin.png` with the Figma export of node
-      `1631:1422` (Sign in illustration, 3x PNG).
+- [x] Replace `neighbour-mobile/assets/illustrations/signin.png` with the Figma export of node
+      `1631:1422` (Sign in illustration, 3x PNG). *(2026-11-05, with every other illustration.)*
 - [x] Google Maps Android key via `app.config.js` reading an env var (never committed).
       *(2026-10-18. Put the key in `.env` — see `.env.example` — then `npx expo prebuild --clean`.)*
 - [ ] **Put a real `GOOGLE_MAPS_ANDROID_KEY` in `.env` and rebuild — demo blocker.** Without it a

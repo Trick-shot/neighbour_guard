@@ -21,16 +21,25 @@ class UserSerializer(BaseUserSerializer):
     """
     phone_number = serializers.SerializerMethodField()
     is_phone_verified = serializers.SerializerMethodField()
+    photo_url = serializers.SerializerMethodField()
 
     class Meta(BaseUserSerializer.Meta):
-        fields = ["id", "email", "full_name", "phone_number", "is_phone_verified",
+        fields = ["id", "email", "full_name", "phone_number", "is_phone_verified", "photo_url",
                   "is_admin", "is_superuser", "is_active", "is_staff"]
-        read_only_fields = ["email", "phone_number", "is_phone_verified",
+        read_only_fields = ["email", "phone_number", "is_phone_verified", "photo_url",
                             "is_admin", "is_superuser", "is_active", "is_staff"]
 
     def _profile(self, obj):
         from main.models import Profile
         return Profile.objects.filter(user=obj).first()
+
+    def get_photo_url(self, obj):
+        profile = self._profile(obj)
+        if not (profile and profile.profile_pic):
+            return None
+        request = self.context.get('request')
+        url = profile.profile_pic.url
+        return request.build_absolute_uri(url) if request else url
 
     def get_phone_number(self, obj):
         profile = self._profile(obj)

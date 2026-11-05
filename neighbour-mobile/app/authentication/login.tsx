@@ -27,7 +27,7 @@ export default function SignInEmail() {
         setError(null);
         try {
             await authApi.requestEmailCode(email.trim().toLowerCase());
-            router.push({pathname: '/authentication/code', params: {email: email.trim().toLowerCase()}});
+            router.push({pathname: '/authentication/code', params: {email: email.trim().toLowerCase(), mode: 'signin'}});
         } catch (e: any) {
             setError(e.message);
         } finally {
@@ -61,9 +61,12 @@ export default function SignInEmail() {
                     onSubmitEditing={send}
                     error={error}
                 />
-                <Text variant="subhead" color={c.text.brand}>Can’t access your email?</Text>
+                <Text variant="subhead" color={c.text.brand}
+                      onPress={() => router.push({pathname: '/authentication/recover', params: {email: email.trim().toLowerCase()}})}>
+                    Can’t access your email?
+                </Text>
             </View>
-            <Button title="Send code" onPress={send} loading={busy} style={[styles.cta, {marginBottom: Math.max(insets.bottom, 16)}]}/>
+            <Button title="Send code" onPress={send} loading={busy} style={[styles.cta, {marginBottom: Math.max(insets.bottom, 32)}]}/>
         </KeyboardAvoidingView>
     );
 }

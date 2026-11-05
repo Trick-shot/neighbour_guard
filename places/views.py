@@ -14,6 +14,36 @@ from .serializers import (
 User = get_user_model()
 
 
+class GatePhotoView(APIView):
+    """POST /api/v2/places/me/gate-photo/ (multipart `photo`) — a photo of my own gate.
+
+    Always my own home (from the token). Responders see it during a live alert from that home;
+    the neighbour and public serializers never include it.
+    """
+    MAX_BYTES = 5 * 1024 * 1024
+
+    def post(self, request):
+        import secrets
+
+        from chat.files import sniff
+        residence = services.residence_of(request.user)
+        if not residence:
+            return Response({'detail': 'Pin your home first.'}, status=status.HTTP_404_NOT_FOUND)
+        upload = request.FILES.get('photo')
+        if upload is None:
+            return Response({'detail': 'Choose a photo.'}, status=status.HTTP_400_BAD_REQUEST)
+        if upload.size > self.MAX_BYTES:
+            return Response({'detail': 'That photo is over 5 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+        head = upload.read(32)
+        upload.seek(0)
+        if sniff(head) not in ('image/jpeg', 'image/png', 'image/webp'):
+            return Response({'detail': 'Use a JPEG, PNG or WebP photo.'}, status=status.HTTP_400_BAD_REQUEST)
+        if residence.gate_photo:
+            residence.gate_photo.delete(save=False)
+        residence.gate_photo.save(f'{residence.pk}-{secrets.token_hex(6)}.img', upload, save=True)
+        return Response(MyResidenceSerializer(residence, context={'request': request}).data)
+
+
 class MyResidenceView(APIView):
     """GET / POST / PATCH /api/v2/places/me/ — the caller's own home."""
 

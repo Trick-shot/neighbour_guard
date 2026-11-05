@@ -2,6 +2,35 @@
 
 Each entry: the decision, why, and what would make us revisit it. Newest first.
 
+## 2026-11-05 · One emailed code signs in and signs up
+`POST /api/auth/email-code/` now sends a code to any valid address, and `email-code/verify/`
+creates the account if it does not exist yet (`is_new: true`), so onboarding is email → code →
+phone → name, as in the Figma flow, with no password. **Why:** the frames have no password screen,
+and the code already proves the address is theirs. The answer is identical for known and unknown
+addresses, so it still cannot be used to find out who has an account. A switched-off account gets
+no code. **Revisit:** if spam sign-ups appear; the per-IP throttle is the only brake today.
+
+## 2026-11-05 · ID scans and selfies stay on the phone, and the status screen says "pending"
+No verification partner is connected. The onboarding screens capture the photos (so the flow is
+real), but nothing is uploaded, and the status screen shows "ID check pending" instead of the
+frame's "You’re verified". **Why:** the consent screen promises "we never keep a copy", and the
+app must never claim a check it did not do. Vouches remain what verifies a home.
+**Revisit:** when a partner (e.g. a NIDA verification API) is chosen; upload straight to them.
+
+## 2026-11-05 · "Can’t access your email?" texts the same code to the verified phone
+`POST /api/auth/email-code/sms/ {email}` sends the sign-in code to the phone on the account, only
+if that phone was verified by OTP. The number is never taken from the request and never shown
+(the frame's "+255 7•• ••• 852" would tell anyone who typed an email whose account it is).
+Neighbour-assisted recovery has no server side yet and is shown as "coming soon".
+
+## 2026-11-05 · Gate photos and profile photos
+`POST /api/v2/places/me/gate-photo/` and `POST /api/auth/users/me/photo/`. Both sniff the bytes
+(JPEG/PNG/WebP, 5 MB). The gate photo is responder-only, exactly like `directions`.
+
+## 2026-11-05 · Language choice is stored, Kiswahili text is not written yet
+The first-launch language screen stores the choice on the phone. All copy is English for now.
+**Revisit:** before a Kiswahili-speaking pilot — the strings need a translator, not a guess.
+
 ## 2026-10-19 · The payment gateway is Daraja-shaped, and off until confirmed
 `providers/mpesa.py` speaks Daraja's STK-push shape (the documented one) against a configurable
 `MPESA_BASE_URL`, and every credential defaults to empty — with none set, asking for a payment

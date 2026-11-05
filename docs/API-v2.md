@@ -11,9 +11,10 @@ cancel, already sent).
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
-| GET | `places/me/` | | My home, incl. my own `lat`/`lng`, `house_number`, `street`, `district`, `directions`, `status` (`pending`/`verified`), `verified_at`, `vouches`, `vouches_needed`, `neighbourhood` |
+| GET | `places/me/` | | My home, incl. my own `lat`/`lng`, `house_number`, `street`, `district`, `directions`, `status` (`pending`/`verified`), `verified_at`, `vouches`, `vouches_needed`, `neighbourhood`, `gate_photo_url` |
 | POST | `places/me/` | `house_number, street, lat, lng, district?, directions?` | 201 my home. 409 if I already have one |
 | PATCH | `places/me/` | `house_number?, street?, directions?` | My home. The pin cannot move here |
+| POST | `places/me/gate-photo/` | multipart `photo` (JPEG/PNG/WebP, 5 MB) | My home with `gate_photo_url`. 404 without a home. Shown to live-alert responders only |
 | GET | `places/areas/` | | `{neighbourhood, areas: [{lat, lng, homes}]}` — grid cells, never exact homes |
 | GET | `places/neighbours/` | | `[{user_id, full_name, home}]`; `home` has `house_number` only if I am verified |
 | POST | `places/residences/<id>/vouch/` | | `{status, vouches}`. 403 unless I am a verified neighbour in the same area |
@@ -184,11 +185,13 @@ means a guard was asked, not that one is coming; only the provider moves it on.
 | Method | Path | Notes |
 | --- | --- | --- |
 | POST | `/api/auth/users/` | Sign up (email, full_name, password). Sends the activation email |
-| POST | `/api/auth/email-code/` | `{email}` — emails a 6-digit sign-in code. Always 200 (does not reveal accounts). 10 per 10 min per IP |
-| POST | `/api/auth/email-code/verify/` | `{email, code}` → `{access, refresh}`. 5 wrong tries kill the code |
+| POST | `/api/auth/email-code/` | `{email}` — emails a 6-digit code that signs in **or signs up**. Always the same 200 (does not reveal accounts). 10 per 10 min per IP |
+| POST | `/api/auth/email-code/sms/` | `{email}` — the same code, texted to the account's **verified** phone (Celery). Same 200 either way |
+| POST | `/api/auth/email-code/verify/` | `{email, code}` → `{access, refresh, is_new}`. Creates the account when the email is new. 5 wrong tries kill the code |
+| POST | `/api/auth/users/me/photo/` | **Logged in.** multipart `photo` (JPEG/PNG/WebP, 5 MB, bytes sniffed) → `{photo_url}`. DELETE removes it |
 | POST | `/api/auth/jwt/create/` | `{email, password}` → `{access, refresh}` |
 | POST | `/api/auth/jwt/refresh/` | `{refresh}` → `{access}` |
 | POST | `/api/auth/send-otp/` | **Logged in.** `{phone_number}`. Max 3 per 10 min |
 | POST | `/api/auth/verify-otp/` | **Logged in.** `{otp}`. Sets the profile phone from the OTP record |
-| GET | `/api/auth/users/me/` | **Logged in.** Me: `id, email, full_name, phone_number, is_phone_verified` |
+| GET | `/api/auth/users/me/` | **Logged in.** Me: `id, email, full_name, phone_number, is_phone_verified, photo_url` |
 | PATCH | `/api/auth/users/me/` | **Logged in.** `full_name` only. Email and phone are read-only here: the phone reaches the profile through `verify-otp` and nowhere else |

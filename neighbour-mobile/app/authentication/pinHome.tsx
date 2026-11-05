@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import {router, useLocalSearchParams} from 'expo-router';
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {Pressable, StyleSheet, View} from 'react-native';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 import MapView, {PROVIDER_GOOGLE, Region} from 'react-native-maps';
@@ -9,87 +9,86 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import {MePin} from '@/components/ui/MapPin';
-import StageProgress from '@/components/ui/StageProgress';
+import MapUnavailable from '@/components/ui/MapUnavailable';
 import Text from '@/components/ui/Text';
 import TextField from '@/components/ui/TextField';
-import MapUnavailable from '@/components/ui/MapUnavailable';
 import {placesApi} from '@/lib/endpoints';
 import {hasMapsKey} from '@/lib/maps';
-import {radius, shadow, useColors} from '@/theme';
+import {shadow, useColors} from '@/theme';
 
 /**
- * Figma "Android · 01" / "Onboarding — pin home". The last onboarding step before the map:
- * POST /api/v2/places/me/ with the pin and the address.
+ * Figma "Onboarding — pin home" (1619:728): a full-screen satellite map, the instruction card on
+ * top, the pin fixed in the middle of the visible map, and a sheet with the address it detected.
+ * "Confirm my home" calls POST /api/v2/places/me/.
  *
- * The pin sits fixed in the middle of the map and the map moves under it. A dragged marker is
- * fiddly with one thumb and drops silently on Android; moving the map cannot miss.
- *
- * The pin can only be set once: the server refuses to move it later (PATCH takes text only),
- * because the pin decides which neighbours get your alerts.
+ * The map moves under a fixed pin (docs/DECISIONS.md): a dragged marker is fiddly with one thumb.
+ * The pin can only be set once — the server refuses to move it, because it decides who gets your
+ * alerts — so the street is detected from the pin and can be corrected here, but not the pin later.
  */
 const CLOSE_ENOUGH = {latitudeDelta: 0.0025, longitudeDelta: 0.0025};
+const SHEET = 264; // the sheet's height in the frame: 874 − 610
+
+type Address = { street: string; district: string; city: string };
 
 export default function PinHome() {
     const c = useColors();
     const insets = useSafeAreaInsets();
     const map = useRef<MapView>(null);
-    const {lat, lng} = useLocalSearchParams<{ lat?: string; lng?: string }>();
-
-    // An empty param must not become 0: that would drop the map in the Gulf of Guinea.
+    const {lat, lng, from} = useLocalSearchParams<{ lat?: string; lng?: string; from?: string }>();
     const coord = (v?: string) => (v && Number.isFinite(Number(v)) ? Number(v) : null);
     const startLat = coord(lat), startLng = coord(lng);
-    const hasStart = startLat !== null && startLng !== null;
-    const start = {latitude: startLat ?? 0, longitude: startLng ?? 0};
-
-    // Where the pin is: the centre of the map, updated when the map stops moving.
-    const [pin, setPin] = useState(hasStart ? start : null);
-    const [houseNumber, setHouseNumber] = useState('');
+    const start = startLat !== null && startLng !== null ? {latitude: startLat, longitude: startLng} : null;
+    const [pin, setPin] = useState(start);
+    const [address, setAddress] = useState<Address | null>(null);
+    const [editStreet, setEditStreet] = useState(false);
     const [street, setStreet] = useState('');
-    const [district, setDistrict] = useState('');
-    const [directions, setDirections] = useState('');
-    const [errors, setErrors] = useState<{ houseNumber?: string; street?: string }>({});
-    const [failed, setFailed] = useState<string | null>(null);
+    const [houseNumber, setHouseNumber] = useState('');
+    const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
-    const [satellite, setSatellite] = useState(true);
+    const region: Region | undefined = start ? {...start, ...CLOSE_ENOUGH} : undefined;
 
-    const region: Region | undefined = hasStart ? {...start, ...CLOSE_ENOUGH} : undefined;
+    // Name the street under the pin. If the phone cannot, the field opens for typing instead.
+    useEffect(() => {
+        if (!pin) return;
+        let live = true;
+        const t = setTimeout(async () => {
+            try {
+                const [hit] = await Location.reverseGeocodeAsync(pin);
+                if (!live) return;
+                const found = {street: hit?.street ?? '', district: hit?.district ?? hit?.subregion ?? '', city: hit?.city ?? hit?.region ?? ''};
+                setAddress(found);
+                if (!editStreet) setStreet(found.street);
+                if (!found.street) setEditStreet(true);
+            } catch {
+                if (live) setEditStreet(true);
+            }
+        }, 400);
+        return () => { live = false; clearTimeout(t); };
+    }, [pin?.latitude, pin?.longitude]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const recentre = async () => {
         try {
             const fix = await Location.getCurrentPositionAsync({accuracy: Location.Accuracy.Balanced});
-            map.current?.animateToRegion({
-                latitude: fix.coords.latitude, longitude: fix.coords.longitude, ...CLOSE_ENOUGH,
-            }, 600);
+            map.current?.animateToRegion({latitude: fix.coords.latitude, longitude: fix.coords.longitude, ...CLOSE_ENOUGH}, 600);
         } catch {
-            // Staying where the map already is tells the user more than an error box here.
+            // Staying where the map already is tells the user more than an error here.
         }
     };
 
-    const save = async () => {
-        const next: typeof errors = {};
-        if (!houseNumber.trim()) next.houseNumber = 'Responders look for this first.';
-        if (!street.trim()) next.street = 'Which street is the house on?';
-        setErrors(next);
-        setFailed(null);
-        if (Object.keys(next).length || !pin) {
-            if (!pin) setFailed('Move the map until the pin is on your roof.');
-            return;
-        }
+    const confirm = async () => {
+        if (!pin) return setError('Move the map until the pin sits on your house.');
+        if (!houseNumber.trim()) return setError('Responders look for the house number first.');
+        if (!street.trim()) { setEditStreet(true); return setError('Which street is the house on?'); }
         setBusy(true);
+        setError(null);
         try {
-            await placesApi.create({
-                house_number: houseNumber.trim(),
-                street: street.trim(),
-                district: district.trim(),
-                directions: directions.trim(),
-                lat: pin.latitude,
-                lng: pin.longitude,
-            });
-            router.replace('/authentication/safety');
+            await placesApi.create({house_number: houseNumber.trim(), street: street.trim(),
+                district: address?.district ?? '', lat: pin.latitude, lng: pin.longitude});
+            router.replace({pathname: '/authentication/house', params: {from: from ?? ''}});
         } catch (e: any) {
             // 409: this account already has a home. Nothing to add, so carry on.
-            if (e.status === 409) router.replace('/authentication/safety');
-            else setFailed(e.message);
+            if (e.status === 409) router.replace({pathname: '/authentication/house', params: {from: from ?? ''}});
+            else setError(e.message);
         } finally {
             setBusy(false);
         }
@@ -97,98 +96,49 @@ export default function PinHome() {
 
     return (
         <View style={[styles.screen, {backgroundColor: c.bg.surface}]}>
-            <View style={styles.mapWrap}>
-                {!hasMapsKey ? <MapUnavailable/> : <MapView
-                    ref={map}
-                    style={StyleSheet.absoluteFill}
-                    provider={PROVIDER_GOOGLE}
-                    mapType={satellite ? 'hybrid' : 'standard'}
-                    initialRegion={region}
-                    showsUserLocation
-                    showsMyLocationButton={false}
-                    showsCompass={false}
-                    toolbarEnabled={false}
-                    onRegionChangeComplete={(r) => setPin({latitude: r.latitude, longitude: r.longitude})}
-                />}
-                {/* The pin never moves on screen; the map does. Pointer events pass through to the map. */}
-                <View pointerEvents="none" style={styles.pinLayer}>
-                    <View style={styles.pinOffset}>
-                        <MePin/>
-                    </View>
-                </View>
-                <View style={[styles.mapTop, {paddingTop: insets.top + 8}]}>
-                    <Pressable
-                        accessibilityLabel="Back"
-                        onPress={() => router.canGoBack() && router.back()}
-                        style={[styles.round, shadow.control, {backgroundColor: c.bg.surface}]}>
-                        <Icon name="chevron-left" size={22}/>
-                    </Pressable>
-                    {/* Same control rail as the Home map, so the gesture is already familiar. */}
-                    <View style={[styles.controls, shadow.control, {backgroundColor: c.bg.surface}]}>
-                        <Pressable
-                            accessibilityLabel={satellite ? 'Street map' : 'Satellite map'}
-                            onPress={() => setSatellite((s) => !s)}
-                            style={styles.control}>
-                            <Icon name="image" size={22} color={satellite ? c.icon.brand : c.icon.default}/>
-                        </Pressable>
-                        <Pressable accessibilityLabel="Centre on my location" onPress={recentre} style={styles.control}>
-                            <Icon name="locate" size={22}/>
-                        </Pressable>
-                    </View>
-                </View>
-                <View style={[styles.hint, {backgroundColor: c.scrim}]}>
-                    <Text variant="footnote" color={c.text.onBrand}>Move the map until the pin is on your roof</Text>
-                </View>
+            {!hasMapsKey ? <MapUnavailable/> : <MapView
+                ref={map}
+                style={StyleSheet.absoluteFill}
+                provider={PROVIDER_GOOGLE}
+                mapType="satellite"
+                initialRegion={region}
+                mapPadding={{top: 0, left: 0, right: 0, bottom: SHEET}}
+                showsUserLocation={false}
+                showsMyLocationButton={false}
+                showsCompass={false}
+                toolbarEnabled={false}
+                onRegionChangeComplete={(r) => setPin({latitude: r.latitude, longitude: r.longitude})}
+            />}
+            {/* The pin never moves on screen; the map does. Its point is the middle of the visible map. */}
+            <View pointerEvents="none" style={[styles.pinLayer, {bottom: SHEET}]}>
+                <View style={styles.pinOffset}><MePin/></View>
             </View>
-
-            <KeyboardAwareScrollView
-                bottomOffset={24}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                style={[styles.card, {backgroundColor: c.bg.surface}]}
-                contentContainerStyle={[styles.cardContent, {paddingBottom: Math.max(insets.bottom, 16) + 8}]}>
-                <StageProgress stage={3}/>
-                <View style={styles.heading}>
-                    <Text variant="title2">Pin your home</Text>
-                    <Text variant="subhead" color={c.text.secondary}>
-                        This is how a neighbour finds your door in the dark. You cannot move the pin later, so take
-                        your time now.
-                    </Text>
-                </View>
-                <TextField
-                    label="House number"
-                    value={houseNumber}
-                    onChangeText={(v) => { setHouseNumber(v); setErrors((e) => ({...e, houseNumber: undefined})); }}
-                    placeholder="109"
-                    autoCapitalize="characters"
-                    error={errors.houseNumber}
-                />
-                <TextField
-                    label="Street"
-                    value={street}
-                    onChangeText={(v) => { setStreet(v); setErrors((e) => ({...e, street: undefined})); }}
-                    placeholder="Masaki Street"
-                    autoCapitalize="words"
-                    error={errors.street}
-                />
-                <TextField
-                    label="District"
-                    value={district}
-                    onChangeText={setDistrict}
-                    placeholder="Kinondoni"
-                    autoCapitalize="words"
-                    helper="Optional. Names your neighbourhood when you are the first here."
-                />
-                <TextField
-                    label="How to find you"
-                    value={directions}
-                    onChangeText={setDirections}
-                    placeholder="Black gate next to the shop, second house on the left"
-                    multiline
-                    helper="Optional. Only shown to neighbours responding to your live alert."
-                />
-                {failed && <Text variant="subhead" color={c.feedback.error}>{failed}</Text>}
-                <Button title="Save my home" onPress={save} loading={busy} style={styles.cta}/>
+            <View style={[styles.instruction, shadow.md, {top: insets.top + 4, backgroundColor: c.bg.surface}]}>
+                <Icon name="map-pin" size={22} color={c.icon.brand}/>
+                <Text variant="subhead" style={styles.flex}>Move the map until the pin sits on your house</Text>
+            </View>
+            <Pressable accessibilityLabel="Centre on my location" onPress={recentre}
+                       style={[styles.locate, {bottom: SHEET + 96, backgroundColor: c.bg.surface, borderColor: c.border.default}]}>
+                <Icon name="locate" size={24}/>
+            </Pressable>
+            <KeyboardAwareScrollView bottomOffset={24} keyboardShouldPersistTaps="handled" scrollEnabled={false}
+                                     style={[styles.sheet, {backgroundColor: c.bg.surface}]}
+                                     contentContainerStyle={[styles.sheetContent, {paddingBottom: Math.max(insets.bottom, 34)}]}>
+                <View style={[styles.grabber, {backgroundColor: c.border.strong}]}/>
+                {editStreet ? (
+                    <TextField label="Street" value={street} autoCapitalize="words" placeholder="Masaki St"
+                               onChangeText={(v) => { setStreet(v); setError(null); }}/>
+                ) : (
+                    <Pressable onPress={() => setEditStreet(true)} style={styles.address}>
+                        <Text variant="title3">{[street, address?.district].filter(Boolean).join(', ') || 'Finding the street…'}</Text>
+                        <Text variant="footnote" color={c.text.muted}>
+                            {[address?.city, 'detected from the pin'].filter(Boolean).join(' · ')}
+                        </Text>
+                    </Pressable>
+                )}
+                <TextField label="House number" value={houseNumber} placeholder="109" autoCapitalize="characters"
+                           error={error} onChangeText={(v) => { setHouseNumber(v); setError(null); }}/>
+                <Button title="Confirm my home" onPress={confirm} loading={busy}/>
             </KeyboardAwareScrollView>
         </View>
     );
@@ -196,18 +146,16 @@ export default function PinHome() {
 
 const styles = StyleSheet.create({
     screen: {flex: 1},
-    mapWrap: {height: '42%', overflow: 'hidden'},
-    pinLayer: {...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center'},
-    // MePin is 88 tall and its point is 48 px down, so a centred pin points 4 px below the map centre.
+    flex: {flex: 1},
+    pinLayer: {position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center'},
+    // MePin is 88 tall with its point 48 px down: lift it so the point, not the box, is centred.
     pinOffset: {transform: [{translateY: -4}]},
-    mapTop: {position: 'absolute', left: 12, right: 12, flexDirection: 'row', justifyContent: 'space-between'},
-    round: {width: 40, height: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center'},
-    controls: {padding: 2, borderRadius: radius.pill},
-    control: {width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center'},
-    hint: {position: 'absolute', bottom: 12, alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 6,
-        borderRadius: radius.pill},
-    card: {flex: 1, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, marginTop: -radius.xl},
-    cardContent: {paddingHorizontal: 16, paddingTop: 16, gap: 16},
-    heading: {gap: 6},
-    cta: {marginTop: 4},
+    instruction: {position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10,
+        paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16},
+    locate: {position: 'absolute', right: 16, width: 44, height: 44, borderRadius: 22, borderWidth: 1,
+        alignItems: 'center', justifyContent: 'center'},
+    sheet: {position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, flexGrow: 0},
+    sheetContent: {paddingHorizontal: 16, paddingTop: 8, gap: 14},
+    grabber: {width: 36, height: 5, borderRadius: 3},
+    address: {gap: 2},
 });

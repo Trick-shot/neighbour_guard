@@ -1,5 +1,6 @@
 import {router, Stack} from 'expo-router';
 import {useEffect} from 'react';
+import {Platform} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {KeyboardProvider} from 'react-native-keyboard-controller';
 
@@ -9,7 +10,7 @@ import {BottomSheetProvider} from '@/context/BottomSheetContext';
 import {setOnLoggedOut} from '@/lib/api';
 import {listenForSos, registerForSos, setupNotificationChannels} from '@/lib/notifications';
 
-setupNotificationChannels();
+if (Platform.OS !== 'web') setupNotificationChannels();
 
 function SessionEffects() {
     const {isAuthenticated, logout} = useAuth();
@@ -20,7 +21,8 @@ function SessionEffects() {
         });
     }, [logout]);
     useEffect(() => {
-        if (!isAuthenticated) return;
+        // Push and the alarm channel exist only on a phone; the browser preview has neither.
+        if (!isAuthenticated || Platform.OS === 'web') return;
         registerForSos();
         return listenForSos();
     }, [isAuthenticated]);

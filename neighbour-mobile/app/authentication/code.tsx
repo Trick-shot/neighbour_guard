@@ -1,23 +1,29 @@
 import {router, useLocalSearchParams} from 'expo-router';
 import {useEffect, useState} from 'react';
-import {KeyboardAvoidingView, Platform, Pressable, StyleSheet, View} from 'react-native';
+import {KeyboardAvoidingView, Platform, StyleSheet, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import Button from '@/components/ui/Button';
-import Icon from '@/components/ui/Icon';
+import Footer from '@/components/ui/Footer';
+import OnboardingHeader from '@/components/ui/OnboardingHeader';
 import OtpInput from '@/components/ui/OtpInput';
 import Text from '@/components/ui/Text';
 import {useAuth} from '@/context/AuthContext';
 import {authApi} from '@/lib/endpoints';
 import {useColors} from '@/theme';
 
-/** Figma "Sign in — code" (1631:1434). */
+/**
+ * Figma "Onboarding — code" (1619:591) and "Sign in — code" (1631:1434): the same screen, with the
+ * stage header only during sign-up. One code both signs in and signs up; the server says which it
+ * was (`is_new`), and a new account carries on into onboarding.
+ */
 const RESEND_AFTER = 30;
 
-export default function SignInCode() {
+export default function EmailCode() {
     const c = useColors();
     const insets = useSafeAreaInsets();
-    const {email = ''} = useLocalSearchParams<{ email: string }>();
+    const {email = '', mode, via} = useLocalSearchParams<{ email: string; mode?: 'signup' | 'signin'; via?: 'sms' }>();
+    const signup = mode === 'signup';
     const {login} = useAuth();
     const [code, setCode] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -30,14 +36,14 @@ export default function SignInCode() {
         return () => clearTimeout(t);
     }, [wait]);
 
-    const signIn = async (value = code) => {
-        if (value.length !== 6) return;
+    const verify = async (value = code) => {
+        if (value.length !== 6 || busy) return;
         setBusy(true);
         setError(null);
         try {
             const tokens = await authApi.verifyEmailCode(email, value);
             await login(tokens.access, tokens.refresh);
-            router.replace('/(tabs)');
+            router.replace(tokens.is_new ? '/authentication/phone' : '/(tabs)');
         } catch (e: any) {
             setError(e.message);
             setCode('');
@@ -48,23 +54,21 @@ export default function SignInCode() {
 
     const resend = async () => {
         setWait(RESEND_AFTER);
-        await authApi.requestEmailCode(email).catch(() => undefined);
+        await (via === 'sms' ? authApi.requestSmsCode(email) : authApi.requestEmailCode(email)).catch(() => undefined);
     };
 
     return (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                               style={[styles.screen, {backgroundColor: c.bg.surface, paddingTop: insets.top}]}>
-            <Pressable accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}>
-                <Icon name="chevron-left" size={24} color={c.icon.brand}/>
-            </Pressable>
+            <OnboardingHeader stage={signup ? 1 : undefined} progress={0.5}/>
             <View style={styles.heading}>
                 <Text variant="title1">Enter the 6-digit code</Text>
                 <Text variant="body" color={c.text.secondary}>
-                    Sent to {email} · <Text variant="body" color={c.text.brand} onPress={() => router.back()}>Change</Text>
+                    Sent to {via === 'sms' ? 'the phone on your account' : email} · <Text variant="body" color={c.text.brand} onPress={() => router.back()}>Change</Text>
                 </Text>
             </View>
             <View style={styles.otp}>
-                <OtpInput value={code} onChange={(v) => { setCode(v); setError(null); if (v.length === 6) signIn(v); }}/>
+                <OtpInput value={code} onChange={(v) => { setCode(v); setError(null); if (v.length === 6) verify(v); }}/>
             </View>
             {error ? (
                 <Text variant="subhead" color={c.feedback.error} style={styles.below}>{error}</Text>
@@ -73,18 +77,17 @@ export default function SignInCode() {
             ) : (
                 <Text variant="subhead" color={c.text.brand} style={styles.below} onPress={resend}>Resend code</Text>
             )}
-            <View style={{flex: 1}}/>
-            <Button title="Sign in" onPress={() => signIn()} loading={busy} disabled={code.length !== 6}
-                    style={[styles.cta, {marginBottom: Math.max(insets.bottom, 16)}]}/>
+            <Footer>
+                <Button title={signup ? 'Verify' : 'Sign in'} onPress={() => verify()} loading={busy} disabled={code.length !== 6}/>
+            </Footer>
         </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
     screen: {flex: 1},
-    back: {marginLeft: 12, marginTop: 10, width: 24, height: 24},
     heading: {paddingHorizontal: 16, marginTop: 32, gap: 8},
-    otp: {marginTop: 40},
+    // Cells at y 260 in the frame, 68 px under the heading.
+    otp: {marginTop: 68, alignItems: 'center'},
     below: {marginLeft: 16, marginTop: 20},
-    cta: {marginHorizontal: 29.5},
 });

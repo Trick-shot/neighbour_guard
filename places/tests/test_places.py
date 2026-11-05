@@ -220,3 +220,36 @@ class SeedDemoTests(TestCase):
         from django.core.management.base import CommandError
         with self.assertRaises(CommandError):
             call_command('seed_demo', 'only@one.tz', stdout=open('/dev/null', 'w'))
+
+
+class GatePhotoTests(APITestCase):
+    PNG = b'\x89PNG\r\n\x1a\n' + b'\x00' * 64
+
+    def setUp(self):
+        self.me = user('gate@x.tz')
+        self.client.force_authenticate(self.me)
+
+    def _upload(self, data):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return self.client.post('/api/v2/places/me/gate-photo/',
+                                {'photo': SimpleUploadedFile('g.png', data, content_type='image/png')}, format='multipart')
+
+    def test_needs_a_home_first(self):
+        self.assertEqual(self._upload(self.PNG).status_code, 404)
+
+    def test_saved_on_my_own_home_and_hidden_from_neighbours(self):
+        mine = home(self.me, house='7')
+        r = self._upload(self.PNG)
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNotNone(r.data['gate_photo_url'])
+        neighbour = user('n@x.tz')
+        home(neighbour, house='8', north=50, verified=True)
+        self.client.force_authenticate(neighbour)
+        listed = self.client.get('/api/v2/places/neighbours/').data
+        self.assertTrue(all('gate_photo_url' not in str(row) for row in listed))
+        mine.refresh_from_db()
+        self.assertTrue(mine.gate_photo)
+
+    def test_not_an_image_is_refused(self):
+        home(self.me)
+        self.assertEqual(self._upload(b'#!/bin/sh\nrm -rf /').status_code, 400)

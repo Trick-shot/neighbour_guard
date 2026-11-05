@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {StyleSheet, TextInput, TextInputProps, View} from 'react-native';
+import {Platform, StyleSheet, TextInput, TextInputProps, View} from 'react-native';
 
 import {type, useColors} from '@/theme';
 
@@ -32,5 +32,6 @@ export default function TextField({label, helper, error, style, ...input}: Props
 const styles = StyleSheet.create({
     wrap: {gap: 6, width: '100%'},
     field: {height: 52, borderRadius: 12, paddingHorizontal: 16, justifyContent: 'center'},
-    input: {padding: 0},
+    // The browser preview draws its own focus ring inside the field; the field already has one.
+    input: {padding: 0, ...(Platform.OS === 'web' ? {outlineWidth: 0} as object : null)},
 });

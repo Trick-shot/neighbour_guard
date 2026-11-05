@@ -54,6 +54,7 @@ export type MyResidence = {
     vouches: number;
     vouches_needed: number;
     neighbourhood: { id: number; name: string; slug: string; radius_m: number };
+    gate_photo_url: string | null;
 };
 
 /** The body of POST /api/v2/places/me/. The pin is sent once, here, and cannot move later. */
@@ -158,6 +159,7 @@ export type Me = {
     full_name: string;
     phone_number: string | null;
     is_phone_verified: boolean;
+    photo_url: string | null;
 };
 
 export type EmergencyContact = {

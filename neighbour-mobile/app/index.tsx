@@ -4,6 +4,7 @@ import {useEffect} from 'react';
 
 import authStorage from '@/auth/storage';
 import LoadingScreen from '@/components/LoadingScreen';
+import {prefs} from '@/lib/prefs';
 import {useAuth} from '@/context/AuthContext';
 
 /**
@@ -25,7 +26,8 @@ export default function Index() {
                 if (!isAuthenticated) await login(access, refresh);
                 router.replace('/(tabs)');
             } else {
-                router.replace('/authentication/onboarding');
+                // A brand-new phone chooses its language first; after that, straight to the slides.
+                router.replace((await prefs.language()) ? '/authentication/onboarding' : '/authentication/language');
             }
             await SplashScreen.hideAsync().catch(() => undefined);
         })();

@@ -40,7 +40,7 @@
       "package": "com.trickshot.neighbourmobile"
     },
     "web": {
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [

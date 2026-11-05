@@ -1,108 +1,76 @@
 import {router} from 'expo-router';
 import {useState} from 'react';
-import {KeyboardAvoidingView, Platform, StyleSheet, View} from 'react-native';
+import {StyleSheet, View} from 'react-native';
+import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import Button from '@/components/ui/Button';
-import Icon from '@/components/ui/Icon';
-import StageProgress from '@/components/ui/StageProgress';
+import Footer from '@/components/ui/Footer';
+import Note from '@/components/ui/Note';
+import OnboardingHeader from '@/components/ui/OnboardingHeader';
+import PinInput from '@/components/ui/PinInput';
 import Text from '@/components/ui/Text';
-import TextField from '@/components/ui/TextField';
 import {alertsApi} from '@/lib/endpoints';
-import {radius, useColors} from '@/theme';
+import {useColors} from '@/theme';
 
 /**
- * Figma "Android · 01" / "Onboarding — safety". Stage 4 of 4: the safety PIN and the duress PIN.
- *
- * The duress PIN is the one piece of this app that has to be explained properly, because its whole
- * value is that it looks like nothing happened. Typed under threat it shows the sender "resolved"
- * while neighbours keep seeing the alert, marked `under_duress`. Anyone watching over a shoulder
- * sees an alert being cancelled.
+ * Figma "Onboarding — safety & duress PIN" (1637:772). Stage 4, two thirds. The safety PIN ends
+ * an alert; the duress PIN looks the same on your phone but keeps the alert live for neighbours.
  */
-const PIN = /^\d{4,8}$/;
-
-export default function OnboardingSafety() {
+export default function OnboardingPins() {
     const c = useColors();
     const insets = useSafeAreaInsets();
     const [pin, setPin] = useState('');
     const [duress, setDuress] = useState('');
     const [errors, setErrors] = useState<{ pin?: string; duress?: string }>({});
-    const [failed, setFailed] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const next = () => router.replace('/authentication/contact');
 
     const save = async () => {
-        const next: typeof errors = {};
-        if (!PIN.test(pin)) next.pin = '4 to 8 digits.';
-        if (!PIN.test(duress)) next.duress = '4 to 8 digits.';
-        else if (duress === pin) next.duress = 'This has to be different from your safety PIN.';
-        setErrors(next);
-        setFailed(null);
-        if (Object.keys(next).length) return;
-
+        const e: typeof errors = {};
+        if (pin.length !== 4) e.pin = 'Four digits.';
+        if (duress.length !== 4) e.duress = 'Four digits.';
+        else if (duress === pin) e.duress = 'Must be different from your safety PIN.';
+        setErrors(e);
+        if (Object.keys(e).length) return;
         setBusy(true);
         try {
             await alertsApi.setPins(pin, duress);
-            router.replace('/(tabs)');
-        } catch (e: any) {
-            setFailed(e.message);
+            next();
+        } catch (err: any) {
+            setErrors({duress: err.message});
         } finally {
             setBusy(false);
         }
     };
 
     return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                              style={[styles.screen, {backgroundColor: c.bg.surface, paddingTop: insets.top + 10}]}>
-            <View style={styles.header}>
-                <StageProgress stage={4}/>
-            </View>
-            <View style={styles.content}>
-                <View style={[styles.badge, {backgroundColor: c.bg.brandSubtle}]}>
-                    <Icon name="lock" size={34} color={c.icon.brand}/>
-                </View>
+        <View style={[styles.screen, {backgroundColor: c.bg.surface, paddingTop: insets.top}]}>
+            <OnboardingHeader stage={4} progress={2 / 3} back={false}/>
+            <KeyboardAwareScrollView bottomOffset={24} keyboardShouldPersistTaps="handled"
+                                     contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={styles.heading}>
-                    <Text variant="title1">Two PINs</Text>
+                    <Text variant="title1">Set your safety PINs</Text>
                     <Text variant="body" color={c.text.secondary}>
-                        You type one of these to end an alert. Which one you type decides what your neighbours see.
+                        Your safety PIN ends an alert. If someone forces you, enter the duress PIN instead. It looks normal, but your alert stays live.
                     </Text>
                 </View>
-
-                <TextField label="Safety PIN" value={pin} keyboardType="number-pad" secureTextEntry
-                           maxLength={8} error={errors.pin}
-                           helper="Ends the alert for everyone. Use this when you are genuinely safe."
-                           onChangeText={(v) => { setPin(v.replace(/\D/g, '')); setErrors((e) => ({...e, pin: undefined})); }}/>
-
-                <TextField label="Duress PIN" value={duress} keyboardType="number-pad" secureTextEntry
-                           maxLength={8} error={errors.duress}
-                           onChangeText={(v) => { setDuress(v.replace(/\D/g, '')); setErrors((e) => ({...e, duress: undefined})); }}/>
-                <View style={[styles.note, {backgroundColor: c.feedback.warningBg}]}>
-                    <Icon name="eye" size={20} color={c.feedback.warning}/>
-                    <Text variant="subhead" color={c.feedback.warning} style={styles.noteText}>
-                        Type the duress PIN when someone is making you end the alert. Your screen says it is over.
-                        Your neighbours keep coming, and they are told you are under threat.
-                    </Text>
-                </View>
-                {failed && <Text variant="subhead" color={c.feedback.error}>{failed}</Text>}
-            </View>
-            <View style={[styles.footer, {paddingBottom: Math.max(insets.bottom, 16)}]}>
-                <Button title="Save and finish" onPress={save} loading={busy}/>
-                <Text variant="subhead" color={c.text.secondary} style={styles.centre}
-                      onPress={() => router.replace('/(tabs)')}>
-                    Set these up later in Profile
-                </Text>
-            </View>
-        </KeyboardAvoidingView>
+                <PinInput label="Safety PIN" value={pin} autoFocus error={errors.pin}
+                          onChange={(v) => { setPin(v); setErrors((x) => ({...x, pin: undefined})); }}/>
+                <PinInput label="Duress PIN" value={duress} error={errors.duress}
+                          onChange={(v) => { setDuress(v); setErrors((x) => ({...x, duress: undefined})); }}/>
+                <Note icon="lock">With the duress PIN, neighbours and your security provider are alerted silently. Never share it.</Note>
+            </KeyboardAwareScrollView>
+            <Footer>
+                <Button title="Save PINs" onPress={save} loading={busy}/>
+                <Button title="Skip for now" variant="text" onPress={next}/>
+            </Footer>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     screen: {flex: 1},
-    header: {paddingHorizontal: 16},
-    content: {flex: 1, paddingHorizontal: 16, paddingTop: 24, gap: 16, alignItems: 'flex-start'},
-    badge: {width: 72, height: 72, borderRadius: radius.xl, alignItems: 'center', justifyContent: 'center'},
+    content: {paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24, gap: 20},
     heading: {gap: 8},
-    note: {flexDirection: 'row', gap: 12, padding: 16, borderRadius: radius.md, alignItems: 'flex-start'},
-    noteText: {flex: 1},
-    footer: {paddingHorizontal: 16, gap: 12},
-    centre: {textAlign: 'center'},
 });
