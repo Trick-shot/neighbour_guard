@@ -2,6 +2,25 @@
 
 Each entry: the decision, why, and what would make us revisit it. Newest first.
 
+## 2026-11-06 · The SDK 58 upgrade lives on `upgrade/expo-58`, not `rebuild/v2`
+Expo 54 -> 58 moves React Native 0.81 -> 0.88 and rewrites the audio API. `rebuild/v2` is the
+branch the pitch build comes from, so the upgrade is kept off it until the alarm and voice notes
+have been tested by hand on a device. **Revisit:** merge once that testing passes.
+
+## 2026-11-06 · `expo-av` is replaced by `expo-audio`, and the alarm asks for exclusive audio
+`expo-av` has no SDK 58 release (it stops at 16.0.8), so the migration was forced, not chosen.
+Three files moved: the alarm (`app/alert/[id].tsx`), voice recording and voice playback in chat.
+The old alarm set `shouldDuckAndroid: false`; expo-audio's default is `interruptionMode:
+'mixWithOthers'`, which would let the siren play quietly under other audio instead of taking over.
+It is set to `'doNotMix'` so an alarm still interrupts, as it did before. **Revisit:** if a
+neighbour reports the siren is quiet when music is playing, check this flag first.
+
+## 2026-11-06 · The tab bar follows expo-router's own type, not react-navigation's
+expo-router 58 vendors bottom-tabs and passes `navigateToTab(routeKey)` + `emitter` where
+react-navigation passed `navigation`. `TabBarSOS` now derives its props from `Tabs` itself
+(`Parameters<...ComponentProps<typeof Tabs>['tabBar']>`), so the next upgrade moves it for us
+instead of breaking it. **Revisit:** if expo-router stops exporting a `tabBar` prop.
+
 ## 2026-11-05 · Quiet hours and "Messages & issues" live on the server, not the phone
 A push that arrives while the app is closed is shown by the phone before any app code runs, so a
 phone-only switch could not silence it. `User.routine_push`, `quiet_from`, `quiet_to` are checked

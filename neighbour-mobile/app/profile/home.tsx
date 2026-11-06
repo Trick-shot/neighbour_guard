@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     screen: {flex: 1},
     content: {paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 16},
     mapWrap: {height: 160, borderRadius: radius.lg, overflow: 'hidden'},
-    pinLayer: {...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center'},
+    pinLayer: {...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center'},
     pinOffset: {transform: [{translateY: -4}]},
     note: {flexDirection: 'row', gap: 12, padding: 16, borderRadius: radius.md, alignItems: 'flex-start'},
     status: {flexDirection: 'row', gap: 12, padding: 16, borderRadius: radius.md, alignItems: 'flex-start'},

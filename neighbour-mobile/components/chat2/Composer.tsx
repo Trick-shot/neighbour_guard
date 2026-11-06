@@ -1,4 +1,4 @@
-import {Audio} from 'expo-av';
+import {RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder} from 'expo-audio';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import {useEffect, useRef, useState} from 'react';
@@ -39,7 +39,10 @@ export default function Composer({value, onChange, onSend, bottomInset, onPickMe
     const [seconds, setSeconds] = useState(0);
     const [cancelling, setCancelling] = useState(false);
     const [note, setNote] = useState<string | null>(null);
-    const recorder = useRef<Audio.Recording | null>(null);
+    // expo-audio gives one long-lived recorder from a hook, instead of expo-av's
+    // throwaway Recording object, so `active` tracks whether a take is in progress.
+    const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+    const active = useRef(false);
     const startedAt = useRef(0);
     const cancelRef = useRef(false);
 
@@ -52,11 +55,12 @@ export default function Composer({value, onChange, onSend, bottomInset, onPickMe
     const start = async (tapMode = false) => {
         setNote(null);
         try {
-            const permission = await Audio.requestPermissionsAsync();
+            const permission = await requestRecordingPermissionsAsync();
             if (!permission.granted) return setNote('The microphone is not allowed for this app yet.');
-            await Audio.setAudioModeAsync({allowsRecordingIOS: true, playsInSilentModeIOS: true});
-            const {recording: started} = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-            recorder.current = started;
+            await setAudioModeAsync({allowsRecording: true, playsInSilentMode: true});
+            await recorder.prepareToRecordAsync();
+            recorder.record();
+            active.current = true;
             startedAt.current = Date.now();
             cancelRef.current = false;
             setCancelling(false);
@@ -69,15 +73,15 @@ export default function Composer({value, onChange, onSend, bottomInset, onPickMe
     };
 
     const stop = async (send: boolean) => {
-        const current = recorder.current;
-        recorder.current = null;
+        const wasActive = active.current;
+        active.current = false;
         setRecording(false);
         setLocked(false);
-        if (!current) return;
+        if (!wasActive) return;
         try {
-            await current.stopAndUnloadAsync();
+            await recorder.stop();
             const secs = (Date.now() - startedAt.current) / 1000;
-            const uri = current.getURI();
+            const uri = recorder.uri;
             // Under a second is almost always a mis-tap, not a message.
             if (!send || !uri || secs < 1) return;
             onPickMedia?.({uri, name: 'voice.m4a', mime: 'audio/mp4'}, 'voice', secs);

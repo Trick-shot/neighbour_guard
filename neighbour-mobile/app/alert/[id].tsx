@@ -1,4 +1,4 @@
-import {Audio} from 'expo-av';
+import {createAudioPlayer, setAudioModeAsync, type AudioPlayer} from 'expo-audio';
 import {router, useLocalSearchParams} from 'expo-router';
 import {useEffect, useRef, useState} from 'react';
 import {Linking, StyleSheet, Vibration, View} from 'react-native';
@@ -29,14 +29,14 @@ export default function NeighbourAlarm() {
     const [alert, setAlert] = useState<Alert | null>(null);
     const [me, setMe] = useState<MyResidence | null>(null);
     const [busy, setBusy] = useState(false);
-    const sound = useRef<Audio.Sound | null>(null);
+    const sound = useRef<AudioPlayer | null>(null);
 
     const stopAlarm = async () => {
         const s = sound.current;
         sound.current = null;
         Vibration.cancel();
-        await s?.stopAsync().catch(() => undefined);
-        await s?.unloadAsync().catch(() => undefined);
+        // expo-audio: remove() stops playback and frees the player in one step.
+        try { s?.remove(); } catch { /* already removed */ }
     };
 
     useEffect(() => {
@@ -47,8 +47,12 @@ export default function NeighbourAlarm() {
         }).catch(() => router.back());
         placesApi.me().then(setMe).catch(() => undefined);
         (async () => {
-            await Audio.setAudioModeAsync({playsInSilentModeIOS: true, staysActiveInBackground: true, shouldDuckAndroid: false});
-            const {sound: s} = await Audio.Sound.createAsync(require('@/assets/sounds/alarm.mp3'), {shouldPlay: true, isLooping: true, volume: 1});
+            // An alarm must take the audio session, not duck under whatever else is playing.
+            await setAudioModeAsync({playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: 'doNotMix'});
+            const s = createAudioPlayer(require('@/assets/sounds/alarm.mp3'));
+            s.loop = true;
+            s.volume = 1;
+            s.play();
             sound.current = s;
             // "Vibrate" in Alarm & notifications: buzz with the siren until answered or muted.
             if (await prefs.vibrate()) Vibration.vibrate([0, 800, 600], true);

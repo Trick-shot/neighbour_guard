@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "icon": {
@@ -35,7 +34,6 @@
         "backgroundImage": "./assets/icons/android.png",
         "monochromeImage": "./assets/icons/android.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.trickshot.neighbourmobile"
     },

@@ -125,6 +125,48 @@ reports that it cannot tell, and opens the setting, instead of displaying a gree
 
 ---
 
+## 2026-11-06 — Claude Code — Expo SDK 58 upgrade on `upgrade/expo-58` (not yet merged)
+
+**Why.** Erick asked for it after Expo Go on his iPhone refused the project ("Expo Go is for SDK
+58, this project uses 54"). Worth saying plainly: **this upgrade does not make Expo Go work.**
+`app/_layout.tsx` wraps the whole app in `KeyboardProvider` from `react-native-keyboard-controller`,
+which Expo Go does not bundle on any SDK. The upgrade was done on its own merits.
+
+**Done, on branch `upgrade/expo-58`.** `rebuild/v2` is untouched and still holds the pitch build.
+Expo 54.0.33 -> **58.0.23**, React Native 0.81.5 -> **0.88.1**, React 19.1 -> 19.3, plus majors in
+gesture-handler (2->3), pager-view (6->9), worklets (0.5->0.13), reanimated (4.1->4.7).
+
+**The forced part: `expo-av` -> `expo-audio`** (`expo-av` has no SDK 58 release). Three files:
+- `app/alert/[id].tsx` — **the alarm**. `Audio.Sound` -> `createAudioPlayer`, `remove()` for
+  stop+unload, and `interruptionMode: 'doNotMix'` so the siren still takes the audio session
+  (see DECISIONS: expo-audio's default would have let it play quietly under other audio).
+- `components/chat2/Composer.tsx` — voice recording, reshaped onto the `useAudioRecorder` hook.
+- `components/chat2/MediaBubble.tsx` — voice playback (`seekTo(0)` + `play()`).
+
+**Other breaking changes fixed:** `StyleSheet.absoluteFillObject` gone (4 files, now
+`absoluteFill`); `TextInput`/`ScrollView` ref types reshaped (3 files, now `ComponentRef<typeof X>`);
+`android.edgeToEdgeEnabled` and `newArchEnabled` no longer allowed in `app.json` (always on in 58);
+expo-router 58 swapped the tab bar's `navigation` for `navigateToTab`/`emitter`.
+
+**Verified:** `npx tsc --noEmit` **0 errors**. `npx expo-doctor` **20/20 checks passed**. Gradle
+**BUILD SUCCESSFUL in 10m 7s** (95 MB APK). Installed on the Pixel_9 emulator and launched: the
+welcome screen renders, Continue navigates to the onboarding carousel (so pager-view 9 works), and
+logcat shows no fatals, no redbox, and expo-modules loading cleanly.
+
+**NOT verified — this is what Erick must do before any merge:** the alarm actually sirening and
+looping, a voice note recording and playing back, and the tab bar switching tabs. A clean type
+check proves none of those. The audio migration touched life-safety code.
+
+**Two traps worth remembering.** (1) The first build **hung**: Gradle and the Kotlin daemon both
+sat at 0.0% CPU with no log output for 27 minutes. `./android/gradlew --stop` then building with
+`--no-daemon` fixed it. (2) The emulator's `/data` was 95% full, so installing a 70 MB APK failed
+with `Requested internal only, but not enough space`; lowering Android's storage reserve
+(`settings put global sys_storage_threshold_max_bytes 52428800`) let it through without wiping the
+emulator. The Pixel_9 AVD also needs `-gpu swiftshader_indirect`, or its System UI crashes.
+
+**Files:** `package.json`, `package-lock.json`, `app.json`, and the 11 source files above.
+`android/` was regenerated with `prebuild --clean -p android` (gitignored); `ios/` left alone.
+
 ## 2026-11-05 — Claude Code — first local run of the full design on Mac
 
 **Ran.** Backend on `backend.settings_local` (SQLite, no Redis, no worker): `migrate` clean, all

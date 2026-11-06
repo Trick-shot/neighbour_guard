@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {type ComponentRef, useRef, useState} from 'react';
 import {Pressable, StyleSheet, TextInput, View} from 'react-native';
 
 import {useColors} from '@/theme';
@@ -13,7 +13,7 @@ type Props = { label: string; value: string; onChange: (v: string) => void; leng
 
 export default function PinInput({label, value, onChange, length = 4, autoFocus, error}: Props) {
     const c = useColors();
-    const ref = useRef<TextInput>(null);
+    const ref = useRef<ComponentRef<typeof TextInput>>(null);
     const [focused, setFocused] = useState(false);
     return (
         <View style={styles.wrap}>

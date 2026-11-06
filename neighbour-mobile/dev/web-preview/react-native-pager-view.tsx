@@ -1,9 +1,9 @@
 /** Web-only stand-in for react-native-pager-view (browser preview). Never used on a phone. */
-import React, {forwardRef, useImperativeHandle, useRef, useState} from 'react';
+import React, {type ComponentRef, forwardRef, useImperativeHandle, useRef, useState} from 'react';
 import {ScrollView, View} from 'react-native';
 
 const PagerView = forwardRef<any, any>(function PagerView({children, style, onPageSelected, initialPage = 0}, ref) {
-    const sv = useRef<ScrollView>(null);
+    const sv = useRef<ComponentRef<typeof ScrollView>>(null);
     const [w, setW] = useState(0);
     useImperativeHandle(ref, () => ({setPage: (i: number) => { sv.current?.scrollTo({x: i * w, animated: true}); onPageSelected?.({nativeEvent: {position: i}}); }}));
     return (

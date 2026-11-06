@@ -1,4 +1,4 @@
-import {Audio} from 'expo-av';
+import {createAudioPlayer, type AudioPlayer} from 'expo-audio';
 import {Image} from 'expo-image';
 import {useEffect, useRef, useState} from 'react';
 import {Linking, Pressable, StyleSheet, View} from 'react-native';
@@ -24,25 +24,27 @@ const size = (bytes: number) =>
 
 export function VoiceBubble({attachment, tint}: { attachment: Attachment; tint: string }) {
     const c = useColors();
-    const sound = useRef<Audio.Sound | null>(null);
+    const sound = useRef<AudioPlayer | null>(null);
     const [playing, setPlaying] = useState(false);
 
-    useEffect(() => () => { sound.current?.unloadAsync(); }, []);
+    useEffect(() => () => { sound.current?.remove(); }, []);
 
     const toggle = async () => {
         try {
             if (!sound.current) {
-                const {sound: loaded} = await Audio.Sound.createAsync({uri: attachment.url});
+                const loaded = createAudioPlayer({uri: attachment.url});
                 sound.current = loaded;
-                loaded.setOnPlaybackStatusUpdate((status) => {
-                    if ('didJustFinish' in status && status.didJustFinish) setPlaying(false);
+                loaded.addListener('playbackStatusUpdate', (status) => {
+                    if (status.didJustFinish) setPlaying(false);
                 });
             }
             if (playing) {
-                await sound.current.pauseAsync();
+                sound.current.pause();
                 setPlaying(false);
             } else {
-                await sound.current.playFromPositionAsync(0);
+                // Voice notes always replay from the start, as they did on expo-av.
+                await sound.current.seekTo(0);
+                sound.current.play();
                 setPlaying(true);
             }
         } catch {

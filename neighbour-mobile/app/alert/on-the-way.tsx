@@ -126,7 +126,7 @@ function Meta({icon, text}: { icon: 'map-pin' | 'clock' | 'users'; text: string 
 
 const styles = StyleSheet.create({
     screen: {flex: 1},
-    map: {...StyleSheet.absoluteFillObject, bottom: 274},
+    map: {...StyleSheet.absoluteFill, bottom: 274},
     eta: {position: 'absolute', left: 16, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16},
     sheet: {position: 'absolute', left: 0, right: 0, bottom: 0, gap: 14, paddingTop: 8, paddingHorizontal: 16, borderTopLeftRadius: 28, borderTopRightRadius: 28},
     grabber: {width: 36, height: 5, borderRadius: 3},

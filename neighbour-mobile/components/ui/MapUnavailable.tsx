@@ -24,7 +24,7 @@ export default function MapUnavailable({compact}: { compact?: boolean }) {
 }
 
 const styles = StyleSheet.create({
-    wrap: {...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', gap: 6,
+    wrap: {...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: 6,
         borderRadius: radius.md, padding: 16},
     text: {textAlign: 'center'},
 });

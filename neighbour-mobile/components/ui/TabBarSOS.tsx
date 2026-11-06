@@ -1,4 +1,10 @@
-import type {BottomTabBarProps} from '@react-navigation/bottom-tabs';
+import type {Tabs} from 'expo-router';
+
+/**
+ * expo-router 58 passes its own tab-bar props: `navigateToTab(routeKey)` and `emitter`
+ * replace react-navigation's `navigation`. Derived from Tabs so it follows the library.
+ */
+type TabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 import * as Haptics from 'expo-haptics';
 import {router} from 'expo-router';
 import {Pressable, StyleSheet, View} from 'react-native';
@@ -21,7 +27,7 @@ const TABS: Record<string, { label: string; icon: IconName }> = {
     profile: {label: 'Profile', icon: 'user'},
 };
 
-export default function TabBarSOS({state, navigation}: BottomTabBarProps) {
+export default function TabBarSOS({state, navigateToTab, emitter}: TabBarProps) {
     const c = useColors();
     const insets = useSafeAreaInsets();
     const routes = state.routes.filter((r) => TABS[r.name]);
@@ -41,8 +47,8 @@ export default function TabBarSOS({state, navigation}: BottomTabBarProps) {
                 accessibilityRole="tab"
                 accessibilityState={{selected: focused}}
                 onPress={() => {
-                    const e = navigation.emit({type: 'tabPress', target: route.key, canPreventDefault: true});
-                    if (!focused && !e.defaultPrevented) navigation.navigate(route.name);
+                    const e = emitter.emit({type: 'tabPress', target: route.key, canPreventDefault: true});
+                    if (!focused && !e.defaultPrevented) navigateToTab(route.key);
                 }}
                 style={styles.tab}>
                 <Icon name={meta.icon} size={24} color={focused ? c.icon.brand : c.icon.muted}/>

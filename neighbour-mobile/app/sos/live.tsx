@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     guard: {flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 18, marginBottom: 6},
     guardIcon: {width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center'},
     guardCall: {width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center'},
-    dim: {...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.94)', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 60},
+    dim: {...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.94)', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 60},
     confirm: {position: 'absolute', left: 0, right: 0, bottom: 0, gap: 16, paddingTop: 10, paddingHorizontal: 16, borderTopLeftRadius: 28, borderTopRightRadius: 28},
     secure: {width: 82, height: 82, alignSelf: 'center'},
     pin: {height: 52, borderWidth: 1, borderRadius: 12, paddingHorizontal: 16},

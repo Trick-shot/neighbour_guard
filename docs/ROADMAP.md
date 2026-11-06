@@ -60,6 +60,12 @@ or a server**, so treat every one as "written and tested, not yet seen working".
 
 (New ideas go here, unordered, until Erick prioritises them.)
 
+- [ ] **Test the SDK 58 branch by hand** (`upgrade/expo-58`): the alarm must siren and loop on a
+      real phone, a voice note must record and play back, and the tab bar must still switch tabs.
+      Type-checking cannot prove any of these. Merge to `rebuild/v2` only after that.
+- [ ] Expo Go cannot run this app on any SDK (`react-native-keyboard-controller` is not bundled in
+      it). If a judge asks to try it on their own phone, they need a dev build, not Expo Go.
+
 - Expo's `app-example/` scaffold folder is dead weight in the repo — delete it some time.
 - The status bar vanishes on light screens (white icons on white). Needs a `StatusBar` style that
   follows the screen, or `dark-content` as the default.

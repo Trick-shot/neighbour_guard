@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {type ComponentRef, useRef} from 'react';
 import {Pressable, StyleSheet, TextInput, View} from 'react-native';
 
 import {useColors} from '@/theme';
@@ -8,7 +8,7 @@ import Text from './Text';
 /** Figma "OTP cell" ×6 (1614:200): 56 × 60 cells, 7 px gap. One hidden input drives all cells. */
 export default function OtpInput({value, onChange, length = 6}: { value: string; onChange: (v: string) => void; length?: number }) {
     const c = useColors();
-    const ref = useRef<TextInput>(null);
+    const ref = useRef<ComponentRef<typeof TextInput>>(null);
     return (
         <Pressable onPress={() => ref.current?.focus()} style={styles.row}>
             {Array.from({length}).map((_, i) => {
