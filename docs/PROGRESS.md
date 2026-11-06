@@ -166,6 +166,17 @@ so cancel is too late) and every map is a placeholder with no `GOOGLE_MAPS_ANDRO
 
 **Files:** none but this log.
 
+## 2026-11-06 — Claude Code — full app test on Android emulator
+
+**Report: [`docs/TEST-REPORT-2026-11-06.md`](TEST-REPORT-2026-11-06.md)** (29 findings, 11 screenshots in
+`docs/test-report/`). Verdict: **demo path is safe with workarounds.** The four that matter: `.env`
+still points at an old laptop IP (fix before building the phones); the "I'm coming" button is blank
+in dark mode; re-opening the alarm screen demotes a responder to "seen"; the sender's live screen
+says "0 neighbours alerted" whenever push fails. No crashes. Native-only checks (hold gesture, siren,
+back button everywhere, keyboard, font scale) could not be finished: the emulator degraded under host
+load every time, so the browser preview + direct API calls carried most of the coverage — the report
+says which is which. Backend was left running; test alerts were resolved, Erick's name restored.
+
 ## 2026-11-05 — Claude Code — the whole Figma design implemented, pages 01 to 09
 
 **Done.** Every Android frame (the design for both platforms, no liquid glass) is built and was
