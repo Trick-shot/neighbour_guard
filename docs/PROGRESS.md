@@ -183,6 +183,15 @@ so cancel is too late) and every map is a placeholder with no `GOOGLE_MAPS_ANDRO
 
 **Files:** none but this log.
 
+## 2026-11-07 — Claude Code — two-person demo test (Android + web), P0 fixed
+
+Report: [`docs/TEST-REPORT-2026-11-07-two-devices.md`](TEST-REPORT-2026-11-07-two-devices.md). Verdict:
+**demo path works on both devices, with workarounds.** Fixed today on `rebuild/v2`: the P0 (chat alert
+updates were typed with the alert kind, so cards never flipped to resolved — `chat.services.alert_update_frame`,
+tested), the sender's own alert shown as a neighbour's (Home/SOS/alarm), and the PIN sheet (reset, auto-submit
+at 4 digits, above the keyboard); plus `npm test` (jest-expo). Timings and the demo checklist are in the report.
+`.env` is set to this Mac's IP 172.30.1.77 (not committed).
+
 ## 2026-11-06 — Claude Code — full app test on Android emulator
 
 **Report: [`docs/TEST-REPORT-2026-11-06.md`](TEST-REPORT-2026-11-06.md)** (29 findings, 11 screenshots in
