@@ -1,15 +1,17 @@
 import * as Haptics from 'expo-haptics';
 import {router} from 'expo-router';
-import {useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {Animated, Easing, PanResponder, StyleSheet, useWindowDimensions, View} from 'react-native';
 import Svg, {Circle} from 'react-native-svg';
 
+import authStorage from '@/auth/storage';
 import {ALERT_META} from '@/components/ui/AlertTypeChip';
+import {splitLiveAlerts} from '@/features/alerts';
 import Icon from '@/components/ui/Icon';
 import Text from '@/components/ui/Text';
 import {alertsApi} from '@/lib/endpoints';
 import {events} from '@/lib/events';
-import {AlertType} from '@/lib/types';
+import {Alert, AlertType} from '@/lib/types';
 import {newClientId} from '@/lib/uuid';
 import {alertColor, shadow, useColors} from '@/theme';
 
@@ -43,6 +45,15 @@ export default function SosHold() {
     const [sending, setSending] = useState(false);
     const done = useRef(false);
     const selectedRef = useRef<AlertType | null>(null);
+
+    // Already live? Then SOS means "back to my alert", not a second one and not the neighbour alarm.
+    useEffect(() => {
+        (async () => {
+            const [me, live] = await Promise.all([authStorage.getUser(), alertsApi.active().catch(() => [] as Alert[])]);
+            const {mine} = splitLiveAlerts(live, me?.user_id);
+            if (mine) router.replace({pathname: '/sos/live', params: {id: String(mine.id)}});
+        })().catch(() => undefined);
+    }, []);
 
     const bubbles = useMemo(() => TYPES.map(({type, angle}) => {
         const rad = (angle * Math.PI) / 180;

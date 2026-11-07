@@ -5,6 +5,7 @@ import {Linking, StyleSheet, Vibration, View} from 'react-native';
 import MapView, {Marker, Polyline, PROVIDER_GOOGLE} from 'react-native-maps';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
+import authStorage from '@/auth/storage';
 import {ALERT_META} from '@/components/ui/AlertTypeChip';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
@@ -40,7 +41,13 @@ export default function NeighbourAlarm() {
     };
 
     useEffect(() => {
-        alertsApi.get(alertId).then((a) => {
+        alertsApi.get(alertId).then(async (a) => {
+            // This is the neighbour's alarm. The sender's own phone belongs on the live screen.
+            const me = await authStorage.getUser().catch(() => null);
+            if (a.sender_id === me?.user_id) {
+                router.replace({pathname: '/sos/live', params: {id: String(alertId)}});
+                return;
+            }
             setAlert(a);
             if (a.status === 'sent') alertsApi.respond(alertId, 'seen').catch(() => undefined);
             if (a.status === 'resolved') router.replace({pathname: '/alert/resolved', params: {id: String(alertId)}});

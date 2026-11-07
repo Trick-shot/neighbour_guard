@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import {router, useFocusEffect, useLocalSearchParams} from 'expo-router';
+import {type Href, router, useFocusEffect, useLocalSearchParams} from 'expo-router';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Linking, Pressable, StyleSheet, View} from 'react-native';
 import MapView, {Circle, Marker, PROVIDER_GOOGLE, Region} from 'react-native-maps';
@@ -14,6 +14,8 @@ import {AlertPin, MePin} from '@/components/ui/MapPin';
 import MapUnavailable from '@/components/ui/MapUnavailable';
 import StatusCompact from '@/components/ui/StatusCompact';
 import Text from '@/components/ui/Text';
+import authStorage from '@/auth/storage';
+import {routeForAlert, splitLiveAlerts} from '@/features/alerts';
 import {alertsApi, notificationsApi, placesApi, providersApi} from '@/lib/endpoints';
 import {events} from '@/lib/events';
 import {hasMapsKey} from '@/lib/maps';
@@ -45,6 +47,8 @@ export default function Home() {
     const [home, setHome] = useState<MyResidence | null>(null);
     const [areas, setAreas] = useState<Area[]>([]);
     const [alerts, setAlerts] = useState<Alert[]>([]);
+    const [myId, setMyId] = useState<number | null>(null);
+    useEffect(() => { authStorage.getUser().then((u) => setMyId(u?.user_id ?? null)).catch(() => undefined); }, []);
     const [unread, setUnread] = useState(0);
     const [covered, setCovered] = useState<boolean | null>(null);
     const [guard, setGuard] = useState<{ provider: string; onDuty: boolean } | null>(null);
@@ -121,13 +125,18 @@ export default function Home() {
 
     const homes = areas.reduce((n, a) => n + a.homes, 0);
     const neighbours = Math.max(0, homes - 1);
-    const others = alerts.filter((a) => a.home?.lat != null);
-    const nearest = alerts[0];
+    // My own live alert is never a neighbour's: it gets its own banner and opens my live screen.
+    const {mine, others: liveOthers} = splitLiveAlerts(alerts, myId);
+    const others = liveOthers.filter((a) => a.home?.lat != null);
+    const nearest = liveOthers[0];
+    const focus = mine ?? nearest;
     const coming = nearest?.responses.filter((r) => r.state === 'coming' || r.state === 'arrived').length ?? 0;
     const away = nearest && home && nearest.home?.lat != null
         ? `${Math.round(metres(home, {lat: nearest.home.lat!, lng: nearest.home.lng!}) / 10) * 10} m away` : 'nearby';
 
-    const status = nearest
+    const status = mine
+        ? {tone: 'alert' as const, title: 'Your alert is live', subtitle: 'tap to open'}
+        : nearest
         ? {tone: 'alert' as const, title: `${ALERT_META[nearest.type].label} ${away}`,
             subtitle: `${nearest.sender_name} · ${coming} responding · tap to help`}
         : guard ? {tone: 'protected' as const, title: `Protected by ${guard.provider}`,
@@ -179,7 +188,7 @@ export default function Home() {
                 )}
                 {others.map((a) => (
                     <Marker key={a.id} coordinate={{latitude: a.home.lat!, longitude: a.home.lng!}} anchor={{x: 0.5, y: 0.5}}
-                            onPress={() => router.push(`/alert/${a.id}`)}>
+                            onPress={() => router.push(routeForAlert(a, myId) as Href)}>
                         <AlertPin/>
                     </Marker>
                 ))}
@@ -197,8 +206,8 @@ export default function Home() {
                         </View>
                     </View>
                 ) : (
-                    <StatusCompact {...status} badge={nearest ? alerts.length : unread}
-                                   onPress={() => (nearest ? router.push(`/alert/${nearest.id}`) : router.push('/notifications'))}
+                    <StatusCompact {...status} badge={focus ? alerts.length : unread}
+                                   onPress={() => (focus ? router.push(routeForAlert(focus, myId) as Href) : router.push('/notifications'))}
                                    onBell={() => router.push('/notifications')}/>
                 )}
                 {locationOff && (

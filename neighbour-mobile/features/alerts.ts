@@ -38,3 +38,23 @@ export function distanceM(a: { lat: number; lng: number }, b: { lat: number; lng
 
 export const walkMinutes = (m: number) => Math.max(1, Math.ceil(m / 80));
 export const formatDistance = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m / 10) * 10} m`);
+
+
+/** My own live alert, separated from the neighbours' — Home must never show mine as "tap to help". */
+export function splitLiveAlerts<T extends { sender_id: number }>(alerts: T[], myId: number | null | undefined) {
+    const mine = myId == null ? null : (alerts.find((a) => a.sender_id === myId) ?? null);
+    return {mine, others: alerts.filter((a) => a !== mine)};
+}
+
+/** Where a tap on an alert goes: my own live screen, or the neighbour alarm. */
+export function routeForAlert(alert: { id: number; sender_id: number }, myId: number | null | undefined): string {
+    return alert.sender_id === myId ? `/sos/live?id=${alert.id}` : `/alert/${alert.id}`;
+}
+
+/**
+ * A 4-digit PIN is sent the moment it is complete, so "I'm safe" is one gesture on stage.
+ * Longer PINs (5–8 digits) still need the button: a 4-digit prefix of one would be a wrong PIN.
+ */
+export function pinAutoSubmits(pin: string, pinSet: boolean): boolean {
+    return pinSet && pin.length === 4;
+}
