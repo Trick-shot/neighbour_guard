@@ -1,7 +1,7 @@
 import {Image} from 'expo-image';
 import {router, useLocalSearchParams} from 'expo-router';
 import {useCallback, useEffect, useState} from 'react';
-import {Linking, Modal, Pressable, ScrollView, StyleSheet, TextInput, View} from 'react-native';
+import {KeyboardAvoidingView, Linking, Modal, Pressable, ScrollView, StyleSheet, TextInput, View} from 'react-native';
 import MapView, {Circle, Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
@@ -11,6 +11,7 @@ import {AlertPin} from '@/components/ui/MapPin';
 import Note from '@/components/ui/Note';
 import ResponderRow from '@/components/ui/ResponderRow';
 import Text from '@/components/ui/Text';
+import {pinAutoSubmits} from '@/features/alerts';
 import {alertsApi} from '@/lib/endpoints';
 import {Alert} from '@/lib/types';
 import {type, useColors} from '@/theme';
@@ -66,11 +67,15 @@ export default function SosLive() {
         if (alert && alert.status !== 'sent') router.replace('/(tabs)');
     }, [alert?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const resolve = async () => {
+    // Every opening starts clean: a PIN typed and abandoned must not be sitting in the field.
+    const openConfirm = () => { setPin(''); setPinError(null); setConfirm(true); };
+
+    const resolve = async (withPin?: string) => {
+        if (busy) return;
         setBusy(true);
         setPinError(null);
         try {
-            await alertsApi.resolve(alertId, pinSet ? pin : undefined);
+            await alertsApi.resolve(alertId, pinSet ? (withPin ?? pin) : undefined);
             setConfirm(false);
             router.replace({pathname: '/alert/resolved', params: {id: String(alertId)}});
         } catch (e: any) {
@@ -165,7 +170,7 @@ export default function SosLive() {
                         </View>
                         <View style={styles.actions}>
                             <Button title="Call 112" icon="phone" variant="danger" size="M" style={styles.flex} onPress={() => Linking.openURL('tel:112')}/>
-                            <Button title="I’m safe" variant="outline" size="M" style={styles.flex} onPress={() => setConfirm(true)}/>
+                            <Button title="I’m safe" variant="outline" size="M" style={styles.flex} onPress={openConfirm}/>
                         </View>
                     </>
                 ) : (
@@ -195,7 +200,7 @@ export default function SosLive() {
                         </ScrollView>
                         <View style={styles.actions}>
                             <Button title="Call 112" variant="danger" size="M" style={styles.flex} onPress={() => Linking.openURL('tel:112')}/>
-                            <Button title="I'm safe now" size="M" style={styles.flex} onPress={() => setConfirm(true)}/>
+                            <Button title="I'm safe now" size="M" style={styles.flex} onPress={openConfirm}/>
                         </View>
                     </>
                 )}
@@ -209,6 +214,8 @@ export default function SosLive() {
 
             <Modal visible={confirm} transparent animationType="slide" onRequestClose={() => setConfirm(false)}>
                 <Pressable style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(0,0,0,0.4)'}]} onPress={() => setConfirm(false)}/>
+                {/* The number pad must never cover "Yes, I'm safe": the sheet rides up with the keyboard. */}
+                <KeyboardAvoidingView behavior="padding" pointerEvents="box-none" style={styles.confirmWrap}>
                 <View style={[styles.confirm, {backgroundColor: c.bg.surface, paddingBottom: Math.max(insets.bottom, 34)}]}>
                     <View style={[styles.grabber, {alignSelf: 'center', backgroundColor: c.border.default}]}/>
                     <Image source={require('@/assets/illustrations/secure.png')} style={styles.secure} contentFit="contain"/>
@@ -224,7 +231,12 @@ export default function SosLive() {
                             <Text variant="label">Safety PIN</Text>
                             <TextInput value={pin} autoFocus secureTextEntry keyboardType="number-pad" placeholder="••••"
                                        placeholderTextColor={c.text.muted}
-                                       onChangeText={(v) => { setPin(v.replace(/\D/g, '').slice(0, 8)); setPinError(null); }}
+                                       onChangeText={(v) => {
+                                           const digits = v.replace(/\D/g, '').slice(0, 8);
+                                           setPin(digits);
+                                           setPinError(null);
+                                           if (pinAutoSubmits(digits, pinSet)) resolve(digits);
+                                       }}
                                        style={[type.body, styles.pin, {borderColor: pinError ? c.feedback.error : c.border.default, color: c.text.primary}]}/>
                             {pinError ? <Text variant="footnote" color={c.feedback.error}>{pinError}</Text> : null}
                         </View>
@@ -233,6 +245,7 @@ export default function SosLive() {
                     <Button title="Yes, I’m safe" onPress={resolve} loading={busy} disabled={pinSet && pin.length < 4}/>
                     <Button title="Not yet" variant="text" onPress={() => { setConfirm(false); setPin(''); }}/>
                 </View>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );
@@ -258,7 +271,8 @@ const styles = StyleSheet.create({
     guardIcon: {width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center'},
     guardCall: {width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center'},
     dim: {...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.94)', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 60},
-    confirm: {position: 'absolute', left: 0, right: 0, bottom: 0, gap: 16, paddingTop: 10, paddingHorizontal: 16, borderTopLeftRadius: 28, borderTopRightRadius: 28},
+    confirmWrap: {...StyleSheet.absoluteFillObject, justifyContent: 'flex-end'},
+    confirm: {gap: 16, paddingTop: 10, paddingHorizontal: 16, borderTopLeftRadius: 28, borderTopRightRadius: 28},
     secure: {width: 82, height: 82, alignSelf: 'center'},
     pin: {height: 52, borderWidth: 1, borderRadius: 12, paddingHorizontal: 16},
 });
