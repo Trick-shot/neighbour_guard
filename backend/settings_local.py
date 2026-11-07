@@ -26,6 +26,7 @@ DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': str(BAS
 CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEV_SHOW_CODES = True               # phone codes printed here when no SMS is configured
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = False  # a failed push (no network) must not fail the request
 CELERY_BROKER_URL = 'memory://'

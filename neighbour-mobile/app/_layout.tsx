@@ -1,6 +1,6 @@
 import {router, Stack} from 'expo-router';
 import {useEffect} from 'react';
-import {Platform} from 'react-native';
+import {LogBox, Platform} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {KeyboardProvider} from 'react-native-keyboard-controller';
 
@@ -9,6 +9,10 @@ import {AuthProvider, useAuth} from '@/context/AuthContext';
 import {BottomSheetProvider} from '@/context/BottomSheetContext';
 import {setOnLoggedOut} from '@/lib/api';
 import {listenForSos, registerForSos, setupNotificationChannels} from '@/lib/notifications';
+
+// expo-av's deprecation notice raised a dev-build toast over the main button on every screen.
+// It is about a future SDK, not this one; the audio code is on the roadmap to move to expo-audio.
+LogBox.ignoreLogs(['[expo-av]']);
 
 if (Platform.OS !== 'web') setupNotificationChannels();
 

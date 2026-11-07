@@ -89,7 +89,7 @@ missing onboarding Safety stage.)*
 - *(2026-11-05)* Monthly re-billing of street plans (`renews`) is recorded but no task charges the
   second month yet.
 
-- *(2026-11-05, paused by Erick until after the DIC pitch — do first after it)* **Duress leak in
+- *(2026-11-05; chat-card part FIXED 2026-11-07, banner still open)* **Duress leak in
   chat:** `alert_summary` (chat alert cards, broadcast to the whole group) carries
   `status: sent` + `under_duress: true`, and the sender is in that group — so the sender's own chat
   shows "LIVE" while their alert screen says "resolved". Send the sender a masked copy. Also show

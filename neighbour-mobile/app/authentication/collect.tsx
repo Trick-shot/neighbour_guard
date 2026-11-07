@@ -23,7 +23,7 @@ const ITEMS: { icon: IconName; title: string; body: string }[] = [
 export default function OnboardingCollect() {
     const c = useColors();
     const insets = useSafeAreaInsets();
-    const [agreed, setAgreed] = useState(true);
+    const [agreed, setAgreed] = useState(false); // consent is given, never assumed
 
     return (
         <View style={[styles.screen, {backgroundColor: c.bg.surface, paddingTop: insets.top}]}>

@@ -85,7 +85,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({'type': 'typing', **event['payload']}))
 
     async def chat_alert_update(self, event):
-        await self.send(text_data=json.dumps({'type': 'alert_update', **event['payload']}))
+        from alerts.services import summary_for
+        payload = summary_for(event['payload'], getattr(self.user, 'pk', None))
+        await self.send(text_data=json.dumps({'type': 'alert_update', **payload}))
 
     # --- database ----------------------------------------------------------
     @database_sync_to_async

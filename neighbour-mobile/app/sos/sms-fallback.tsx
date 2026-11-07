@@ -48,7 +48,7 @@ export default function SmsFallback() {
         `SOS ${String(type).toUpperCase()}`,
         home?.house_number ? `House ${home.house_number}, ${home.street}` : null,
         here ? `${here.lat.toFixed(4)}, ${here.lng.toFixed(4)}` : null,
-        `ref ${ref}`,
+        ref ? `ref ${ref}` : null,
     ].filter(Boolean);
     const body = parts.join(' · ');
 

@@ -93,9 +93,11 @@ class PhoneNumberSendOTP(APIView):
         )
 
         sent = send_sms(f'Your NeighbourGuard verification code is {otp_code}. Valid for 10 minutes.', [phone_number])
-        if not sent and settings.DEBUG:
-            # Local development only: lets you finish sign-up without SMS credentials.
-            logger.debug('DEBUG OTP for user %s: %s', request.user.pk, otp_code)
+        if not sent and getattr(settings, 'DEV_SHOW_CODES', False):
+            # backend.settings_local only: shows the code in the runserver terminal, the same way
+            # the console email backend shows emailed codes. Never a logger: logs get shipped.
+            import sys
+            sys.stderr.write(f'\n[settings_local] phone code: {otp_code}\n')
 
         return Response({'message': 'OTP sent'}, status=status.HTTP_200_OK)
 

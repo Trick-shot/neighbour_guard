@@ -125,6 +125,23 @@ reports that it cannot tell, and opens the setting, instead of displaying a gree
 
 ---
 
+## 2026-11-07 — Claude (claude.ai) — demo-day fixes from the test report
+
+**Fixed** (docs/TEST-REPORT-2026-11-06.md): F-001 "I'm coming" invisible in dark mode (white
+button + chat card now use fixed light ink); F-002 expo-av dev toast silenced; F-005 a later
+"seen" can no longer undo coming/arrived/can't (server, tested); F-006 sender sees homes alerted
+(`recipients`), not pushes accepted; F-007 sender's alert history masks duress as resolved
+(tested); the parked chat-card duress leak (socket alert_update masked per viewer, tested);
+F-008 timeouts count as offline; F-011 Back on the slides no longer exits; F-012 phone OTP no
+longer logged (printed only under settings_local); F-014 consent not pre-ticked; F-017/18
+real-looking placeholders; F-022 dangling "· ref". Tests: 237 OK, tsc clean.
+
+**Erick must do before building the demo phones:** F-003/F-004 — set `neighbour-mobile/.env`
+`EXPO_PUBLIC_API_URL` / `EXPO_PUBLIC_WS_URL` to the Mac's LAN IP on the day, and
+`EXPO_PUBLIC_SOS_SHORTCODE` if the SMS path is shown; then rebuild.
+
+**Left:** F-009, F-010, F-013, F-015, F-016, F-019–F-021, F-023–F-029 (P2/P3).
+
 ## 2026-11-05 — Claude Code — first local run of the full design on Mac
 
 **Ran.** Backend on `backend.settings_local` (SQLite, no Redis, no worker): `migrate` clean, all

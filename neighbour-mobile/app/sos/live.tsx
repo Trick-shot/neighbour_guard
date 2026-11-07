@@ -91,10 +91,12 @@ export default function SosLive() {
     const guardLine = guard ? (guard.status === 'requested' ? `${guard.provider} notified`
         : guard.eta_min != null ? `guard in about ${guard.eta_min} min` : 'guard on the way') : null;
 
+    const homes = alert?.recipients ?? alert?.notified_count ?? 0;
     const subtitle = coming.length
         ? [eta != null ? `Neighbours in ${eta} min` : `${coming.length} coming`, guard && guard.status !== 'requested' ? guardLine : null]
             .filter(Boolean).join(' · ')
-        : `${alert?.notified_count ?? 0} neighbours alerted · waiting for someone to respond`;
+        // Homes the alert reached (recipients), not pushes accepted: a push hiccup must not read "0".
+        : `${homes} ${homes === 1 ? 'home' : 'homes'} alerted · waiting for someone to respond`;
     const firstLine = coming.length === 1 && eta != null && !guard ? `First neighbour arrives in about ${eta} min` : subtitle;
 
     return (
@@ -155,7 +157,7 @@ export default function SosLive() {
                             <Text variant="title2">Widening your alert</Text>
                         </View>
                         <View style={{gap: 12}}>
-                            <Step icon="check" tone="success" text={`${alert?.notified_count ?? 0} neighbours within 500 m were alerted`}/>
+                            <Step icon="check" tone="success" text={`${homes} ${homes === 1 ? 'home' : 'homes'} within 500 m were alerted`}/>
                             <Step icon="siren" tone="brand" text={widened ? 'Now alerting more homes within 1 000 m'
                                 : `If nobody answers by 2:00, homes up to 1 000 m are alerted too`}/>
                             {guard && <Step icon="shield-check" tone="brand" text={guard.eta_min != null

@@ -48,9 +48,9 @@ export default function OnboardingContact() {
                         They get an SMS with your location when you send an SOS. They don’t need the app.
                     </Text>
                 </View>
-                <TextField label="Name" value={name} placeholder="Grace Luoga" autoCapitalize="words" onChangeText={setName}/>
+                <TextField label="Name" value={name} placeholder="Their name" autoCapitalize="words" onChangeText={setName}/>
                 <TextField label="Relationship" value={relation} placeholder="Mother" autoCapitalize="words" onChangeText={setRelation}/>
-                <TextField label="Phone number" value={phone} placeholder="+255 713 452 221" keyboardType="phone-pad"
+                <TextField label="Phone number" value={phone} placeholder="07xx xxx xxx" keyboardType="phone-pad"
                            error={error} onChangeText={(v) => { setPhone(v); setError(null); }}/>
             </KeyboardAwareScrollView>
             <Footer>

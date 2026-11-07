@@ -52,12 +52,16 @@ api.axiosInstance.interceptors.response.use(undefined, async (error) => {
     return api.axiosInstance(original);
 });
 
+// Flaky wifi usually times out rather than refusing: all of these mean "no usable connection",
+// so Home shows the offline banner and SOS falls back to SMS instead of waiting on a calm screen.
+const OFFLINE = new Set(['NETWORK_ERROR', 'TIMEOUT_ERROR', 'CONNECTION_ERROR']);
+
 /** Unwraps an apisauce response or throws an Error with the server's message. */
 export async function call<T>(promise: Promise<ApiResponse<T>>): Promise<T> {
     const res = await promise;
     if (res.ok) return res.data as T;
     const body = res.data as any;
-    const message = body?.detail || body?.error || (res.problem === 'NETWORK_ERROR' ? 'No connection' : 'Something went wrong');
+    const message = body?.detail || body?.error || (OFFLINE.has(res.problem as string) ? 'No connection' : 'Something went wrong');
     const err = new Error(message) as Error & { status?: number; code?: string };
     err.status = res.status;
     err.code = body?.code;

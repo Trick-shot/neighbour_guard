@@ -1,6 +1,7 @@
 import {ActivityIndicator, Pressable, StyleProp, StyleSheet, View, ViewStyle} from 'react-native';
 
 import {radius, useColors} from '@/theme';
+import {palettes} from '@/theme/colors';
 
 import Icon, {IconName} from './Icon';
 import Text from './Text';
@@ -32,7 +33,8 @@ export default function Button({title, onPress, variant = 'primary', size = 'L',
         text: {bg: 'transparent', pressed: c.bg.subtle, fg: c.text.brand},
         // Figma "Secondary": brand-subtle fill, brand text ("Test my alarm").
         subtle: {bg: c.bg.brandSubtle, pressed: c.bg.subtle, fg: c.text.brand},
-        white: {bg: '#ffffff', pressed: '#f0f2f5', fg: c.text.primary},
+        // Always a white pill on a coloured screen, so its label is the light theme's ink in both modes.
+        white: {bg: palettes.light.bg.surface, pressed: palettes.light.bg.subtle, fg: palettes.light.text.primary},
         outlineOnDark: {bg: 'transparent', pressed: 'rgba(255,255,255,0.08)', fg: '#ffffff', border: 'rgba(255,255,255,0.5)', borderWidth: 1.5},
     };
     const p = palette[variant];

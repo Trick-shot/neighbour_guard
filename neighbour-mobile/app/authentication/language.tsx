@@ -23,7 +23,8 @@ export default function OnboardingLanguage() {
         await prefs.setLanguage(lang);
         // From Profile it is a setting, so go back there; on a new phone it leads on to the slides.
         if (from === 'profile') router.back();
-        else router.replace('/authentication/onboarding');
+        // push, not replace: Android Back on the slides returns here instead of closing the app.
+        else router.push('/authentication/onboarding');
     };
 
     return (

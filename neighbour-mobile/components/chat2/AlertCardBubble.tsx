@@ -5,6 +5,7 @@ import Avatar from '@/components/ui/Avatar';
 import Text from '@/components/ui/Text';
 import {Alert} from '@/lib/types';
 import {alertColor, shadow, useColors} from '@/theme';
+import {palettes} from '@/theme/colors';
 
 /**
  * Figma "Chat bubble · Alert" (1710:11272): a white bubble holding a live alert card in the alert's
@@ -66,7 +67,7 @@ export default function AlertCardBubble({alert, sender, time, body, mine, canRes
                     </View>
                     {live && canRespond && (
                         <Pressable onPress={onComing} style={styles.coming} accessibilityRole="button">
-                            <Text variant="buttonM">I’m coming</Text>
+                            <Text variant="buttonM" color={palettes.light.text.primary}>I’m coming</Text>
                         </Pressable>
                     )}
                 </View>

@@ -157,3 +157,42 @@ class RoutinePushTests(TestCase):
         with mock.patch('alerts.push.send') as send:
             issue_tasks.notify_followers(issue.pk, 'resolved')
         send.assert_not_called()
+
+
+class DemoFixesTests(APITestCase):
+    """Test report 2026-11-06: F-005 (seen demotes a responder) and F-007 + chat card (duress leaks)."""
+
+    def setUp(self):
+        self.sara = user('s@x.tz', 'Sara')
+        self.home = home(self.sara, house='109')
+        self.juma = user('j@x.tz', 'Juma')
+        home(self.juma, house='110', north=80)
+        self.alert = live_alert(self.sara, self.home)
+
+    def test_seen_never_undoes_coming(self):
+        from alerts import services
+        services.respond(self.alert, self.juma, 'coming')
+        services.respond(self.alert, self.juma, 'seen')
+        self.assertEqual(AlertResponse.objects.get(alert=self.alert, responder=self.juma).state, 'coming')
+        services.respond(self.alert, self.juma, 'arrived')
+        services.respond(self.alert, self.juma, 'seen')
+        self.assertEqual(AlertResponse.objects.get(alert=self.alert, responder=self.juma).state, 'arrived')
+
+    def test_history_shows_my_duress_alert_as_resolved(self):
+        Alert.objects.filter(pk=self.alert.pk).update(under_duress=True)
+        self.client.force_authenticate(self.sara)
+        row = self.client.get('/api/v2/alerts/history/').data['sent'][0]
+        self.assertEqual(row['status'], 'resolved')
+        self.assertIsNotNone(row['resolved_at'])
+
+    def test_chat_card_is_masked_for_the_sender_only(self):
+        from alerts.services import alert_summary, summary_for
+        Alert.objects.filter(pk=self.alert.pk).update(under_duress=True)
+        self.alert.refresh_from_db()
+        s = alert_summary(self.alert)
+        mine = summary_for(s, self.sara.pk)
+        theirs = summary_for(s, self.juma.pk)
+        self.assertEqual(mine['status'], 'resolved')
+        self.assertFalse(mine['under_duress'])
+        self.assertEqual(theirs['status'], 'sent')
+        self.assertTrue(theirs['under_duress'])

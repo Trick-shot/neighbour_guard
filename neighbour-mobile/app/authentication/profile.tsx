@@ -71,7 +71,7 @@ export default function OnboardingProfile() {
             </Pressable>
             <View style={styles.field}>
                 <TextField label="Full name" value={name} autoCapitalize="words" textContentType="name"
-                           placeholder="Erick Luoga" error={error}
+                           placeholder="Your full name" error={error}
                            onChangeText={(v) => { setName(v); setError(null); }}/>
             </View>
             <Footer><Button title="Continue" onPress={save} loading={busy}/></Footer>

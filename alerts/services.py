@@ -181,6 +181,10 @@ def respond(alert: Alert, user, state: str, eta_min=None) -> AlertResponse:
     if not can_respond(user, alert):
         raise AlertError('You are not a neighbour of this alert.', 'forbidden')
     before = AlertResponse.objects.filter(alert=alert, responder=user).values_list('state', flat=True).first()
+    # Opening the alarm again posts "seen". That must never undo "coming"/"arrived": the sender's
+    # "N responding" would silently drop while the neighbour is on their way.
+    if state == 'seen' and before in ('coming', 'arrived', 'cant'):
+        return AlertResponse.objects.get(alert=alert, responder=user)
     response, _ = AlertResponse.objects.update_or_create(
         alert=alert, responder=user, defaults={'state': state, 'eta_min': eta_min}
     )
@@ -230,6 +234,7 @@ def alert_summary(alert: Alert) -> dict:
     """Small live state for alert cards in chat (no coordinates)."""
     return {
         'alert_id': alert.id,
+        'sender_id': alert.sender_id,
         'status': alert.status,
         'type': alert.type,
         'under_duress': alert.under_duress,
@@ -244,6 +249,16 @@ def alert_summary(alert: Alert) -> dict:
             for d in alert.dispatches.select_related('provider')
         ],
     }
+
+
+def summary_for(summary: dict, user_id) -> dict:
+    """The alert card as one viewer may see it. The sender's own phone may be in an attacker's hands,
+    so under duress it shows the alert as resolved, exactly like a real "I'm safe"."""
+    if summary.get('under_duress') and summary.get('sender_id') == user_id:
+        return {**summary, 'status': Alert.Status.RESOLVED, 'under_duress': False}
+    if summary.get('sender_id') == user_id:
+        return {k: v for k, v in summary.items() if k != 'under_duress'}
+    return summary
 
 
 def active_alerts_for(user):

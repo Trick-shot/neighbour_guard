@@ -235,9 +235,11 @@ class HistoryView(APIView):
                 waits.append(max(0, (first - a.sent_at).total_seconds()))
 
         def row(a, mine):
+            # My own copy under duress reads "resolved", like every other screen on my phone.
+            masked = mine and a.under_duress
             return {
-                'id': a.id, 'type': a.type, 'status': a.status, 'message': a.message,
-                'sent_at': a.sent_at, 'resolved_at': a.resolved_at,
+                'id': a.id, 'type': a.type, 'status': Alert.Status.RESOLVED if masked else a.status, 'message': a.message,
+                'sent_at': a.sent_at, 'resolved_at': (a.resolved_at or a.sent_at) if masked else a.resolved_at,
                 'house_number': a.residence.house_number, 'street': a.residence.street,
                 'sender_name': None if mine else a.sender.full_name,
                 'responded': a.responses.filter(state__in=['coming', 'arrived']).count(),
