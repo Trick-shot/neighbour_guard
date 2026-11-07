@@ -86,3 +86,29 @@ class ChatApiTests(APITestCase):
         self.client.force_authenticate(a)
         kinds = [c['kind'] for c in self.client.get('/api/v2/chat/conversations/').data]
         self.assertEqual(kinds, ['group'])
+
+
+class AlertUpdateFrameTests(TestCase):
+    """The frame the socket sends for an alert update, as one viewer sees it."""
+
+    summary = {'type': 'robbery', 'alert_id': 7, 'sender_id': 1, 'status': 'sent', 'under_duress': True,
+               'responders': []}
+
+    def test_frame_type_is_always_alert_update_and_kind_moves_to_alert_type(self):
+        frame = services.alert_update_frame(self.summary, viewer_id=2)
+        self.assertEqual(frame['type'], 'alert_update')
+        self.assertEqual(frame['alert_type'], 'robbery')
+        self.assertEqual(frame['alert_id'], 7)
+        self.assertEqual(frame['status'], 'sent')          # a neighbour sees the truth
+        self.assertTrue(frame['under_duress'])
+
+    def test_under_duress_the_senders_frame_says_resolved_and_carries_no_duress_key(self):
+        frame = services.alert_update_frame(self.summary, viewer_id=1)
+        self.assertEqual(frame['type'], 'alert_update')
+        self.assertEqual(frame['status'], 'resolved')
+        self.assertNotIn('under_duress', frame)
+
+    def test_sender_not_under_duress_sees_live_without_the_key(self):
+        frame = services.alert_update_frame({**self.summary, 'under_duress': False}, viewer_id=1)
+        self.assertEqual(frame['status'], 'sent')
+        self.assertNotIn('under_duress', frame)

@@ -141,6 +141,22 @@ def broadcast_alert_update(alert, payload: dict):
         broadcast(conversation_id, 'chat.alert_update', payload)
 
 
+def alert_update_frame(payload: dict, viewer_id) -> dict:
+    """The socket frame one viewer gets for an alert update.
+
+    The summary carries the alert's kind under `type` ("robbery", "medical"...). Spreading it after
+    the frame type silently turned every update into `{"type": "robbery"}`, which the app ignores:
+    cards stayed LIVE after "I'm safe". The kind now travels as `alert_type` and `type` is always
+    `alert_update`. The duress mask is applied first, so the sender's own phone never learns the
+    alert is still live - not even by an `under_duress` key being present.
+    """
+    from alerts.services import summary_for
+    masked = summary_for(payload, viewer_id)
+    if masked.get('sender_id') == viewer_id:
+        masked = {k: v for k, v in masked.items() if k != 'under_duress'}
+    return {**masked, 'alert_type': masked.get('type'), 'type': 'alert_update'}
+
+
 def issue_ticket(user) -> str:
     """A 30-second, one-time ticket for opening a socket, so the JWT never travels in a URL."""
     ticket = secrets.token_urlsafe(24)
